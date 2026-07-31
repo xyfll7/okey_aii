@@ -1,5 +1,6 @@
 mod init;
 mod my_tray;
+pub mod rig_example;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
