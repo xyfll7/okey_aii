@@ -26,7 +26,8 @@ pub async fn run_chat_example(app: &tauri::AppHandle) {
     println!("👤 [test] 用户: {prompt}");
 
     // agent 是 clone 出来的独立副本，用完即弃，无需写回状态。
-    let mut stream = agent.stream_prompt(prompt).await;
+    // 这里传空历史，仅作一次性示例；连续聊天请走 send_message command。
+    let mut stream = agent.stream_chat(prompt, Vec::new()).await;
 
     // 4. 消费流式事件：ChatDelta::Text 是增量文本，ChatDelta::Done 表示结束。
     print!("🤖 [test] 助手: ");

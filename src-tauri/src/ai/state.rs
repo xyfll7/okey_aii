@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::sync::Arc;
+use rig::message::Message;
 use crate::ai::agents::Agents;
 use crate::ai::config::{AgentPreset, Provider};
 use rig::client::AgentClientExt;
@@ -9,7 +11,8 @@ pub struct ChatState {
     pub model: String,        // ← 新增
     pub preset_id: String,
     pub api_keys: HashMap<Provider, String>,
-    pub agent: Agents,
+    pub agent: Arc<Agents>,          // ← 包一层 Arc,读锁里 clone 即可立刻放锁
+    pub history: Vec<Message>,       // ← 跨轮次保留的对话历史
 }
 
 pub fn build_agent(

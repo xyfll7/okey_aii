@@ -29,16 +29,19 @@ pub fn setup_ai_state(app: &mut tauri::App) {
         model: crate::ai::config::default_model(Provider::DeepSeek).to_string(),
         preset_id: "assistant".to_string(),
         api_keys: std::collections::HashMap::from([(Provider::DeepSeek, initial_key.to_string())]),
-        agent: crate::ai::state::build_agent(
-            Provider::DeepSeek,
-            crate::ai::config::default_model(Provider::DeepSeek),
-            initial_key,
-            &crate::ai::config::builtin_presets()
-                .into_iter()
-                .find(|p| p.id == "assistant")
-                .expect("assistant preset must exist"),
-        )
-        .expect("failed to build initial agent"),
+        agent: Arc::new(
+            crate::ai::state::build_agent(
+                Provider::DeepSeek,
+                crate::ai::config::default_model(Provider::DeepSeek),
+                initial_key,
+                &crate::ai::config::builtin_presets()
+                    .into_iter()
+                    .find(|p| p.id == "assistant")
+                    .expect("assistant preset must exist"),
+            )
+            .expect("failed to build initial agent"),
+        ),
+        history: Vec::new(),
     };
     app.manage(Arc::new(RwLock::new(initial)));
 }
