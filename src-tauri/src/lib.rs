@@ -1,6 +1,8 @@
+mod ai;
 mod init;
 mod my_tray;
-pub mod rig_example;
+
+use crate::ai::commands::{list_models, switch_model, switch_provider};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -16,6 +18,11 @@ pub fn run() {
             init::init(app);
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            list_models,
+            switch_provider,
+            switch_model
+        ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|_app, event| {

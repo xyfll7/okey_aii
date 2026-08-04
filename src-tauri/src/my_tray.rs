@@ -5,12 +5,11 @@ use tauri::{
 };
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
-    let show = MenuItem::with_id(app_handle, "show", "Show", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?;
-
+    #[rustfmt::skip]
     let menu = MenuBuilder::new(app_handle)
-        .item(&show)
-        .item(&quit)
+        .item(&MenuItem::with_id(app_handle, "show", "Show", true, None::<&str>)?)
+        .item(&MenuItem::with_id(app_handle, "test", "Test", true, None::<&str>)?)
+        .item(&MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?)
         .build()?;
 
     let _tray = TrayIconBuilder::new()
@@ -24,6 +23,12 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
                 let _ = window.show();
                 let _ = window.set_focus();
             }
+        }
+        "test" => {
+            let handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                crate::ai::test::run_chat_example(&handle).await;
+            });
         }
         "quit" => app.exit(0),
         _ => {}
