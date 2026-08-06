@@ -31,5 +31,6 @@
   },
   "editor.codeActionsOnSave": {
     "source.organizeImports.biome": "explicit"
-  }
+  },
+  "rust-analyzer.server.path": "/Users/xyf/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rust-analyzer",
 }
