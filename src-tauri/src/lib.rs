@@ -1,5 +1,5 @@
 mod ai;
-mod init;
+mod my_init;
 mod my_tray;
 
 use crate::ai::commands::{clear_history, list_models, send_message, switch_model, switch_provider};
@@ -15,7 +15,7 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            init::init(app);
+            my_init::init(app);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
