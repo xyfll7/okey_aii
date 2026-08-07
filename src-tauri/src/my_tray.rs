@@ -1,7 +1,5 @@
 use tauri::{
-    menu::{MenuBuilder, MenuItem},
-    tray::TrayIconBuilder,
-    AppHandle, Manager,
+    AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, menu::{MenuBuilder, MenuItem}, tray::TrayIconBuilder
 };
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
@@ -19,16 +17,24 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
 
     app_handle.on_menu_event(|app, event| match event.id().as_ref() {
         "show" => {
-            if let Some(window) = app.get_webview_window("main") {
+            if let Some(window) = app.get_webview_window("index") {
                 let _ = window.show();
                 let _ = window.set_focus();
+            } else {
+                match WebviewWindowBuilder::new(app, "index", WebviewUrl::App("/".into()))
+                    .resizable(true)
+                    .build()
+                {
+                    Ok(window) => {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                    Err(e) => eprintln!("failed to create window: {e}"),
+                }
             }
         }
         "test" => {
-            let handle = app.clone();
-            tauri::async_runtime::spawn(async move {
-                crate::ai::test::run_chat_example(&handle).await;
-            });
+            tauri::async_runtime::spawn(async move {});
         }
         "quit" => app.exit(0),
         _ => {}
