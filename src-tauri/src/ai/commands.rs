@@ -6,7 +6,7 @@ use rig::message::Message;
 
 use crate::ai::state::{Session, build_session_agent};
 
-use super::agents::ChatDelta;
+use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
 use super::state::ChatState;
 
@@ -149,7 +149,6 @@ pub async fn send_message(
     let event_name = format!("agui-event:{session_id}");
     app.emit(&event_name, json!({ "type": "RUN_STARTED" })).ok();
 
-    // 1) 只在拿锁的一瞬间 clone 该会话的 agent/history,不带着锁 await
     let (agent, history) = {
         let guard = state.read().unwrap();
         let sess = guard
@@ -159,12 +158,13 @@ pub async fn send_message(
         (sess.agent.clone(), sess.history.clone())
     };
 
-    let mut stream = agent.stream_chat(&prompt, history).await;
+    println!("mmmmm:{:#?}",Message::from(prompt.as_str()));
+    let mut stream = agent.stream_chat(Message::from(prompt.as_str()), history).await;
     let mut full_text = String::new();
 
     while let Some(item) = stream.next().await {
         match item {
-            Ok(ChatDelta::Text(text)) if !text.is_empty() => {
+            Ok(ChatEvent::TextDelta(text)) if !text.is_empty() => {
                 full_text.push_str(&text);
                 app.emit(
                     &event_name,
@@ -172,7 +172,7 @@ pub async fn send_message(
                 )
                 .ok();
             }
-            Ok(ChatDelta::Done) => {
+            Ok(ChatEvent::Done) => {
                 app.emit(&event_name, json!({ "type": "TEXT_MESSAGE_END" })).ok();
             }
             Ok(_) => {}
@@ -212,7 +212,7 @@ pub fn list_sessions(
         .iter()
         .map(|(_, s)| s.clone())
         .collect();
-    list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    list.sort_by(|a, b| a.created_at.cmp(&b.created_at));
     list
 }
 
