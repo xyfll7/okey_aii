@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 
 export const Route = createFileRoute("/(index)/")({ component: Home });
 
-interface Session {
+export interface Session {
 	session_id: string;
 	title: string;
 	provider: string;
@@ -91,8 +91,8 @@ function Home() {
 									{s.provider} / {s.model} / {s.preset_id} / {s.session_id}
 								</span>
 							</div>
-							<SessionView sessionId={s.session_id} />
-							<InputGroupBlockEnd sessionId={s.session_id} />
+							<SessionView session_id={s.session_id} />
+							<InputGroupBlockEnd session_id={s.session_id} />
 						</TabsContent>
 					))}
 				</Tabs>
@@ -102,7 +102,7 @@ function Home() {
 }
 
 /// 单个会话视图:加载历史 + 监听流式事件,渲染聊天气泡。
-function SessionView({ sessionId }: { sessionId: string }) {
+function SessionView({ session_id }: { session_id: string }) {
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	/// 正在生成中的助手回复(流式累积,完成后并入 messages)
 	const [streaming, setStreaming] = useState<string>("");
@@ -110,10 +110,10 @@ function SessionView({ sessionId }: { sessionId: string }) {
 	console.log("sssssid::",messages)
 	// 1) 首次进入加载历史
 	const reload = useCallback(() => {
-		invoke<ChatMessage[]>("get_history", { sessionId })
+		invoke<ChatMessage[]>("get_history", { session_id })
 			.then(setMessages)
 			.catch(console.error);
-	}, [sessionId]);
+	}, [session_id]);
 
 	useEffect(() => {
 		reload();
@@ -121,7 +121,7 @@ function SessionView({ sessionId }: { sessionId: string }) {
 
 	// 2) 监听该 session 的事件流
 	useEffect(() => {
-		const event_name = `agui-event:${sessionId}`;
+		const event_name = `agui-event:${session_id}`;
 		let unlisten: (() => void) | undefined;
 
 		(async () => {
@@ -167,7 +167,7 @@ function SessionView({ sessionId }: { sessionId: string }) {
 		return () => {
 			unlisten?.();
 		};
-	}, [sessionId]);
+	}, [session_id]);
 
 	// 3) 自动滚动到底
 	// biome-ignore lint/correctness/useExhaustiveDependencies: 副作用仅滚动,依赖用于触发
@@ -222,7 +222,7 @@ function Bubble({
 }
 
 /// 输入框 + 发送按钮:调用 send_message,流式结果由 SessionView 监听展示。
-export function InputGroupBlockEnd({ sessionId }: { sessionId: string }) {
+export function InputGroupBlockEnd({ session_id }: { session_id: string }) {
 	const [text, setText] = useState("");
 	const [sending, setSending] = useState(false);
 	const MAX = 280;
@@ -233,13 +233,13 @@ export function InputGroupBlockEnd({ sessionId }: { sessionId: string }) {
 		setSending(true);
 		setText("");
 		try {
-			await invoke("send_message", { sessionId, prompt });
+			await invoke("send_message", { session_id, prompt });
 		} catch (e) {
 			console.error(e);
 		} finally {
 			setSending(false);
 		}
-	}, [text, sending, sessionId]);
+	}, [text, sending, session_id]);
 
 	return (
 		<FieldGroup className="max-w-sm">

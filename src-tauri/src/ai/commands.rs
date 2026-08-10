@@ -12,12 +12,12 @@ use super::state::ChatState;
 
 use tauri::{Emitter, State};
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
     available_models(provider).to_vec()
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn create_session(
     state: State<'_, Arc<RwLock<ChatState>>>,
 ) -> Result<(String, Session), String> {
@@ -55,7 +55,7 @@ pub fn create_session(
 
 /// 关闭会话并释放其历史,内存自然回收。
 /// 返回 `true` 表示确实删除了一个存在的会话,`false` 表示该 session_id 本来就没有。
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn close_session(
     state: State<'_, Arc<RwLock<ChatState>>>,
     session_id: String,
@@ -65,7 +65,7 @@ pub fn close_session(
 }
 
 /// 切换某会话的 provider:只影响该 session_id 对应的标签页。
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn switch_provider(
     state: State<'_, Arc<RwLock<ChatState>>>,
     session_id: String,
@@ -104,7 +104,7 @@ pub fn switch_provider(
 }
 
 /// 切换某会话的模型:只影响该 session_id 对应的标签页。
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn switch_model(
     state: State<'_, Arc<RwLock<ChatState>>>,
     session_id: String,
@@ -138,7 +138,7 @@ pub fn switch_model(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn send_message(
     app: tauri::AppHandle,
     state: State<'_, Arc<RwLock<ChatState>>>,
@@ -202,7 +202,7 @@ pub async fn send_message(
 }
 
 /// 列出所有已打开的会话,按创建时间倒序(最新在前)
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn list_sessions(
     state: State<'_, Arc<RwLock<ChatState>>>,
 ) -> Vec<Session> {
@@ -217,7 +217,7 @@ pub fn list_sessions(
 }
 
 /// 清空某个会话的历史(保留 agent)
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn clear_history(
     state: State<'_, Arc<RwLock<ChatState>>>,
     session_id: String,
@@ -233,7 +233,7 @@ pub fn clear_history(
 }
 
 /// 获取某个会话的聊天记录
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_history(
     state: State<'_, Arc<RwLock<ChatState>>>,
     session_id: String,
