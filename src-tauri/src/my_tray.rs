@@ -11,6 +11,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
     let menu = MenuBuilder::new(app_handle)
         .item(&MenuItem::with_id(app_handle, "show", "Show", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "test", "Test", true, None::<&str>)?)
+        .item(&MenuItem::with_id(app_handle, "drawertest", "Drawertest", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?)
         .build()?;
 
@@ -25,6 +26,9 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
         }
         "test" => {
             let _ = open_window(app, "translate", "/translate");
+        }
+        "drawertest" => {
+            let _ = open_window(app, "drawertest", "/drawertest");
         }
         "quit" => {
             app.exit(0);

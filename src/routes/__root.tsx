@@ -5,6 +5,7 @@ import { createRootRoute, Outlet } from "@tanstack/react-router";
 import "../styles.css";
 import { ChatInit } from "#/components/chat/chatInit";
 import { ChatProvider } from "#/components/chat/chatProvider";
+import { DrawerStackProvider } from "#/components/drawer-stack";
 import { ThemeProvider } from "#/components/theme-provider";
 
 export const Route = createRootRoute({
@@ -14,11 +15,13 @@ export const Route = createRootRoute({
 function RootComponent() {
 	return (
 		<ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-			<ChatProvider>
-				<ChatInit>
-					<Outlet />
-				</ChatInit>
-			</ChatProvider>
+			<DrawerStackProvider>
+				<ChatProvider>
+					<ChatInit>
+						<Outlet />
+					</ChatInit>
+				</ChatProvider>
+			</DrawerStackProvider>
 			{/* <TanStackDevtools
         config={{
           position: 'bottom-right',
