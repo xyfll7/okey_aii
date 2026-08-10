@@ -18,7 +18,7 @@ import {
 } from "#/components/ui/input-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/(index)/")({ component: Home });
 
 interface Session {
 	session_id: string;
