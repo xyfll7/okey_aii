@@ -1,6 +1,7 @@
 mod ai;
 mod my_init;
 mod my_tray;
+mod window;
 
 use crate::ai::commands::{
     clear_history, close_session, create_session, get_history, list_models, list_sessions,

@@ -1,6 +1,10 @@
 use tauri::{
-    AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, menu::{MenuBuilder, MenuItem}, tray::TrayIconBuilder
+    menu::{MenuBuilder, MenuItem},
+    tray::TrayIconBuilder,
+    AppHandle,
 };
+
+use crate::window::open_window;
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
     #[rustfmt::skip]
@@ -17,26 +21,14 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
 
     app_handle.on_menu_event(|app, event| match event.id().as_ref() {
         "show" => {
-            if let Some(window) = app.get_webview_window("index") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            } else {
-                match WebviewWindowBuilder::new(app, "index", WebviewUrl::App("/".into()))
-                    .resizable(true)
-                    .build()
-                {
-                    Ok(window) => {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                    }
-                    Err(e) => eprintln!("failed to create window: {e}"),
-                }
-            }
+            let _ = open_window(app, "index", "/");
         }
         "test" => {
-            tauri::async_runtime::spawn(async move {});
+            let _ = open_window(app, "translate", "/translate");
         }
-        "quit" => app.exit(0),
+        "quit" => {
+            app.exit(0);
+        }
         _ => {}
     });
 
