@@ -29,11 +29,9 @@ export interface Session {
 	created_at: number;
 }
 
-/// 单条聊天记录(对齐 rig::message::Message 的 serde 序列化)
-interface ChatMessage {
-	role: "user" | "assistant" | "system" | "tool";
-	content: string;
-}
+/// 单条聊天记录,直接对齐 rig::message::Message 的 serde 序列化 (见 src/lib/rigMessage.ts)
+import { type RigMessage, rigMessageToText } from "#/lib/rigMessage";
+
 
 function Home() {
 	const [sessions, setSessions] = useState<Session[]>([]);
@@ -103,14 +101,14 @@ function Home() {
 
 /// 单个会话视图:加载历史 + 监听流式事件,渲染聊天气泡。
 function SessionView({ session_id }: { session_id: string }) {
-	const [messages, setMessages] = useState<ChatMessage[]>([]);
+	const [messages, setMessages] = useState<RigMessage[]>([]);
 	/// 正在生成中的助手回复(流式累积,完成后并入 messages)
 	const [streaming, setStreaming] = useState<string>("");
 	const bottomRef = useRef<HTMLDivElement>(null);
 	console.log("sssssid::",messages)
 	// 1) 首次进入加载历史
 	const reload = useCallback(() => {
-		invoke<ChatMessage[]>("get_history", { session_id })
+		invoke<RigMessage[]>("get_history", { session_id })
 			.then(setMessages)
 			.catch(console.error);
 	}, [session_id]);
@@ -147,7 +145,7 @@ function SessionView({ session_id }: { session_id: string }) {
 							if (cur) {
 								setMessages((prev) => [
 									...prev,
-									{ role: "assistant", content: cur },
+									{ role: "assistant", content: [{ text: cur }] },
 								]);
 							}
 							return "";
@@ -180,15 +178,19 @@ function SessionView({ session_id }: { session_id: string }) {
 			{messages.length === 0 && !streaming && (
 				<p className="text-sm text-gray-400">开始新对话…</p>
 			)}
-			{messages.map((m, i) => (
+			{messages.map((m) => (
 				<Bubble
-					key={`${m.role}-${m.content.slice(0, 8)}-${String(i)}`}
+					key={`${m.role}-${rigMessageToText(m).length}-${rigMessageToText(m).slice(0, 10)}`}
 					variant={m.role}
-					content={m.content}
+					message={m}
 				/>
 			))}
 			{streaming && (
-				<Bubble variant="assistant" content={streaming} streaming />
+				<Bubble
+					variant="assistant"
+					message={{ role: "assistant", content: [{ text: streaming }] }}
+					streaming
+				/>
 			)}
 			<div ref={bottomRef} />
 		</div>
@@ -197,14 +199,15 @@ function SessionView({ session_id }: { session_id: string }) {
 
 function Bubble({
 	variant,
-	content,
+	message,
 	streaming,
 }: {
 	variant: string;
-	content: string;
+	message?: RigMessage;
 	streaming?: boolean;
 }) {
 	const isUser = variant === "user";
+	const content = message ? rigMessageToText(message) : "";
 	const cc = JSON.stringify(content);
 	return (
 		<div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>

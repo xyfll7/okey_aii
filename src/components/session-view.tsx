@@ -1,26 +1,9 @@
-import { useDrawerLayerId, useDrawerStack } from "@/components/drawer-stack";
-import { Button } from "@/components/ui/button";
+import { ChatList } from "#/routes/translate/-components/chatList";
+import { useDrawerLayerId } from "@/components/drawer-stack";
 
 export function SessionView() {
-	const { push, pop } = useDrawerStack();
 	const id = useDrawerLayerId();
-	return (
-		<div className="flex flex-col gap-3">
-			<Button
-				variant="outline"
-				onClick={() =>
-					push({
-						title: "SessionView",
-						showSwipeHandle: true,
-						content: <SessionView />,
-					})
-				}
-			>
-				Edit Profile →
-			</Button>
-			<Button variant="ghost" onClick={pop}>
-				Close {id}
-			</Button>
-		</div>
-	);
+	return <div>
+		<ChatList></ChatList>
+	</div>
 }
