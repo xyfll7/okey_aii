@@ -38,7 +38,9 @@ function Home() {
 	const [activeTab, setActiveTab] = useState<string>("");
 
 	const refresh = useCallback(() => {
-		invoke<Session[]>("list_sessions").then(setSessions).catch(console.error);
+		return invoke<Session[]>("list_sessions")
+			.then(setSessions)
+			.catch(console.error);
 	}, []);
 
 	useEffect(() => {
@@ -62,8 +64,9 @@ function Home() {
 				<h1 className="text-4xl font-bold">Sessions</h1>
 				<Button
 					onClick={async () => {
-						await invoke<string>("create_session");
-						refresh();
+						const [newId] = await invoke<[string, Session]>("create_session");
+						await refresh();
+						setActiveTab(newId);
 					}}
 				>
 					新建会话
