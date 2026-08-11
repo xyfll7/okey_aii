@@ -239,13 +239,13 @@ export function InputGroupBlockEnd({ session_id }: { session_id: string }) {
 		setSending(true);
 		setText("");
 		try {
-			await invoke("send_message", { session_id, prompt });
+			await invoke("send_message", { prompt });
 		} catch (e) {
 			console.error(e);
 		} finally {
 			setSending(false);
 		}
-	}, [text, sending, session_id]);
+	}, [text, sending]);
 
 	return (
 		<FieldGroup className="max-w-sm">

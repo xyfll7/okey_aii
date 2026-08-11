@@ -16,6 +16,8 @@ pub enum Agents {
 ///
 /// 从 rig 的 `MultiTurnStreamItem<R>` / `StreamedAssistantContent<R>` 中提取,
 /// 直接丢弃 provider 相关的泛型 `R`(最终响应对象),不保留 `Final` 位置。
+#[derive(Clone, serde::Serialize)]
+#[serde(tag = "type", content = "data")]
 #[allow(dead_code)]
 pub enum ChatEvent {
     /// 文本增量

@@ -1,11 +1,12 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::SystemTime;
-use rig::message::Message;
 use crate::ai::agents::Agents;
 use crate::ai::config::{builtin_presets, AgentPreset, Provider};
 use rig::client::AgentClientExt;
+use rig::message::Message;
 use rig::providers::{anthropic, deepseek, openai};
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
+use std::time::SystemTime;
+use tauri::{AppHandle, Manager, State};
 
 /// 全局共享状态:只保存 api key。
 ///
@@ -49,9 +50,33 @@ pub struct ChatState {
     pub sessions: HashMap<String, Session>,
 }
 
+/// 返回最近创建的会话 id(created_at 最大者)。没有会话时返回 None。
+pub fn latest_session_id(guard: &ChatState) -> Option<String> {
+    guard
+        .sessions
+        .values()
+        .max_by_key(|s| s.created_at)
+        .map(|s| s.session_id.clone())
+}
+
+pub fn add_message_to_history(
+    app_handle: &AppHandle,
+    session_id: String,
+    message: Message,
+) -> Result<(), String> {
+    let state: State<'_, Arc<RwLock<ChatState>>> = app_handle.state();
+    let mut guard = state.write().unwrap();
+    let sess = guard
+        .sessions
+        .get_mut(&session_id)
+        .ok_or("会话不存在,请先调用 create_session")?;
+    sess.history.push(message);
+    Ok(())
+}
+
 fn build_agent(
     provider: Provider,
-    model: &str,           // ← 新增,不再用 default_model 写死
+    model: &str, // ← 新增,不再用 default_model 写死
     api_key: &str,
     preset: &AgentPreset,
 ) -> Result<Agents, String> {

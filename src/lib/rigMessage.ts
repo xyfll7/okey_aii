@@ -55,8 +55,8 @@ export interface RigDocument {
 
 /** 工具结果内容块 (rig::message::ToolResultContent)。 */
 export type RigToolResultContent =
-	| RigText & { type: "text" }
-	| RigImage & { type: "image" }
+	| (RigText & { type: "text" })
+	| (RigImage & { type: "image" })
 	| { type: "json"; value: unknown };
 
 /** 工具结果 (rig::message::ToolResult)。 */
@@ -68,12 +68,12 @@ export interface RigToolResult {
 
 /** 用户消息内容 (rig::message::UserContent),按 type 标签区分。 */
 export type RigUserContent =
-	| RigText & { type: "text" }
-	| RigToolResult & { type: "tool_result" }
-	| RigImage & { type: "image" }
-	| RigAudio & { type: "audio" }
-	| RigVideo & { type: "video" }
-	| RigDocument & { type: "document" };
+	| (RigText & { type: "text" })
+	| (RigToolResult & { type: "tool_result" })
+	| (RigImage & { type: "image" })
+	| (RigAudio & { type: "audio" })
+	| (RigVideo & { type: "video" })
+	| (RigDocument & { type: "document" });
 
 /** 助手工具调用函数 (rig::message::ToolFunction)。 */
 export interface RigToolFunction {
@@ -106,7 +106,11 @@ export interface RigReasoning {
  * 注意: serde 为 untagged,无 `type` 标签。
  * 通过是否存在 `text` / `function` / `content`(reasoning) 字段来区分。
  */
-export type RigAssistantContent = RigText | RigToolCall | RigReasoning | RigImage;
+export type RigAssistantContent =
+	| RigText
+	| RigToolCall
+	| RigReasoning
+	| RigImage;
 
 /** 顶层消息 (rig::message::Message),按 role 标签区分。 */
 export type RigMessage =
@@ -150,83 +154,83 @@ import type { UIMessage } from "@tanstack/ai-react";
  * RigMessage 没有 id,这里用 role + 内容生成稳定 id,保证同一条消息重渲染
  * 时 key 不变。content 按类型映射为 UIMessage 的 parts(text / image / ...)。
  */
-export function rigMessageToUIMessages(rigMessages: RigMessage[]): UIMessage[] {
-	return rigMessages.map((m): UIMessage => {
-		switch (m.role) {
-			case "system":
-				return {
-					id: `system-${m.content.slice(0, 24)}`,
-					role: "system",
-					parts: [{ type: "text", content: m.content }],
-				};
-			case "user": {
-				const parts: UIMessage["parts"] = m.content.map((c) => {
-					switch (c.type) {
-						case "text":
-							return { type: "text", content: c.text } as const;
-						case "image":
-							return {
-								type: "image",
-								source: { type: "url" as const, value: "" },
-							} as const;
-						case "tool_result":
-							return { type: "text", content: JSON.stringify(c) } as const;
-						default:
-							return { type: "text", content: `[${c.type}]` } as const;
-					}
-				});
-				return {
-					id: `user-${m.content.length}-${m.content
-						.map((c) => ("text" in c ? c.text : c.type))
+export function rigMessageToUIMessage(m: RigMessage): UIMessage {
+	switch (m.role) {
+		case "system":
+			return {
+				id: `system-${m.content.slice(0, 24)}`,
+				role: "system",
+				parts: [{ type: "text", content: m.content }],
+			};
+		case "user": {
+			const parts: UIMessage["parts"] = m.content.map((c) => {
+				switch (c.type) {
+					case "text":
+						return { type: "text", content: c.text } as const;
+					case "image":
+						return {
+							type: "image",
+							source: { type: "url" as const, value: "" },
+						} as const;
+					case "tool_result":
+						return { type: "text", content: JSON.stringify(c) } as const;
+					default:
+						return { type: "text", content: `[${c.type}]` } as const;
+				}
+			});
+			return {
+				id: `user-${m.content.length}-${m.content
+					.map((c) => ("text" in c ? c.text : c.type))
+					.join("")
+					.slice(0, 24)}`,
+				role: "user",
+				parts,
+			};
+		}
+		case "assistant": {
+			const parts: UIMessage["parts"] = m.content.map((c) => {
+				// 注意: RigText / RigImage 都带 `[key: string]: unknown` 索引签名,
+				// 所以不能用 `"text" in c` 区分文本与图片。需要用正文字段判别。
+				if ("function" in c) {
+					const tc = c as RigToolCall;
+					return {
+						type: "tool-call",
+						id: tc.id,
+						name: tc.function.name,
+						arguments: JSON.stringify(tc.function.arguments ?? {}),
+						state: "complete" as const,
+					} as const;
+				}
+				if ("content" in c && !("data" in c)) {
+					return {
+						type: "thinking",
+						content: JSON.stringify((c as RigReasoning).content),
+					} as const;
+				}
+				if ("text" in c && !("data" in c)) {
+					return { type: "text", content: (c as RigText).text } as const;
+				}
+				// 其余(图片等):用占位文本,避免丢失消息。
+				return { type: "text", content: "[image]" } as const;
+			});
+			return {
+				id:
+					m.id ??
+					`assistant-${m.content.length}-${m.content
+						.map((c) =>
+							"text" in c && !("data" in c) ? (c as RigText).text : "img",
+						)
 						.join("")
 						.slice(0, 24)}`,
-					role: "user",
-					parts,
-				};
-			}
-			case "assistant": {
-				const parts: UIMessage["parts"] = m.content.map((c) => {
-					// 注意: RigText / RigImage 都带 `[key: string]: unknown` 索引签名,
-					// 所以不能用 `"text" in c` 区分文本与图片。需要用正文字段判别。
-					if ("function" in c) {
-						const tc = c as RigToolCall;
-						return {
-							type: "tool-call",
-							id: tc.id,
-							name: tc.function.name,
-							arguments: JSON.stringify(tc.function.arguments ?? {}),
-							state: "complete" as const,
-						} as const;
-					}
-					if ("content" in c && !("data" in c)) {
-						return {
-							type: "thinking",
-							content: JSON.stringify((c as RigReasoning).content),
-						} as const;
-					}
-					if ("text" in c && !("data" in c)) {
-						return { type: "text", content: (c as RigText).text } as const;
-					}
-					// 其余(图片等):用占位文本,避免丢失消息。
-					return { type: "text", content: "[image]" } as const;
-				});
-				return {
-					id:
-						m.id ??
-						`assistant-${m.content.length}-${m.content
-							.map((c) => ("text" in c && !("data" in c) ? (c as RigText).text : "img"))
-							.join("")
-							.slice(0, 24)}`,
-					role: "assistant",
-					parts,
-				};
-			}
-			default: {
-				const _exhaustive: never = m;
-				throw new Error(
-					`Unexpected RigMessage role: ${JSON.stringify(_exhaustive)}`,
-				);
-			}
+				role: "assistant",
+				parts,
+			};
 		}
-	});
+		default: {
+			const _exhaustive: never = m;
+			throw new Error(
+				`Unexpected RigMessage role: ${JSON.stringify(_exhaustive)}`,
+			);
+		}
+	}
 }

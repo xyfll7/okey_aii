@@ -1,16 +1,16 @@
 use std::sync::{Arc, RwLock};
 
 use futures::StreamExt;
-use serde_json::json;
 use rig::message::Message;
+use tauri::ipc::Channel;
 
-use crate::ai::state::{Session, build_session_agent};
+use crate::ai::state::{build_session_agent, Session};
 
 use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
 use super::state::ChatState;
 
-use tauri::{Emitter, State};
+use tauri::State;
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
@@ -33,7 +33,11 @@ pub fn create_session(
         .map(|s| (s.provider, s.model.clone(), s.preset_id.clone()))
         .unwrap_or_else(|| {
             let p = Provider::DeepSeek;
-            (p, crate::ai::config::default_model(p).to_string(), "assistant".to_string())
+            (
+                p,
+                crate::ai::config::default_model(p).to_string(),
+                "assistant".to_string(),
+            )
         });
 
     let agent = build_session_agent(&api_keys, provider, &model, &preset_id)?;
@@ -60,7 +64,12 @@ pub fn close_session(
     state: State<'_, Arc<RwLock<ChatState>>>,
     session_id: String,
 ) -> Result<bool, String> {
-    let removed = state.write().unwrap().sessions.remove(&session_id).is_some();
+    let removed = state
+        .write()
+        .unwrap()
+        .sessions
+        .remove(&session_id)
+        .is_some();
     Ok(removed)
 }
 
@@ -140,14 +149,15 @@ pub fn switch_model(
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn send_message(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     state: State<'_, Arc<RwLock<ChatState>>>,
-    session_id: String,
-    prompt: String,
+    on_event: Channel<ChatEvent>,
 ) -> Result<(), String> {
-    // 事件按 session_id 路由,避免跨标签页串台
-    let event_name = format!("agui-event:{session_id}");
-    app.emit(&event_name, json!({ "type": "RUN_STARTED" })).ok();
+    // 不再接收 session_id,直接找到最近创建的那个会话
+    let session_id = {
+        let guard = state.read().unwrap();
+        crate::ai::state::latest_session_id(&guard).ok_or("会话不存在,请先调用 create_session")?
+    };
 
     let (agent, history) = {
         let guard = state.read().unwrap();
@@ -158,26 +168,51 @@ pub async fn send_message(
         (sess.agent.clone(), sess.history.clone())
     };
 
-    println!("mmmmm:{:#?}",Message::from(prompt.as_str()));
-    let mut stream = agent.stream_chat(Message::from(prompt.as_str()), history).await;
-    let mut full_text = String::new();
+    // 用 OneOrMany::many 构造可以传入多条 UserContent 的 content(Many not one)
 
+    // 取出 history 中最新的一条消息作为本轮 prompt,其余作为历史传入
+    let (prompt, history) = history
+        .split_last()
+        .ok_or("history 为空,请先调用 add_message 添加用户消息")?;
+    let prompt = prompt.clone();
+      println!("abc____###{prompt:#?}__{history:#?}");
+    let mut stream = agent.stream_chat(prompt, history.to_vec()).await;
+    let mut full_text = String::new();
     while let Some(item) = stream.next().await {
         match item {
-            Ok(ChatEvent::TextDelta(text)) if !text.is_empty() => {
+            Ok(ChatEvent::TextDelta(text)) => {
+                println!("abc____${text}");
+                if text.is_empty() {
+                    continue;
+                }
                 full_text.push_str(&text);
-                app.emit(
-                    &event_name,
-                    json!({ "type": "TEXT_MESSAGE_CONTENT", "delta": text }),
-                )
-                .ok();
+                // 实时把增量推给前端
+                if on_event.send(ChatEvent::TextDelta(text)).is_err() {
+                    // 前端已断开,停止后续推送
+                    break;
+                }
+            }
+            Ok(ChatEvent::ToolCall { name, arguments }) => {
+                if on_event.send(ChatEvent::ToolCall { name, arguments }).is_err() {
+                    break;
+                }
+            }
+            Ok(ChatEvent::ToolCallDelta(s)) => {
+                if on_event.send(ChatEvent::ToolCallDelta(s)).is_err() {
+                    break;
+                }
+            }
+            Ok(ChatEvent::Reasoning(text)) => {
+                if on_event.send(ChatEvent::Reasoning(text)).is_err() {
+                    break;
+                }
             }
             Ok(ChatEvent::Done) => {
-                app.emit(&event_name, json!({ "type": "TEXT_MESSAGE_END" })).ok();
+                // 发结束信号给前端
+                let _ = on_event.send(ChatEvent::Done);
+                break;
             }
-            Ok(_) => {}
             Err(e) => {
-                app.emit(&event_name, json!({ "type": "RUN_ERROR", "message": e })).ok();
                 return Err(e);
             }
         }
@@ -188,14 +223,9 @@ pub async fn send_message(
     if let Some(sess) = guard.sessions.get_mut(&session_id) {
         // 首条消息时,用用户输入的前 20 字作为标题
         if sess.history.is_empty() {
-            let title: String = prompt.chars().take(20).collect();
-            sess.title = if prompt.chars().count() > 20 {
-                format!("{title}…")
-            } else {
-                title
-            };
+            let title: String = "".to_string();
+            sess.title = title;
         }
-        sess.history.push(Message::from(prompt.as_str())); // 用户这一轮(user 消息)
         sess.history.push(Message::assistant(full_text.as_str())); // 助手这一轮(assistant 消息)
     }
     Ok(())
@@ -203,15 +233,9 @@ pub async fn send_message(
 
 /// 列出所有已打开的会话,按创建时间倒序(最新在前)
 #[tauri::command(rename_all = "snake_case")]
-pub fn list_sessions(
-    state: State<'_, Arc<RwLock<ChatState>>>,
-) -> Vec<Session> {
+pub fn list_sessions(state: State<'_, Arc<RwLock<ChatState>>>) -> Vec<Session> {
     let guard = state.read().unwrap();
-    let mut list: Vec<Session> = guard
-        .sessions
-        .iter()
-        .map(|(_, s)| s.clone())
-        .collect();
+    let mut list: Vec<Session> = guard.sessions.iter().map(|(_, s)| s.clone()).collect();
     list.sort_by(|a, b| a.created_at.cmp(&b.created_at));
     list
 }
@@ -239,9 +263,6 @@ pub fn get_history(
     session_id: String,
 ) -> Result<Vec<Message>, String> {
     let guard = state.read().unwrap();
-    let sess = guard
-        .sessions
-        .get(&session_id)
-        .ok_or("会话不存在")?;
+    let sess = guard.sessions.get(&session_id).ok_or("会话不存在")?;
     Ok(sess.history.clone())
 }

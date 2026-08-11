@@ -110,6 +110,7 @@ dependencies = [
  "futures",
  "log",
  "rig",
+ "rig-core",
  "serde",
  "serde_json",
  "tauri",

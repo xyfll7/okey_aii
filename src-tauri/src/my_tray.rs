@@ -1,11 +1,13 @@
+use rig::{message::UserContent, OneOrMany};
 use tauri::{
     menu::{MenuBuilder, MenuItem},
     tray::TrayIconBuilder,
-    Emitter, Manager,
-    AppHandle,
+    AppHandle, Emitter, Manager,
 };
 
-use crate::window::open_window;
+use crate::{
+    ai::commands::create_session, ai::state::add_message_to_history, window::open_window,
+};
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
     #[rustfmt::skip]
@@ -31,13 +33,21 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
         "drawertest" => {
             // 发送消息：向主窗口 emit 一个 on_message 事件，前端 chatInit.tsx 会监听并处理
             if let Some(window) = app.get_webview_window("index") {
-                let _ = window.emit(
-                    "on_message",
-                    serde_json::json!({
-                        "translation_prompt": "请将下面的内容翻译成英文",
-                        "selected_text": "这是一个来自托盘菜单的示例文本",
-                    }),
-                );
+                let user_content = OneOrMany::many([
+                    UserContent::text("请将下面的内容翻译成英文"),
+                    UserContent::text("这是一个来自托盘菜单的示例文本"),
+                ]);
+                if let Ok(user_content) = user_content {
+                    let message: rig::message::Message = user_content.into();
+
+                    // 调用 create_session 创建一个新会话,拿到 session_id 后写入消息
+                    let state: tauri::State<'_, std::sync::Arc<std::sync::RwLock<crate::ai::state::ChatState>>> =
+                        app.state();
+                    if let Ok((session_id, _)) = create_session(state) {
+                        let _ = add_message_to_history(app, session_id.clone(), message.clone());
+                        let _ = window.emit("on_message", message);
+                    }
+                }
             }
         }
         "quit" => {
