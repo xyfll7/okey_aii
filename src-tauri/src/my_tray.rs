@@ -1,6 +1,7 @@
 use tauri::{
     menu::{MenuBuilder, MenuItem},
     tray::TrayIconBuilder,
+    Emitter, Manager,
     AppHandle,
 };
 
@@ -28,7 +29,16 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
             let _ = open_window(app, "translate", "/translate");
         }
         "drawertest" => {
-            let _ = open_window(app, "drawertest", "/drawertest");
+            // 发送消息：向主窗口 emit 一个 on_message 事件，前端 chatInit.tsx 会监听并处理
+            if let Some(window) = app.get_webview_window("index") {
+                let _ = window.emit(
+                    "on_message",
+                    serde_json::json!({
+                        "translation_prompt": "请将下面的内容翻译成英文",
+                        "selected_text": "这是一个来自托盘菜单的示例文本",
+                    }),
+                );
+            }
         }
         "quit" => {
             app.exit(0);
