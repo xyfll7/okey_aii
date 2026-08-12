@@ -4,11 +4,7 @@ import { useEffect } from "react";
 import { type RigMessage, rigMessageToUIMessage } from "#/lib/rigMessage";
 import { useChatContext } from "@/components/chat/chatContext";
 
-export function useChatInit({
-	session_id,
-}: {
-	session_id: string;
-}) {
+export function useChatInit({ session_id }: { session_id: string }) {
 	const { setMessages, append } = useChatContext();
 	useEffect(() => {
 		invoke<RigMessage[]>("get_history", { session_id }).then((history) => {
@@ -24,6 +20,4 @@ export function useChatInit({
 			unlisten.then((fn) => fn());
 		};
 	}, [setMessages, append, session_id]);
-
-	
 }
