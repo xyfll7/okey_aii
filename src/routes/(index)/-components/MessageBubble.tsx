@@ -1,17 +1,17 @@
 import type { UIMessage } from "@tanstack/ai-react";
 import { Markdown } from "@tanstack/markdown/react";
-import { getMessageText } from "@/components/chat/chatUtils";
+import { getMessageText } from "#/components/chat/chatUtils";
 import {
 	Bubble,
 	BubbleContent,
 	BubbleGroup,
 	BubbleReactions,
-} from "@/components/ui/bubble";
+} from "#/components/ui/bubble";
 import {
 	Message,
 	MessageContent,
 	MessageFooter,
-} from "@/components/ui/message";
+} from "#/components/ui/message";
 import { cn } from "@/lib/utils";
 
 export function MessageBubble({ message }: { message: UIMessage }) {

@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * drawer-stack.tsx
  *
@@ -30,7 +28,7 @@ import {
 	DrawerDescription,
 	DrawerHeader,
 	DrawerTitle,
-} from "@/components/ui/drawer";
+} from "#/components/ui/drawer";
 
 type SwipeDirection = "up" | "right" | "down" | "left";
 

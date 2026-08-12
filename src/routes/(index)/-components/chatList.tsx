@@ -1,16 +1,16 @@
 import { type MouseEvent, useRef } from "react";
+import { useChatContext } from "#/components/chat/chatContext";
 import { useChatInit } from "#/components/chat/chatInit";
-import { useChatContext } from "@/components/chat/chatContext";
-import { getMessageText } from "@/components/chat/chatUtils";
-import { Icons } from "@/components/icon";
+import { getMessageText } from "#/components/chat/chatUtils";
+import { Icons } from "#/components/icon";
 import {
 	Empty,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
 	EmptyTitle,
-} from "@/components/ui/empty";
-import { Marker, MarkerContent } from "@/components/ui/marker";
+} from "#/components/ui/empty";
+import { Marker, MarkerContent } from "#/components/ui/marker";
 import {
 	MessageScroller,
 	MessageScrollerButton,
@@ -18,7 +18,7 @@ import {
 	MessageScrollerItem,
 	MessageScrollerProvider,
 	MessageScrollerViewport,
-} from "@/components/ui/message-scroller";
+} from "#/components/ui/message-scroller";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 
