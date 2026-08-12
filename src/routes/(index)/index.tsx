@@ -4,7 +4,6 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import { useDrawerStack } from "#/components/drawer-stack";
 import { SessionView } from "#/components/session-view";
-import type { RigMessage } from "#/lib/rigMessage";
 import type { Session } from "#/types";
 export const Route = createFileRoute("/(index)/")({ component: Home });
 
@@ -24,15 +23,15 @@ function useSessionId() {
 	useEffect(() => {
 		invoke<Session[]>("list_sessions")
 			.then((sessions) => {
-				const [session, ...rest_sessions] = sessions;
-				session?.session_id && setSession_id(session?.session_id);
-				rest_sessions.map((e) => {
-					return push({
-						id: e.session_id,
+				const [first_session, ...rest_sessions] = sessions;
+				first_session?.session_id && setSession_id(first_session?.session_id);
+				for (const session of rest_sessions) {
+					push({
+						id: session.session_id,
 						showSwipeHandle: true,
-						content: <SessionView session_id={e.session_id} />,
+						content: <SessionView session_id={session.session_id} />,
 					});
-				});
+				}
 			})
 			.catch(console.error);
 	}, [push]);
