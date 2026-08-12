@@ -50,14 +50,6 @@ pub struct ChatState {
     pub sessions: HashMap<String, Session>,
 }
 
-/// 返回最近创建的会话 id(created_at 最大者)。没有会话时返回 None。
-pub fn latest_session_id(guard: &ChatState) -> Option<String> {
-    guard
-        .sessions
-        .values()
-        .max_by_key(|s| s.created_at)
-        .map(|s| s.session_id.clone())
-}
 
 pub fn add_message_to_history(
     app_handle: &AppHandle,

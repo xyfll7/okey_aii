@@ -17,7 +17,7 @@ export function ChatInit({
 			setMessages(history.map((e) => rigMessageToUIMessage(e)));
 		});
 		const unlisten = getCurrentWindow().listen<RigMessage>(
-			"on_message",
+			`on_message_${session_id}`,
 			(e) => {
 				append(rigMessageToUIMessage(e.payload));
 			},

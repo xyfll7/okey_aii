@@ -5,7 +5,13 @@ use tauri::{
     AppHandle, Emitter, Manager,
 };
 
-use crate::{ai::commands::create_session, ai::state::add_message_to_history, window::open_window};
+use crate::{
+    ai::{
+        commands::{create_session, list_sessions},
+        state::add_message_to_history,
+    },
+    window::open_window,
+};
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
     #[rustfmt::skip]
@@ -41,12 +47,13 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
                 ]);
                 if let Ok(user_content) = user_content {
                     let message: rig::message::Message = user_content.into();
-
-                    // 调用 create_session 创建一个新会话,拿到 session_id 后写入消息
-
-                    if let Ok((session_id, _)) = create_session(app.clone()) {
+                    let session_id = {
+                        let list = list_sessions(app.clone());
+                        list.last().map(|s| s.session_id.clone())
+                    };
+                    if let Some(session_id) = session_id {
                         let _ = add_message_to_history(app, session_id.clone(), message.clone());
-                        let _ = window.emit("on_message", message);
+                        let _ = window.emit(&format!("on_message_{session_id}"), message);
                     }
                 }
             }

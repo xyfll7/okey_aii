@@ -17,9 +17,7 @@ pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn create_session(
-    app: tauri::AppHandle,
-) -> Result<(String, Session), String> {
+pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
     let api_keys = guard.config.api_keys.clone();
@@ -60,10 +58,7 @@ pub fn create_session(
 /// 关闭会话并释放其历史,内存自然回收。
 /// 返回 `true` 表示确实删除了一个存在的会话,`false` 表示该 session_id 本来就没有。
 #[tauri::command(rename_all = "snake_case")]
-pub fn close_session(
-    app: tauri::AppHandle,
-    session_id: String,
-) -> Result<bool, String> {
+pub fn close_session(app: tauri::AppHandle, session_id: String) -> Result<bool, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let removed = state
         .write()
@@ -156,10 +151,12 @@ pub async fn send_message(
     on_event: Channel<ChatEvent>,
 ) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
-    // 不再接收 session_id,直接找到最近创建的那个会话
+
     let session_id = {
-        let guard = state.read().unwrap();
-        crate::ai::state::latest_session_id(&guard).ok_or("会话不存在,请先调用 create_session")?
+        let list = list_sessions(app.clone());
+        list.last()
+            .map(|s| s.session_id.clone())
+            .ok_or("没有可用的会话,请先调用 create_session")?
     };
 
     let (agent, history) = {
@@ -178,7 +175,7 @@ pub async fn send_message(
         .split_last()
         .ok_or("history 为空,请先调用 add_message 添加用户消息")?;
     let prompt = prompt.clone();
-      println!("abc____###{prompt:#?}__{history:#?}");
+    println!("abc____###{prompt:#?}__{history:#?}");
     let mut stream = agent.stream_chat(prompt, history.to_vec()).await;
     let mut full_text = String::new();
     while let Some(item) = stream.next().await {
@@ -196,7 +193,10 @@ pub async fn send_message(
                 }
             }
             Ok(ChatEvent::ToolCall { name, arguments }) => {
-                if on_event.send(ChatEvent::ToolCall { name, arguments }).is_err() {
+                if on_event
+                    .send(ChatEvent::ToolCall { name, arguments })
+                    .is_err()
+                {
                     break;
                 }
             }
@@ -246,10 +246,7 @@ pub fn list_sessions(app: tauri::AppHandle) -> Vec<Session> {
 
 /// 清空某个会话的历史(保留 agent)
 #[tauri::command(rename_all = "snake_case")]
-pub fn clear_history(
-    app: tauri::AppHandle,
-    session_id: String,
-) -> Result<(), String> {
+pub fn clear_history(app: tauri::AppHandle, session_id: String) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
     guard
@@ -263,10 +260,7 @@ pub fn clear_history(
 
 /// 获取某个会话的聊天记录
 #[tauri::command(rename_all = "snake_case")]
-pub fn get_history(
-    app: tauri::AppHandle,
-    session_id: String,
-) -> Result<Vec<Message>, String> {
+pub fn get_history(app: tauri::AppHandle, session_id: String) -> Result<Vec<Message>, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
     let sess = guard.sessions.get(&session_id).ok_or("会话不存在")?;

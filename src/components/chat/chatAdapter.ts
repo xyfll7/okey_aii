@@ -67,14 +67,13 @@ function startChatStream(
 }
 
 export function chatAdapter(): ConnectionAdapter {
-	return stream(async function* (messages, data, abortSignal) {
+	return stream(async function* (messages, _, abortSignal) {
 		const runId = `run-${Date.now()}`;
 		const threadId = `thread-${Date.now()}`;
 		const messageId = `msg-${Date.now()}`;
 		const model = "backend-model";
 		const now = () => Date.now();
 		const message = messages.at(-1);
-		console.log("dddd::;",data)
 		if (message?.role !== "user") {
 			return;
 		}
