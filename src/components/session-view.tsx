@@ -1,4 +1,4 @@
-import { ChatList } from "#/routes/translate/-components/chatList";
+import { ChatList } from "#/routes/(index)/-components/chatList";
 // import { useDrawerLayerId } from "@/components/drawer-stack";
 import { ChatInit } from "./chat/chatInit";
 import { ChatProvider } from "./chat/chatProvider";
