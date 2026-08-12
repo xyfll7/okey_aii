@@ -9,8 +9,7 @@ use crate::ai::state::{build_session_agent, Session};
 use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
 use super::state::ChatState;
-
-use tauri::State;
+use tauri::{State, Manager};
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
@@ -19,8 +18,9 @@ pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn create_session(
-    state: State<'_, Arc<RwLock<ChatState>>>,
+    app: tauri::AppHandle,
 ) -> Result<(String, Session), String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
     let api_keys = guard.config.api_keys.clone();
 

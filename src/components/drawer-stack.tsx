@@ -88,10 +88,20 @@ function makeId() {
 
 export function DrawerStackProvider({
 	children,
+	onClose,
 }: {
 	children: React.ReactNode;
+	/** called with the ids being closed whenever `closeMany` runs */
+	onClose?: (ids: string[]) => void;
 }) {
 	const [layers, setLayers] = React.useState<DrawerLayerState[]>([]);
+
+	// Always-fresh snapshot of onClose for imperative callbacks, so we never
+	// call a stale version if the parent re-renders with a new handler.
+	const onCloseRef = React.useRef(onClose);
+	React.useEffect(() => {
+		onCloseRef.current = onClose;
+	}, [onClose]);
 	// ids that are mid exit-animation and should be spliced out once
 	// Base UI reports the transition as complete.
 	const [closingIds, setClosingIds] = React.useState<Set<string>>(new Set());
@@ -121,6 +131,7 @@ export function DrawerStackProvider({
 	 * get stuck in `closingIds` forever and block the stack from reopening.
 	 */
 	const closeMany = React.useCallback((ids: string[]) => {
+		onCloseRef.current?.(ids);
 		if (ids.length === 0) return;
 
 		if (ids.length === 1) {

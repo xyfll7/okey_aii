@@ -36,8 +36,7 @@ pub fn setup_ai_state(app: &mut tauri::App) {
     app.manage(Arc::new(RwLock::new(initial)));
 
     // 状态注册后，立即调用 create_session 预创建首个 session
-    let state = app.state::<Arc<RwLock<ChatState>>>();
-    if let Err(e) = create_session(state) {
+    if let Err(e) = create_session(app.handle().clone()) {
         log::error!("failed to create initial session: {e}");
     }
 }

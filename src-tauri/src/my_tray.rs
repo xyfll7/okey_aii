@@ -5,15 +5,13 @@ use tauri::{
     AppHandle, Emitter, Manager,
 };
 
-use crate::{
-    ai::commands::create_session, ai::state::add_message_to_history, window::open_window,
-};
+use crate::{ai::commands::create_session, ai::state::add_message_to_history, window::open_window};
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
     #[rustfmt::skip]
     let menu = MenuBuilder::new(app_handle)
         .item(&MenuItem::with_id(app_handle, "show", "Show", true, None::<&str>)?)
-        .item(&MenuItem::with_id(app_handle, "test", "Test", true, None::<&str>)?)
+        .item(&MenuItem::with_id(app_handle, "create_session", "CreateSession", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "drawertest", "Drawertest", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?)
         .build()?;
@@ -27,8 +25,12 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
         "show" => {
             let _ = open_window(app, "index", "/");
         }
-        "test" => {
-            let _ = open_window(app, "translate", "/translate");
+        "create_session" => {
+            if let Some(window) = app.get_webview_window("index") {
+                if let Ok((session_id, _)) = create_session(app.clone()) {
+                    let _ = window.emit("on_create_session", session_id);
+                }
+            }
         }
         "drawertest" => {
             // 发送消息：向主窗口 emit 一个 on_message 事件，前端 chatInit.tsx 会监听并处理
@@ -41,9 +43,8 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
                     let message: rig::message::Message = user_content.into();
 
                     // 调用 create_session 创建一个新会话,拿到 session_id 后写入消息
-                    let state: tauri::State<'_, std::sync::Arc<std::sync::RwLock<crate::ai::state::ChatState>>> =
-                        app.state();
-                    if let Ok((session_id, _)) = create_session(state) {
+
+                    if let Ok((session_id, _)) = create_session(app.clone()) {
                         let _ = add_message_to_history(app, session_id.clone(), message.clone());
                         let _ = window.emit("on_message", message);
                     }
