@@ -4,14 +4,6 @@ import { type ReactNode, useEffect } from "react";
 import { type RigMessage, rigMessageToUIMessage } from "#/lib/rigMessage";
 import { useChatContext } from "@/components/chat/chatContext";
 
-export interface Session {
-	session_id: string;
-	title: string;
-	provider: string;
-	model: string;
-	preset_id: string;
-	created_at: number;
-}
 export function ChatInit({
 	children,
 	session_id,
