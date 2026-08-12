@@ -7,6 +7,6 @@ export const Route = createFileRoute("/translate/")({
 
 function RouteComponent() {
 	return (
-		<SessionView/>
+		<SessionView session_id="1234"/>
 	);
 }

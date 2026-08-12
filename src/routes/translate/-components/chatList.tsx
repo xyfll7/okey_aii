@@ -82,8 +82,6 @@ export function ChatList() {
                     <MessageScrollerButton className="start-s-1/2" />
                 </MessageScroller>
             )}
-
-
         </MessageScrollerProvider>
     )
 }

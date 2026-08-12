@@ -2,21 +2,28 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type ReactNode, useEffect } from "react";
 import { type RigMessage, rigMessageToUIMessage } from "#/lib/rigMessage";
-import type { Session } from "#/routes/(index)";
 import { useChatContext } from "@/components/chat/chatContext";
-export function ChatInit({ children }: { children: ReactNode }) {
+
+export interface Session {
+	session_id: string;
+	title: string;
+	provider: string;
+	model: string;
+	preset_id: string;
+	created_at: number;
+}
+export function ChatInit({
+	children,
+	session_id,
+}: {
+	children: ReactNode;
+	session_id: string;
+}) {
 	const { setMessages, append } = useChatContext();
 	useEffect(() => {
-		invoke<Session[]>("list_sessions")
-			.then((sessions) => {
-				const session = sessions.at(0);
-				invoke<RigMessage[]>("get_history", {
-					session_id: session?.session_id,
-				}).then((history) => {
-					setMessages(history.map((e) => rigMessageToUIMessage(e)));
-				});
-			})
-			.catch(console.error);
+		invoke<RigMessage[]>("get_history", { session_id }).then((history) => {
+			setMessages(history.map((e) => rigMessageToUIMessage(e)));
+		});
 		const unlisten = getCurrentWindow().listen<RigMessage>(
 			"on_message",
 			(e) => {
@@ -26,7 +33,7 @@ export function ChatInit({ children }: { children: ReactNode }) {
 		return () => {
 			unlisten.then((fn) => fn());
 		};
-	}, [setMessages, append]);
+	}, [setMessages, append, session_id]);
 
 	return children;
 }
