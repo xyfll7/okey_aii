@@ -9,7 +9,7 @@ use crate::ai::state::{build_session_agent, Session};
 use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
 use super::state::ChatState;
-use tauri::{State, Manager};
+use tauri::Manager;
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
@@ -61,9 +61,10 @@ pub fn create_session(
 /// 返回 `true` 表示确实删除了一个存在的会话,`false` 表示该 session_id 本来就没有。
 #[tauri::command(rename_all = "snake_case")]
 pub fn close_session(
-    state: State<'_, Arc<RwLock<ChatState>>>,
+    app: tauri::AppHandle,
     session_id: String,
 ) -> Result<bool, String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
     let removed = state
         .write()
         .unwrap()
@@ -76,11 +77,12 @@ pub fn close_session(
 /// 切换某会话的 provider:只影响该 session_id 对应的标签页。
 #[tauri::command(rename_all = "snake_case")]
 pub fn switch_provider(
-    state: State<'_, Arc<RwLock<ChatState>>>,
+    app: tauri::AppHandle,
     session_id: String,
     provider: Provider,
     api_key: Option<String>,
 ) -> Result<(), String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
     if let Some(key) = api_key {
         guard.config.api_keys.insert(provider, key);
@@ -115,10 +117,11 @@ pub fn switch_provider(
 /// 切换某会话的模型:只影响该 session_id 对应的标签页。
 #[tauri::command(rename_all = "snake_case")]
 pub fn switch_model(
-    state: State<'_, Arc<RwLock<ChatState>>>,
+    app: tauri::AppHandle,
     session_id: String,
     model: String,
 ) -> Result<(), String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
 
     // 先取出该校话的配置字段(Copy/String),释放不可变借用,后面才能再取可变引用
@@ -149,10 +152,10 @@ pub fn switch_model(
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn send_message(
-    _app: tauri::AppHandle,
-    state: State<'_, Arc<RwLock<ChatState>>>,
+    app: tauri::AppHandle,
     on_event: Channel<ChatEvent>,
 ) -> Result<(), String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
     // 不再接收 session_id,直接找到最近创建的那个会话
     let session_id = {
         let guard = state.read().unwrap();
@@ -233,7 +236,8 @@ pub async fn send_message(
 
 /// 列出所有已打开的会话,按创建时间倒序(最新在前)
 #[tauri::command(rename_all = "snake_case")]
-pub fn list_sessions(state: State<'_, Arc<RwLock<ChatState>>>) -> Vec<Session> {
+pub fn list_sessions(app: tauri::AppHandle) -> Vec<Session> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
     let mut list: Vec<Session> = guard.sessions.iter().map(|(_, s)| s.clone()).collect();
     list.sort_by(|a, b| a.created_at.cmp(&b.created_at));
@@ -243,9 +247,10 @@ pub fn list_sessions(state: State<'_, Arc<RwLock<ChatState>>>) -> Vec<Session> {
 /// 清空某个会话的历史(保留 agent)
 #[tauri::command(rename_all = "snake_case")]
 pub fn clear_history(
-    state: State<'_, Arc<RwLock<ChatState>>>,
+    app: tauri::AppHandle,
     session_id: String,
 ) -> Result<(), String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
     guard
         .sessions
@@ -259,9 +264,10 @@ pub fn clear_history(
 /// 获取某个会话的聊天记录
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_history(
-    state: State<'_, Arc<RwLock<ChatState>>>,
+    app: tauri::AppHandle,
     session_id: String,
 ) -> Result<Vec<Message>, String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
     let sess = guard.sessions.get(&session_id).ok_or("会话不存在")?;
     Ok(sess.history.clone())
