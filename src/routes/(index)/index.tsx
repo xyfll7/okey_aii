@@ -10,11 +10,7 @@ export const Route = createFileRoute("/(index)/")({ component: Home });
 function Home() {
 	useBackendEvent();
 	const session_id = useSessionId();
-	return (
-		<div className="p-8">
-			{session_id && <SessionView session_id={session_id} />}
-		</div>
-	);
+	return session_id && <SessionView session_id={session_id} />
 }
 
 function useSessionId() {

@@ -71,15 +71,6 @@ export function useDrawerStack() {
 	return ctx;
 }
 
-// Identifies which layer a piece of `content` is currently rendered in, so
-// it can e.g. call closeTo(id) on itself without a bespoke per-layer prop.
-const DrawerLayerIdContext = React.createContext<string | null>(null);
-
-/** Returns the id of the layer this component is rendered inside, or null. */
-export function useDrawerLayerId() {
-	return React.useContext(DrawerLayerIdContext);
-}
-
 function makeId() {
 	return typeof crypto !== "undefined" && "randomUUID" in crypto
 		? crypto.randomUUID()
@@ -230,14 +221,7 @@ function DrawerStackOutlet({
 				onDismiss={() => closeTo(layer.id)}
 				onOpenChangeComplete={(open) => onOpenChangeComplete(layer.id, open)}
 			>
-				<div className="flex-1 overflow-y-auto p-4">
-					<DrawerLayerIdContext.Provider value={layer.id}>
-						{layer.content}
-					</DrawerLayerIdContext.Provider>
-				</div>
-
-				{/* Physically nest the next layer inside this one's content so
-           Base UI treats it as a real nested drawer. */}
+				<div className="flex-1 overflow-y-auto p-4">{layer.content}</div>
 				{!isLast ? renderLayer(index + 1) : null}
 			</DrawerLayerNode>
 		);
