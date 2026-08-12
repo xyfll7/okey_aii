@@ -175,13 +175,11 @@ pub async fn send_message(
         .split_last()
         .ok_or("history 为空,请先调用 add_message 添加用户消息")?;
     let prompt = prompt.clone();
-    println!("abc____###{prompt:#?}__{history:#?}");
     let mut stream = agent.stream_chat(prompt, history.to_vec()).await;
     let mut full_text = String::new();
     while let Some(item) = stream.next().await {
         match item {
             Ok(ChatEvent::TextDelta(text)) => {
-                println!("abc____${text}");
                 if text.is_empty() {
                     continue;
                 }
