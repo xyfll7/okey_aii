@@ -4,11 +4,8 @@ import { type ReactNode, useEffect } from "react";
 import { type RigMessage, rigMessageToUIMessage } from "#/lib/rigMessage";
 import type { Session } from "#/routes/(index)";
 import { useChatContext } from "@/components/chat/chatContext";
-// import { useDrawerStack } from "../drawer-stack";
-// import { SessionView } from "../session-view";
 export function ChatInit({ children }: { children: ReactNode }) {
 	const { setMessages, append } = useChatContext();
-	// const { push } = useDrawerStack();
 	useEffect(() => {
 		invoke<Session[]>("list_sessions")
 			.then((sessions) => {
@@ -31,5 +28,5 @@ export function ChatInit({ children }: { children: ReactNode }) {
 		};
 	}, [setMessages, append]);
 
-	return <>{children}</>;
+	return children;
 }
