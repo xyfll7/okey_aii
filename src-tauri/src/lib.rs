@@ -1,14 +1,15 @@
 mod ai;
-mod utils;
 mod my_commands;
 mod my_init;
+mod my_rdev;
 mod my_tray;
 mod my_window;
-
+mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(

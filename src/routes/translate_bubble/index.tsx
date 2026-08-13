@@ -18,7 +18,8 @@ function RouteComponent() {
 	const session_id = useSessionId();
 	return (
 		<ChatProvider>
-			<BubbleView session_id={session_id}></BubbleView>
+			{session_id && <BubbleView session_id={session_id}></BubbleView>}
+			{!session_id && <div>没有session_id</div>}
 		</ChatProvider>
 	);
 }
@@ -29,6 +30,7 @@ function useSessionId() {
 	useEffect(() => {
 		invoke<Session[]>("list_sessions")
 			.then((sessions) => {
+				console.log("sssssss", sessions);
 				const last_session = sessions.at(-1);
 				last_session?.session_id && setSession_id(last_session?.session_id);
 			})
@@ -38,6 +40,7 @@ function useSessionId() {
 }
 
 function BubbleView({ session_id }: { session_id: string }) {
+	console.log("session_id", session_id);
 	useChatInit({ session_id });
 	const { messages, status } = useChatContext();
 	const chat = (() => {
@@ -45,6 +48,7 @@ function BubbleView({ session_id }: { session_id: string }) {
 		return item?.role === "assistant" ? item : undefined;
 	})();
 	const isBusy = status === "submitted" || status === "streaming";
+
 	const _ostype = ostype();
 	return (
 		<div
