@@ -30,13 +30,6 @@ const Copyed = ({ text, className }: { text?: string; className?: string }) => {
 
 	const handleMouseEnter = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		// hover时立即恢复为Copy状态
-		// if (copied) {
-		// 	if (timeoutRef.current) {
-		// 		clearTimeout(timeoutRef.current);
-		// 	}
-		// 	setCopied(false);
-		// }
 	};
 
 	return (
