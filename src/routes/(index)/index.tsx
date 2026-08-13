@@ -8,7 +8,7 @@ import type { Session } from "#/types";
 export const Route = createFileRoute("/(index)/")({ component: Home });
 
 function Home() {
-	useBackendEvent();
+	useCreateSessionEvent();
 	const session_id = useSessionId();
 	return session_id && <SessionView session_id={session_id} />
 }
@@ -34,7 +34,7 @@ function useSessionId() {
 	return session_id;
 }
 
-function useBackendEvent() {
+function useCreateSessionEvent() {
 	const { push } = useDrawerStack();
 	useEffect(() => {
 		const unlisten = getCurrentWindow().listen<string>(

@@ -10,7 +10,28 @@
     "beforeBuildCommand": "pnpm build"
   },
   "app": {
-    "windows": [],
+    "windows": [
+      {
+        "title": "Translate Bubble",
+        "label": "translate_bubble",
+        "url": "/translate_bubble",
+        "width": 13,
+        "height": 13,
+        "resizable": false,
+        "fullscreen": false,
+        "visible": false,
+        "skipTaskbar": true,
+        "decorations": false,
+        "transparent": true,
+        "hiddenTitle": true,
+        "alwaysOnTop": true,
+        "minimizable": false,
+        "maximizable": false,
+        "focusable": false,
+        "shadow": true,
+        "titleBarStyle": "Overlay"
+      }
+    ],
     "security": {
       "csp": null
     },

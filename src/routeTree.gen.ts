@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as indexIndexRouteImport } from './routes/(index)/index'
 import { Route as TranslateIndexRouteImport } from './routes/translate/index'
+import { Route as Translate_bubbleIndexRouteImport } from './routes/translate_bubble/index'
 
 const indexIndexRoute = indexIndexRouteImport.update({
   id: '/(index)/',
@@ -22,31 +23,40 @@ const TranslateIndexRoute = TranslateIndexRouteImport.update({
   path: '/translate/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Translate_bubbleIndexRoute = Translate_bubbleIndexRouteImport.update({
+  id: '/translate_bubble/',
+  path: '/translate_bubble/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof indexIndexRoute
   '/translate/': typeof TranslateIndexRoute
+  '/translate_bubble/': typeof Translate_bubbleIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof indexIndexRoute
   '/translate': typeof TranslateIndexRoute
+  '/translate_bubble': typeof Translate_bubbleIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(index)/': typeof indexIndexRoute
   '/translate/': typeof TranslateIndexRoute
+  '/translate_bubble/': typeof Translate_bubbleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/translate/'
+  fullPaths: '/' | '/translate/' | '/translate_bubble/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/translate'
-  id: '__root__' | '/(index)/' | '/translate/'
+  to: '/' | '/translate' | '/translate_bubble'
+  id: '__root__' | '/(index)/' | '/translate/' | '/translate_bubble/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   indexIndexRoute: typeof indexIndexRoute
   TranslateIndexRoute: typeof TranslateIndexRoute
+  Translate_bubbleIndexRoute: typeof Translate_bubbleIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TranslateIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/translate_bubble/': {
+      id: '/translate_bubble/'
+      path: '/translate_bubble'
+      fullPath: '/translate_bubble/'
+      preLoaderRoute: typeof Translate_bubbleIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   indexIndexRoute: indexIndexRoute,
   TranslateIndexRoute: TranslateIndexRoute,
+  Translate_bubbleIndexRoute: Translate_bubbleIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

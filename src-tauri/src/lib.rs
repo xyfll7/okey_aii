@@ -1,12 +1,10 @@
 mod ai;
+mod utils;
+mod my_commands;
 mod my_init;
 mod my_tray;
-mod window;
+mod my_window;
 
-use crate::ai::commands::{
-    clear_history, close_session, create_session, get_history, list_models, list_sessions,
-    send_message, switch_model, switch_provider,
-};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -23,15 +21,17 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            list_models,
-            create_session,
-            close_session,
-            list_sessions,
-            switch_provider,
-            switch_model,
-            send_message,
-            clear_history,
-            get_history
+            ai::commands::list_models,
+            ai::commands::create_session,
+            ai::commands::close_session,
+            ai::commands::list_sessions,
+            ai::commands::switch_provider,
+            ai::commands::switch_model,
+            ai::commands::send_message,
+            ai::commands::clear_history,
+            ai::commands::get_history,
+            my_commands::detect_language,
+            my_commands::open_window_index
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

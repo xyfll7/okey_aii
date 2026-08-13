@@ -10,13 +10,14 @@ use crate::{
         commands::{create_session, list_sessions},
         state::add_message_to_history,
     },
-    window::open_window,
+    my_window::open_window,
 };
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
     #[rustfmt::skip]
     let menu = MenuBuilder::new(app_handle)
         .item(&MenuItem::with_id(app_handle, "show", "Show", true, None::<&str>)?)
+        .item(&MenuItem::with_id(app_handle, "translate_bubble", "TranslateBubble", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "create_session", "CreateSession", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "drawertest", "Drawertest", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?)
@@ -30,6 +31,9 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
     app_handle.on_menu_event(|app, event| match event.id().as_ref() {
         "show" => {
             let _ = open_window(app, "index", "/");
+        }
+        "translate_bubble" => {
+            let _ = open_window(app, "translate_bubble", "/translate_bubble");
         }
         "create_session" => {
             if let Some(window) = app.get_webview_window("index") {
