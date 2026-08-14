@@ -8,7 +8,7 @@ use crate::{
         commands::{create_session, list_sessions},
         state::add_message_to_history,
     },
-    my_windows::window_helper::open_window, utils::calculate_text_width,
+    my_windows::{window_helper::open_window, window_index::window_index_show}, utils::calculate_text_width,
 };
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
@@ -28,7 +28,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
 
     app_handle.on_menu_event(|app, event| match event.id().as_ref() {
         "show" => {
-            let _ = open_window(app, "index", "/");
+            window_index_show(app);
         }
         "translate_bubble" => {
             let _ = open_window(app, "translate_bubble", "/translate_bubble");

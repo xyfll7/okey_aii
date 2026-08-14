@@ -1,16 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { type as ostype } from "@tauri-apps/plugin-os";
 import { useEffect, useState } from "react";
 import { useDrawerStack } from "#/components/drawer-stack";
 import { SessionView } from "#/components/session-view";
+import { cn } from "#/lib/utils";
 import type { Session } from "#/types";
+import { Header } from "./-components/Header";
 export const Route = createFileRoute("/(index)/")({ component: Home });
 
 function Home() {
 	useCreateSessionEvent();
 	const session_id = useSessionId();
-	return session_id && <SessionView session_id={session_id} />
+	const _ostype = ostype();
+	return (
+		<div
+			className={cn(
+				{ "border rounded-xl": ["linux"].includes(_ostype) },
+				"bg-background",
+				"h-full",
+				"flex-coh",
+			)}
+			data-tauri-drag-region
+		>
+			<Header className="p-1" />
+			{session_id && <SessionView session_id={session_id} />}
+		</div>
+	);
 }
 
 function useSessionId() {

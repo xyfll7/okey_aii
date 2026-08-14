@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { DrawerStackProvider } from "#/components/drawer-stack";
 import { ThemeProvider } from "#/components/theme-provider";
 import "../styles.css";
+import { TooltipProvider } from "#/components/ui/tooltip";
 
 export const Route = createRootRoute({
 	component: RootComponent,
@@ -18,7 +19,9 @@ function RootComponent() {
 					}
 				}}
 			>
-				<Outlet />
+				<TooltipProvider>
+					<Outlet />
+				</TooltipProvider>
 			</DrawerStackProvider>
 		</ThemeProvider>
 	);
