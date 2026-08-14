@@ -1,5 +1,5 @@
 use tauri::AppHandle;
-use crate::{my_windows::window_translate_bubble::open_window, utils::language_detection};
+use crate::{my_windows::window_helper::open_window, utils::language_detection};
 
 #[tauri::command]
 pub fn detect_language(text: &str) -> String {
