@@ -1,7 +1,7 @@
 use crate::ai::commands::create_session;
 use crate::ai::config::Provider;
 use crate::ai::state::{AppConfig, ChatState};
-use crate::{my_rdev, my_tray, my_window};
+use crate::{my_rdev, my_tray, my_windows};
 use std::sync::{Arc, RwLock};
 use tauri::Manager;
 
@@ -14,7 +14,7 @@ pub fn init(app: &mut tauri::App) {
             let app = app.clone();
             println!("点了点了,牛逼");
             // TODO:  text_translation::translate_selected_text(&app);
-            my_window::window_translate_bubble_show(&app, None as Option<fn()>);
+            my_windows::window_translate_bubble::window_translate_bubble_show(&app, None as Option<fn()>);
         },
         |app, x, y| {
             if let Some(window) = app.get_webview_window("translate_bubble") {

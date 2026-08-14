@@ -18,7 +18,6 @@ pub fn open_window(app: &AppHandle, label: &str, url: &str) -> tauri::Result<Web
 
 
 
-
 pub const WINDOW_HEIGHT_TRANSLATE_BUBBLE: f64 = [32.0, 34.0][cfg!(target_os = "macos") as usize];
 pub fn window_translate_bubble_show<R: Runtime, F>(app: &AppHandle<R>, callback: Option<F>)
 where

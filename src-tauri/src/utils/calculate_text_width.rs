@@ -1,6 +1,7 @@
 use tauri::LogicalSize;
 
-use crate::my_window;
+use crate::my_windows;
+
 
 // Font configuration constants
 const FONT_SIZE: f64 = 14.0; // Actual font size 14px
@@ -80,7 +81,7 @@ pub fn calculate_text_width(content: &str) -> LogicalSize<f64> {
     // Limit width range: minimum 150, maximum 800
     let width = calculated_width.clamp(150.0, 800.0);
 
-    LogicalSize::new(width, my_window::WINDOW_HEIGHT_TRANSLATE_BUBBLE)
+    LogicalSize::new(width, my_windows::window_translate_bubble::WINDOW_HEIGHT_TRANSLATE_BUBBLE)
 }
 
 // Optional: Support multiline text calculation
@@ -100,7 +101,7 @@ pub fn calculate_multiline_text_size(content: &str, max_width: f64) -> LogicalSi
         .unwrap_or(150.0);
 
     let width = max_line_width.min(max_width);
-    let height = my_window::WINDOW_HEIGHT_TRANSLATE_BUBBLE * line_count as f64;
+    let height = my_windows::window_translate_bubble::WINDOW_HEIGHT_TRANSLATE_BUBBLE * line_count as f64;
 
     LogicalSize::new(width, height)
 }

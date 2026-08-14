@@ -3,7 +3,7 @@ mod my_commands;
 mod my_init;
 mod my_rdev;
 mod my_tray;
-mod my_window;
+mod my_windows;
 mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

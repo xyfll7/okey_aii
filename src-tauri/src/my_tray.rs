@@ -8,7 +8,7 @@ use crate::{
         commands::{create_session, list_sessions},
         state::add_message_to_history,
     },
-    my_window::open_window, utils::calculate_text_width,
+    my_windows::window_translate_bubble::open_window, utils::calculate_text_width,
 };
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
