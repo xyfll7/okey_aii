@@ -50,7 +50,7 @@ function startChatStream(
 		}
 		notify();
 	};
-
+	console.log("abc:::-----------")
 	void (async () => {
 		try {
 			await invoke("send_message", {
