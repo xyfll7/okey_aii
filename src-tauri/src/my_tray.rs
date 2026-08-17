@@ -1,6 +1,8 @@
 use rig::{message::UserContent, OneOrMany};
 use tauri::{
-    AppHandle, Emitter, LogicalSize, Manager, menu::{MenuBuilder, MenuItem}, tray::TrayIconBuilder
+    menu::{MenuBuilder, MenuItem},
+    tray::TrayIconBuilder,
+    AppHandle, Emitter, LogicalSize, Manager,
 };
 
 use crate::{
@@ -8,7 +10,8 @@ use crate::{
         commands::{create_session, list_sessions},
         state::add_message_to_history,
     },
-    my_windows::{window_helper::open_window, window_index::window_index_show}, utils::calculate_text_width,
+    my_windows::{window_helper::open_window, window_index::window_index_show},
+    utils::calculate_text_width,
 };
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
@@ -66,8 +69,8 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
                         if let Ok(item) =
                             add_message_to_history(app, session_id.clone(), message.clone())
                         {
-                            let _ = window
-                                .emit_to("index", &format!("on_message_{session_id}"), item);
+                            let _ =
+                                window.emit_to("index", &format!("on_message_{session_id}"), item);
                         }
                     }
                 }

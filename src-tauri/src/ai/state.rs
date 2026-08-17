@@ -42,6 +42,10 @@ pub struct Session {
     #[serde(serialize_with = "serialize_systemtime_millis")]
     pub created_at: SystemTime,
     pub title: String,
+    /// 当前会话是否正在输出对话内容(loading 中)。
+    ///
+    /// 为 `true` 时禁止向该会话追加新的对话内容,避免在生成期间插入脏数据。
+    pub is_loading: bool,
     #[serde(skip)]
     pub agent: Arc<Agents>,
     #[serde(skip)]
@@ -77,6 +81,9 @@ pub fn add_message_to_history(
         .sessions
         .get_mut(&session_id)
         .ok_or("会话不存在,请先调用 create_session")?;
+    if sess.is_loading {
+        return Err("会话正在输出对话内容(loading 中),暂时禁止添加新的对话".into());
+    }
     let item = HistoryItem {
         id: uuid::Uuid::new_v4().to_string(),
         created_at: SystemTime::now(),

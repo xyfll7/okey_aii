@@ -49,6 +49,7 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
         history: Vec::new(),
         created_at: std::time::SystemTime::now(),
         title: "新会话".into(),
+        is_loading: false,
     };
 
     guard.sessions.insert(session_id.clone(), session.clone());
@@ -168,6 +169,14 @@ pub async fn send_message(
         (sess.agent.clone(), sess.history.clone())
     };
 
+    // 标记该会话为 loading 中,期间禁止再追加新的对话内容
+    {
+        let mut guard = state.write().unwrap();
+        if let Some(sess) = guard.sessions.get_mut(&session_id) {
+            sess.is_loading = true;
+        }
+    }
+
     // 取出 history 中最新的一条消息作为本轮 prompt,其余作为历史传入
     let (prompt, history) = history
         .split_last()
@@ -214,6 +223,11 @@ pub async fn send_message(
                 break;
             }
             Err(e) => {
+                // 出错也要解除 loading,避免该会话永久卡在禁止追加状态
+                let mut guard = state.write().unwrap();
+                if let Some(sess) = guard.sessions.get_mut(&session_id) {
+                    sess.is_loading = false;
+                }
                 return Err(e);
             }
         }
@@ -232,6 +246,8 @@ pub async fn send_message(
             created_at: std::time::SystemTime::now(),
             message: Message::assistant(full_text.as_str()), // 助手这一轮(assistant 消息)
         });
+        // 流已结束,解除 loading,恢复允许追加
+        sess.is_loading = false;
     }
     Ok(())
 }
