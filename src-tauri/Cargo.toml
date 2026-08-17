@@ -26,7 +26,8 @@ tauri-plugin-log = "2"
 tauri-plugin-os = "2"
 rig = "0.41.0"
 rig-core = "0.41.0"
-futures = "0.3"
-uuid = { version = "1", features = ["v4"] }
+futures = "0.3.34"
+uuid = { version = "1.24.1", features = ["v4"] }
 rdev = { git = "https://github.com/rustdesk/rdev" }
 mouse_position = "0.1.4"
+selection = "1.2.0"
