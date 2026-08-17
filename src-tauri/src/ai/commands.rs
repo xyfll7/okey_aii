@@ -4,7 +4,7 @@ use futures::StreamExt;
 use rig::message::Message;
 use tauri::ipc::Channel;
 
-use crate::ai::state::{build_session_agent, Session};
+use crate::ai::state::{build_session_agent, HistoryItem, Session};
 
 use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
@@ -168,15 +168,14 @@ pub async fn send_message(
         (sess.agent.clone(), sess.history.clone())
     };
 
-    // 用 OneOrMany::many 构造可以传入多条 UserContent 的 content(Many not one)
-
     // 取出 history 中最新的一条消息作为本轮 prompt,其余作为历史传入
     let (prompt, history) = history
         .split_last()
         .ok_or("history 为空,请先调用 add_message 添加用户消息")?;
-    let prompt = prompt.clone();
-    println!("history::-----{:#?}\n",history);
-    let mut stream = agent.stream_chat(prompt, history.to_vec()).await;
+    let prompt = prompt.message.clone();
+    println!("history::-----{:#?}\n", history);
+    let history: Vec<Message> = history.iter().map(|h| h.message.clone()).collect();
+    let mut stream = agent.stream_chat(prompt, history).await;
     let mut full_text = String::new();
     while let Some(item) = stream.next().await {
         match item {
@@ -228,7 +227,11 @@ pub async fn send_message(
             let title: String = "".to_string();
             sess.title = title;
         }
-        sess.history.push(Message::assistant(full_text.as_str())); // 助手这一轮(assistant 消息)
+        sess.history.push(crate::ai::state::HistoryItem {
+            id: uuid::Uuid::new_v4().to_string(),
+            created_at: std::time::SystemTime::now(),
+            message: Message::assistant(full_text.as_str()), // 助手这一轮(assistant 消息)
+        });
     }
     Ok(())
 }
@@ -259,10 +262,20 @@ pub fn clear_history(app: tauri::AppHandle, session_id: String) -> Result<(), St
 
 /// 获取某个会话的聊天记录
 #[tauri::command(rename_all = "snake_case")]
-pub fn get_history(app: tauri::AppHandle, session_id: String) -> Result<Vec<Message>, String> {
+pub fn get_history(app: tauri::AppHandle, session_id: String) -> Result<Vec<HistoryItem>, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
     let sess = guard.sessions.get(&session_id).ok_or("会话不存在")?;
     println!("-----------\n{:#?}",sess.history.clone());
     Ok(sess.history.clone())
+}
+
+/// 按 id 删除某个会话中的一条历史记录
+#[tauri::command(rename_all = "snake_case")]
+pub fn remove_history_item(
+    app: tauri::AppHandle,
+    session_id: String,
+    history_id: String,
+) -> Result<(), String> {
+    crate::ai::state::remove_history_item(&app, session_id, history_id)
 }

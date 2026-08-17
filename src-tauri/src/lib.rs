@@ -31,6 +31,7 @@ pub fn run() {
             ai::commands::send_message,
             ai::commands::clear_history,
             ai::commands::get_history,
+            ai::commands::remove_history_item,
             my_commands::detect_language,
             my_commands::open_window_index
         ])

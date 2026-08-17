@@ -8,6 +8,21 @@ use std::sync::{Arc, RwLock};
 use std::time::SystemTime;
 use tauri::{AppHandle, Manager, State};
 
+/// 历史记录中的单条消息。
+///
+/// `rig::message::Message` 是第三方类型,无法携带我们自己的元数据,所以在此包装一层,
+/// 额外保存 `id`(前端展示与按 id 删除用)和 `created_at`(创建时间,毫秒时间戳)。
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct HistoryItem {
+    /// 本条历史的唯一 id,前端用于渲染 key 与按 id 删除。
+    pub id: String,
+    /// 创建时间(毫秒时间戳),便于前端排序与展示。
+    #[serde(serialize_with = "serialize_systemtime_millis")]
+    pub created_at: SystemTime,
+    /// 实际对话消息内容(rig 原生结构)。
+    pub message: Message,
+}
+
 /// 全局共享状态:只保存 api key。
 ///
 /// 新标签页的配置从最近一个 Session 中继承;每个已打开的会话各自锁定自己的
@@ -30,7 +45,7 @@ pub struct Session {
     #[serde(skip)]
     pub agent: Arc<Agents>,
     #[serde(skip)]
-    pub history: Vec<Message>,
+    pub history: Vec<HistoryItem>,
 }
 
 fn serialize_systemtime_millis<S: serde::Serializer>(
@@ -55,6 +70,27 @@ pub fn add_message_to_history(
     app_handle: &AppHandle,
     session_id: String,
     message: Message,
+) -> Result<HistoryItem, String> {
+    let state: State<'_, Arc<RwLock<ChatState>>> = app_handle.state();
+    let mut guard = state.write().unwrap();
+    let sess = guard
+        .sessions
+        .get_mut(&session_id)
+        .ok_or("会话不存在,请先调用 create_session")?;
+    let item = HistoryItem {
+        id: uuid::Uuid::new_v4().to_string(),
+        created_at: SystemTime::now(),
+        message,
+    };
+    sess.history.push(item.clone());
+    Ok(item)
+}
+
+/// 按 id 从指定会话中删除一条历史记录。
+pub fn remove_history_item(
+    app_handle: &AppHandle,
+    session_id: String,
+    history_id: String,
 ) -> Result<(), String> {
     let state: State<'_, Arc<RwLock<ChatState>>> = app_handle.state();
     let mut guard = state.write().unwrap();
@@ -62,7 +98,11 @@ pub fn add_message_to_history(
         .sessions
         .get_mut(&session_id)
         .ok_or("会话不存在,请先调用 create_session")?;
-    sess.history.push(message);
+    let before = sess.history.len();
+    sess.history.retain(|item| item.id != history_id);
+    if sess.history.len() == before {
+        return Err(format!("history item 不存在: {history_id}"));
+    }
     Ok(())
 }
 

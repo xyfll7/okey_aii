@@ -1,5 +1,5 @@
 // 前端镜像 rig-core 的 `rig::message::Message` serde 序列化结构。
-// 对齐 src-tauri/src/ai/commands.rs 中 get_history 返回的 Vec<Message>。
+// 对齐 src-tauri/src/ai/state.rs 中 HistoryItem 与 commands.rs 里 get_history 返回的 Vec<HistoryItem>。
 //
 // 序列化约定 (来自 rig-core 0.41.0):
 //   - Message:      #[serde(tag = "role", rename_all = "lowercase")]
@@ -7,6 +7,11 @@
 //   - AssistantContent: #[serde(untagged)]  (Text 含 `text` 字段, ToolCall 含 `id`+`function` ...)
 //   - OneOrMany<T>: 始终序列化为数组 (Vec<T>)
 //   - Text:         { text: string } (+ 可能被 provider 展平的额外字段)
+//
+// HistoryItem 是后端额外包装的一层(见 state.rs):
+//   - id:         唯一 id,前端用于渲染 key 与按 id 删除
+//   - created_at: 创建时间(毫秒时间戳)
+//   - message:    实际的 RigMessage
 
 /** 基础文本内容 (rig::message::Text)。 */
 export interface RigText {
@@ -118,6 +123,18 @@ export type RigMessage =
 	| { role: "user"; content: RigUserContent[] }
 	| { role: "assistant"; id?: string; content: RigAssistantContent[] };
 
+/**
+ * 后端 `state.rs` 中 `HistoryItem` 的镜像:
+ * 包装一条 RigMessage,额外携带 `id`(唯一标识、渲染 key、按 id 删除用)
+ * 与 `created_at`(创建时间,毫秒时间戳)。
+ * `get_history` 返回的就是 `HistoryItem[]`。
+ */
+export interface RigHistoryItem {
+	id: string;
+	created_at: number;
+	message: RigMessage;
+}
+
 /** 从一条 Message 中提取纯文本,便于 UI 展示。 */
 export function rigMessageToText(message: RigMessage): string {
 	switch (message.role) {
@@ -150,16 +167,19 @@ export function rigMessageToText(message: RigMessage): string {
 import type { UIMessage } from "@tanstack/ai-react";
 
 /**
- * 把 RigMessage[] 转成 useChat 所需的 UIMessage[]。
- * RigMessage 没有 id,这里用 role + 内容生成稳定 id,保证同一条消息重渲染
- * 时 key 不变。content 按类型映射为 UIMessage 的 parts(text / image / ...)。
+ * 把一条 HistoryItem 转成 useChat 所需的 UIMessage[]。
+ * 使用 HistoryItem 自带的 `id` 作为 UIMessage 的 id(渲染 key 与删除用),
+ * `created_at` 可传给 UIMessage 作为 createdAt。content 按类型映射为
+ * UIMessage 的 parts(text / image / ...)。
  */
-export function rigMessageToUIMessage(m: RigMessage): UIMessage {
+export function rigMessageToUIMessage(item: RigHistoryItem): UIMessage {
+	const m = item.message;
 	switch (m.role) {
 		case "system":
 			return {
-				id: `system-${m.content.slice(0, 24)}`,
+				id: item.id,
 				role: "system",
+				createdAt: new Date(item.created_at),
 				parts: [{ type: "text", content: m.content }],
 			};
 		case "user": {
@@ -179,11 +199,9 @@ export function rigMessageToUIMessage(m: RigMessage): UIMessage {
 				}
 			});
 			return {
-				id: `user-${m.content.length}-${m.content
-					.map((c) => ("text" in c ? c.text : c.type))
-					.join("")
-					.slice(0, 24)}`,
+				id: item.id,
 				role: "user",
+				createdAt: new Date(item.created_at),
 				parts,
 			};
 		}
@@ -214,15 +232,9 @@ export function rigMessageToUIMessage(m: RigMessage): UIMessage {
 				return { type: "text", content: "[image]" } as const;
 			});
 			return {
-				id:
-					m.id ??
-					`assistant-${m.content.length}-${m.content
-						.map((c) =>
-							"text" in c && !("data" in c) ? (c as RigText).text : "img",
-						)
-						.join("")
-						.slice(0, 24)}`,
+				id: item.id,
 				role: "assistant",
+				createdAt: new Date(item.created_at),
 				parts,
 			};
 		}
