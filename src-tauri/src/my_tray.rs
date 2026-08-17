@@ -17,7 +17,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
         .item(&MenuItem::with_id(app_handle, "show", "Show", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "translate_bubble", "TranslateBubble", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "create_session", "CreateSession", true, None::<&str>)?)
-        .item(&MenuItem::with_id(app_handle, "drawertest", "Drawertest", true, None::<&str>)?)
+        .item(&MenuItem::with_id(app_handle, "sendmessage", "SendMessage", true, None::<&str>)?)
         .item(&MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?)
         .build()?;
 
@@ -47,7 +47,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
                 }
             }
         }
-        "drawertest" => {
+        "sendmessage" => {
             // 发送消息：向主窗口 emit 一个 on_message 事件，前端 chatInit.tsx 会监听并处理
             if let Some(window) = app.get_webview_window("index") {
                 let user_content = OneOrMany::many([
