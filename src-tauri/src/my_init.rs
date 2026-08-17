@@ -1,6 +1,7 @@
 use crate::ai::commands::create_session;
 use crate::ai::config::Provider;
 use crate::ai::state::{AppConfig, ChatState};
+use crate::my_windows::window_index::{should_use_existing_index_window, window_index_show};
 use crate::{my_rdev, my_tray, my_windows};
 use std::sync::{Arc, RwLock};
 use tauri::Manager;
@@ -12,28 +13,19 @@ pub fn init(app: &mut tauri::App) {
         &app.handle(),
         |app| {
             let app = app.clone();
-            println!("点了点了,牛逼");
-            // TODO:  text_translation::translate_selected_text(&app);
-            my_windows::window_translate_bubble::window_translate_bubble_show(&app, None as Option<fn()>);
+            if should_use_existing_index_window(app.clone()) {
+                window_index_show(&app,Some(move || {}));
+                println!("点了点了,牛逼");
+            } else {
+                my_windows::window_translate_bubble::window_translate_bubble_show(
+                    &app,
+                    None as Option<fn()>,
+                );
+                println!("bbc");
+            };
         },
         |app, x, y| {
-            if let Some(window) = app.get_webview_window("translate_bubble") {
-                if window.is_visible().unwrap_or(false) {
-                    if let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) {
-                        let win_x = pos.x;
-                        let win_y = pos.y;
-                        let win_w = size.width as i32;
-                        let win_h = size.height as i32;
-
-                        let inside =
-                            x >= win_x && x <= win_x + win_w && y >= win_y && y <= win_y + win_h;
-
-                        if !inside {
-                            // let _ = window.hide();
-                        }
-                    }
-                }
-            }
+            my_windows::window_translate_bubble::window_translate_bubble_hide_if_outside(app, x, y);
         },
     );
 }

@@ -3,12 +3,25 @@ use std::{
     thread,
     time::Duration,
 };
-use tauri::Emitter;
+use tauri::Listener;
 use tauri::{window::Color, AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
 
 use crate::my_windows::window_helper::*;
 
-pub fn window_index_show<R: Runtime>(app: &AppHandle<R>) {
+pub fn should_use_existing_index_window(app: AppHandle) -> bool {
+    let translate_window = app.get_webview_window("index");
+    let is_focused = translate_window
+        .as_ref()
+        .map(|w| w.is_focused().unwrap_or(false))
+        .unwrap_or(false);
+    // 只要翻译窗口存在（is_some()），或者窗口处于聚焦状态，就返回 true，即应该复用现有窗口。
+    (translate_window.is_some()) || is_focused
+}
+
+pub fn window_index_show<R: Runtime, F>(app: &AppHandle<R>, callback: Option<F>)
+where
+    F: FnOnce() + Send + 'static,
+{
     if let Some(window) = app.get_webview_window("translate_bubble") {
         let _ = window.hide();
     }
@@ -17,11 +30,19 @@ pub fn window_index_show<R: Runtime>(app: &AppHandle<R>) {
         let _ = window.show();
         let _ = window.set_focus();
         let _ = window.set_always_on_top(true);
+        if let Some(cb) = callback {
+            cb();
+        }
     } else {
         const WINDOW_WIDTH: f64 = 400.0;
         const WINDOW_HEIGHT: f64 = 600.0;
+        const CURSOR_OFFSET: f64 = 10.0;
 
-        let (adjusted_x, adjusted_y) = calculate_center_position(app, WINDOW_WIDTH, WINDOW_HEIGHT);
+        let (adjusted_x, adjusted_y) = if callback.is_none() {
+            calculate_center_position(app, WINDOW_WIDTH, WINDOW_HEIGHT)
+        } else {
+            calculate_window_position(app, WINDOW_WIDTH, WINDOW_HEIGHT, CURSOR_OFFSET)
+        };
 
         let mut builder = WebviewWindowBuilder::new(app, "index", WebviewUrl::App("/".into()))
             .title("Translate Window")
@@ -53,7 +74,17 @@ pub fn window_index_show<R: Runtime>(app: &AppHandle<R>) {
             window.show().ok();
             window.set_focus().ok();
 
-            let state_handle = window.app_handle().clone();
+            let callback_for_listener = Arc::new(Mutex::new(callback)).clone();
+            window.listen("event_names::PAGE_LOADED", move |_event| {
+                if let Ok(mut cb_option) = callback_for_listener.lock() {
+                    if let Some(cb) = cb_option.take() {
+                        drop(cb_option);
+                        cb();
+                    }
+                }
+            });
+
+            // 线程安全的取消标志：窗口失焦后延迟隐藏，若期间重新聚焦或移动则置为 true 取消该操作
             let cancelled = Arc::new(Mutex::new(false));
             let win_clone = window.clone();
             let cancel_flag = cancelled.clone();
@@ -62,9 +93,7 @@ pub fn window_index_show<R: Runtime>(app: &AppHandle<R>) {
                     *cancel_flag.lock().unwrap() = false;
                     let _win = win_clone.clone();
                     let local_cancel = cancel_flag.clone();
-                    let state_handle = state_handle.clone();
                     thread::spawn(move || {
-                        let _ = state_handle.emit("event_names::TRANSLATE_HIDE", {});
                         thread::sleep(Duration::from_millis(150));
                         if *local_cancel.lock().unwrap() {
                             return;

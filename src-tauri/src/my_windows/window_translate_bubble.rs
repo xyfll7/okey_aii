@@ -60,3 +60,25 @@ where
         }
     }
 }
+
+/// 若 translate_bubble 窗口可见，且当前鼠标坐标 (x, y) 落在窗口之外，则隐藏该窗口。
+/// x, y 为物理像素坐标。
+pub fn window_translate_bubble_hide_if_outside<R: Runtime>(app: &AppHandle<R>, x: i32, y: i32) {
+    if let Some(window) = app.get_webview_window("translate_bubble") {
+        if window.is_visible().unwrap_or(false) {
+            if let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) {
+                let win_x = pos.x;
+                let win_y = pos.y;
+                let win_w = size.width as i32;
+                let win_h = size.height as i32;
+
+                let inside =
+                    x >= win_x && x <= win_x + win_w && y >= win_y && y <= win_y + win_h;
+
+                if !inside {
+                    let _ = window.hide();
+                }
+            }
+        }
+    }
+}

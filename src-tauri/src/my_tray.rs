@@ -31,7 +31,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
 
     app_handle.on_menu_event(|app, event| match event.id().as_ref() {
         "show" => {
-            window_index_show(app);
+            window_index_show(app,Some(move || {}));
         }
         "translate_bubble" => {
             let _ = open_window(app, "translate_bubble", "/translate_bubble");
