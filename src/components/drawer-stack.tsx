@@ -219,7 +219,7 @@ function DrawerStackOutlet({
 				onDismiss={() => closeTo(layer.id)}
 				onOpenChangeComplete={(open) => onOpenChangeComplete(layer.id, open)}
 			>
-				<div className="flex-1 overflow-y-auto p-4">{layer.content}</div>
+				<div className="flex-1 overflow-hidden">{layer.content}</div>
 				{!isLast ? renderLayer(index + 1) : null}
 			</DrawerLayerNode>
 		);
@@ -281,7 +281,7 @@ function DrawerLayerNode({
 			swipeDirection={layer.swipeDirection ?? "down"}
 			showSwipeHandle={layer.showSwipeHandle}
 		>
-			<DrawerContent className={layer.contentClassName}>
+			<DrawerContent className={layer.contentClassName ?? "h-full"}>
 				{(layer.title || layer.description) && (
 					<DrawerHeader>
 						{layer.title && <DrawerTitle>{layer.title}</DrawerTitle>}

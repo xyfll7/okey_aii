@@ -30,7 +30,6 @@ function useSessionId() {
 	useEffect(() => {
 		invoke<Session[]>("list_sessions")
 			.then((sessions) => {
-				console.log("sssssss", sessions);
 				const last_session = sessions.at(-1);
 				last_session?.session_id && setSession_id(last_session?.session_id);
 			})
@@ -40,7 +39,6 @@ function useSessionId() {
 }
 
 function BubbleView({ session_id }: { session_id: string }) {
-	console.log("session_id", session_id);
 	useChatInit({ session_id });
 	const { messages, status } = useChatContext();
 	const chat = (() => {

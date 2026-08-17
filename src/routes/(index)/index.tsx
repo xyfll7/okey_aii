@@ -20,12 +20,14 @@ function Home() {
 				{ "border rounded-xl": ["linux"].includes(_ostype) },
 				"bg-background",
 				"h-full",
-				"flex-coh",
+				"flex flex-col overflow-hidden",
 			)}
 			data-tauri-drag-region
 		>
 			<Header className="p-1" />
-			{session_id && <SessionView session_id={session_id} />}
+			<div className={cn("relative h-full", "flex flex-col overflow-hidden")}>
+				{session_id && <SessionView session_id={session_id} />}
+			</div>
 		</div>
 	);
 }
