@@ -70,7 +70,7 @@ where
             builder = builder.decorations(false);
         }
 
-        let _ = builder.build().and_then(|window| {
+        let _ = builder.build().map(|window| {
             window.show().ok();
             window.set_focus().ok();
 
@@ -96,6 +96,7 @@ where
                     thread::spawn(move || {
                         thread::sleep(Duration::from_millis(150));
                         if *local_cancel.lock().unwrap() {
+                            // 已被取消，不执行隐藏操作
                             return;
                         }
                         // _win.destroy().ok();
@@ -109,7 +110,6 @@ where
                 }
                 _ => {}
             });
-            Ok(())
         });
     }
 }

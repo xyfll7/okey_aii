@@ -11,7 +11,7 @@ pub fn init(app: &mut tauri::App) {
     setup_ai_state(app);
     setup_tray_and_activation_policy(app);
     my_rdev::init_global_input_listener(
-        &app.handle(),
+        app.handle(),
         |app| {
             let app = app.clone();
             if should_use_existing_index_window(app.clone()) {

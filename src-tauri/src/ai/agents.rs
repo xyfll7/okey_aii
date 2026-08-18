@@ -96,8 +96,8 @@ impl Agents {
     ///
     /// `stream_chat` 来自 rig 的 `StreamingChat` trait,返回 `StreamingPromptRequest`,
     /// 再 `.await`(`IntoFuture`)得到真正的流产出流。
-    pub async fn stream_chat<'a>(
-        &'a self,
+    pub async fn stream_chat(
+        &self,
         prompt: Message,
         history: Vec<Message>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatEvent, String>> + Send>> {

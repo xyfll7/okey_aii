@@ -256,8 +256,8 @@ pub async fn send_message(
 pub fn list_sessions(app: tauri::AppHandle) -> Vec<Session> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
-    let mut list: Vec<Session> = guard.sessions.iter().map(|(_, s)| s.clone()).collect();
-    list.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    let mut list: Vec<Session> = guard.sessions.values().cloned().collect();
+    list.sort_by_key(|a| a.created_at);
     list
 }
 

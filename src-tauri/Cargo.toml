@@ -24,9 +24,10 @@ log = "0.4"
 tauri = { version = "2.11.3", features = ["macos-private-api", "tray-icon"] }
 tauri-plugin-log = "2"
 tauri-plugin-os = "2"
-rig = "0.41.0"
-rig-core = "0.41.0"
+rig = "0.42.0"
+rig-core = "0.42.0"
 futures = "0.3.34"
+dotenvy = "0.15"
 uuid = { version = "1.24.1", features = ["v4"] }
 rdev = { git = "https://github.com/rustdesk/rdev" }
 mouse_position = "0.1.4"
