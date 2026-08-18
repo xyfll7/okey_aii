@@ -44,9 +44,14 @@ fn setup_tray_and_activation_policy(app: &mut tauri::App) {
 
 /// 构建初始的 AI 状态，并注册为 Tauri 托管状态，供 command 通过 State 获取
 pub fn setup_ai_state(app: &mut tauri::App) {
+    // 从 .env 读取 DEEPSEEK_API_KEY
+    let _ = dotenvy::from_path(concat!(env!("CARGO_MANIFEST_DIR"), "/.env"));
+    let deepseek_key = std::env::var("DEEPSEEK_API_KEY")
+        .unwrap_or_else(|_| panic!("DEEPSEEK_API_KEY not set in .env"));
+
     let api_keys = std::collections::HashMap::from([(
         Provider::DeepSeek,
-        "sk-a36321b7ed3c47c88d6e6f371550e6f9".to_string(),
+        deepseek_key,
     )]);
 
     let initial = ChatState {
