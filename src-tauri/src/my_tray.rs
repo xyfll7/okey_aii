@@ -1,4 +1,3 @@
-use rig::{message::UserContent, OneOrMany};
 use tauri::{
     menu::{MenuBuilder, MenuItem},
     tray::TrayIconBuilder,
@@ -6,10 +5,7 @@ use tauri::{
 };
 
 use crate::{
-    ai::{
-        commands::{create_session, list_sessions},
-        state::add_message_to_history,
-    },
+    ai::commands::create_session,
     my_windows::{window_helper::open_window, window_index::window_index_show},
     utils::calculate_text_width,
 };
@@ -31,7 +27,9 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
 
     app_handle.on_menu_event(|app, event| match event.id().as_ref() {
         "show" => {
-            window_index_show(app,Some(move || {}));
+            window_index_show(app,Some(move || {
+                 println!("执行了,执行了,牛逼！！！");
+            }));
         }
         "translate_bubble" => {
             let _ = open_window(app, "translate_bubble", "/translate_bubble");
@@ -52,29 +50,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
         }
         "sendmessage" => {
             // 发送消息：向主窗口 emit 一个 on_message 事件，前端 chatInit.tsx 会监听并处理
-            if let Some(window) = app.get_webview_window("index") {
-                let user_content = OneOrMany::many([
-                    UserContent::text("这是一个来自托盘菜单的示例文本"),
-                    UserContent::text("请将上面的内容翻译成英文"),
-                    UserContent::text("像是给初学者讲解一样"),
-                ]);
-                if let Ok(user_content) = user_content {
-                    let message: rig::message::Message = user_content.into();
-                    let session_id = {
-                        let list = list_sessions(app.clone());
-                        list.last().map(|s| s.session_id.clone())
-                    };
-                    println!("add message ::{:#?}", message);
-                    if let Some(session_id) = session_id {
-                        if let Ok(item) =
-                            add_message_to_history(app, session_id.clone(), message.clone())
-                        {
-                            let _ =
-                                window.emit_to("index", &format!("on_message_{session_id}"), item);
-                        }
-                    }
-                }
-            }
+            crate::utils::send_tray_message::send_tray_message(app);
         }
         "quit" => {
             app.exit(0);

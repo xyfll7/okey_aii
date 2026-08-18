@@ -75,7 +75,7 @@ where
             window.set_focus().ok();
 
             let callback_for_listener = Arc::new(Mutex::new(callback)).clone();
-            window.listen("event_names::PAGE_LOADED", move |_event| {
+            window.listen("on_page_index_loaded", move |_event| {
                 if let Ok(mut cb_option) = callback_for_listener.lock() {
                     if let Some(cb) = cb_option.take() {
                         drop(cb_option);

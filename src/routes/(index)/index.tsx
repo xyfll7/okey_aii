@@ -14,6 +14,9 @@ function Home() {
 	useCreateSessionEvent();
 	const session_id = useSessionId();
 	const _ostype = ostype();
+	useEffect(() => {
+		getCurrentWindow().emit("on_page_index_loaded").catch(console.error);
+	}, []);
 	return (
 		<div
 			className={cn(
