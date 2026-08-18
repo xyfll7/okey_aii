@@ -1,17 +1,5 @@
-use tauri::{AppHandle, Manager, Monitor, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use mouse_position::mouse_position::{Mouse, Position};
-
-pub fn open_window(app: &AppHandle, label: &str, url: &str) -> tauri::Result<WebviewWindow> {
-    let window = match app.get_webview_window(label) {
-        Some(w) => w,
-        None => WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
-            .resizable(true)
-            .build()?,
-    };
-    window.show()?;
-    window.set_focus()?;
-    Ok(window)
-}
+use tauri::{AppHandle, Monitor, Runtime};
 
 pub fn get_monitor_at_position<R: Runtime>(app: &AppHandle<R>, x: i32, y: i32) -> Option<Monitor> {
     if let Ok(monitors) = app.available_monitors() {
@@ -19,7 +7,11 @@ pub fn get_monitor_at_position<R: Runtime>(app: &AppHandle<R>, x: i32, y: i32) -
             let size = monitor.size();
             let position = monitor.position();
 
-            if x >= position.x && x < position.x + size.width as i32 && y >= position.y && y < position.y + size.height as i32 {
+            if x >= position.x
+                && x < position.x + size.width as i32
+                && y >= position.y
+                && y < position.y + size.height as i32
+            {
                 return Some(monitor);
             }
         }
@@ -28,7 +20,11 @@ pub fn get_monitor_at_position<R: Runtime>(app: &AppHandle<R>, x: i32, y: i32) -
     app.primary_monitor().ok().flatten()
 }
 
-pub fn calculate_center_position<R: Runtime>(app: &AppHandle<R>, width: f64, height: f64) -> (f64, f64) {
+pub fn calculate_center_position<R: Runtime>(
+    app: &AppHandle<R>,
+    width: f64,
+    height: f64,
+) -> (f64, f64) {
     if let Ok(Some(primary_monitor)) = app.primary_monitor() {
         let scale_factor = primary_monitor.scale_factor();
 
@@ -49,7 +45,12 @@ pub fn calculate_center_position<R: Runtime>(app: &AppHandle<R>, width: f64, hei
     }
 }
 
-pub fn calculate_window_position<R: Runtime>(app: &AppHandle<R>, width: f64, height: f64, cursor_offset: f64) -> (f64, f64) {
+pub fn calculate_window_position<R: Runtime>(
+    app: &AppHandle<R>,
+    width: f64,
+    height: f64,
+    cursor_offset: f64,
+) -> (f64, f64) {
     let mouse_position = match Mouse::get_mouse_position() {
         Mouse::Position { x, y } => Position { x, y },
         Mouse::Error => Position { x: 0, y: 0 },

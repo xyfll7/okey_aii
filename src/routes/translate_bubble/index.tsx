@@ -19,7 +19,6 @@ function RouteComponent() {
 	return (
 		<ChatProvider>
 			{session_id && <BubbleView session_id={session_id}></BubbleView>}
-			{!session_id && <div>没有session_id</div>}
 		</ChatProvider>
 	);
 }

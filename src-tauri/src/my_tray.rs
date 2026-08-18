@@ -1,13 +1,12 @@
 use tauri::{
     menu::{MenuBuilder, MenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Emitter, LogicalSize, Manager,
+    AppHandle, Emitter,Manager,
 };
 
 use crate::{
     ai::commands::create_session,
-    my_windows::{window_helper::open_window, window_index::window_index_show},
-    utils::calculate_text_width,
+    my_windows::{window_index::window_index_show},
 };
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
@@ -32,14 +31,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
             }));
         }
         "translate_bubble" => {
-            let _ = open_window(app, "translate_bubble", "/translate_bubble");
-
-            let size = calculate_text_width::calculate_text_width("你好啊我是大王啊");
-            if let Some(window) = app.get_webview_window("translate_bubble") {
-                let _ = window.set_size(size);
-                let _ = window.set_min_size(Some(size));
-                let _ = window.set_max_size(Some(LogicalSize::new(10_000.0, size.height)));
-            }
+            println!("translate_bubble")
         }
         "create_session" => {
             if let Some(window) = app.get_webview_window("index") {
