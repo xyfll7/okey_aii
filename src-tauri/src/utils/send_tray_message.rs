@@ -1,5 +1,5 @@
 use rig::{message::UserContent, OneOrMany};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 
 use crate::ai::{commands::list_sessions, state::add_message_to_history};
 
@@ -9,8 +9,9 @@ use crate::ai::{commands::list_sessions, state::add_message_to_history};
 /// 然后向主窗口 `index` emit 一个 `on_message_{session_id}` 事件，
 /// 前端 `chatInit.tsx` 会监听并处理。
 pub fn send_tray_message(app: &AppHandle) {
+    let selected_text = crate::utils::selecte_text::get_selected_text();
     let user_content = OneOrMany::many([
-        UserContent::text("这是一个来自托盘菜单的示例文本"),
+        UserContent::text(selected_text),
         UserContent::text("请将上面的内容翻译成英文"),
         UserContent::text("像是给初学者讲解一样"),
     ]);
@@ -22,11 +23,8 @@ pub fn send_tray_message(app: &AppHandle) {
         };
         println!("add message ::{:#?}", message);
         if let Some(session_id) = session_id {
-            if let Ok(item) =
-                add_message_to_history(app, session_id.clone(), message.clone())
-            {
-                let _ =
-                    app.emit_to("index", &format!("on_message_{session_id}"), item);
+            if let Ok(item) = add_message_to_history(app, session_id.clone(), message.clone()) {
+                let _ = app.emit_to("index", &format!("on_message_{session_id}"), item);
             }
         }
     }

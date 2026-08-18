@@ -2,6 +2,7 @@ use crate::ai::commands::create_session;
 use crate::ai::config::Provider;
 use crate::ai::state::{AppConfig, ChatState};
 use crate::my_windows::window_index::should_use_existing_index_window;
+use crate::utils::send_tray_message::send_tray_message;
 use crate::{my_rdev, my_tray, my_windows};
 use std::sync::{Arc, RwLock};
 use tauri::Manager;
@@ -14,12 +15,10 @@ pub fn init(app: &mut tauri::App) {
         |app| {
             let app = app.clone();
             if should_use_existing_index_window(app.clone()) {
-                my_windows::window_index::window_index_show(
-                    &app,
-                    Some(move || {
-                        println!("执行了,执行了,牛逼");
-                    }),
-                );
+                let callback_app = app.clone();
+                my_windows::window_index::window_index_show(&app, Some(move || {
+                    send_tray_message(&callback_app);
+                }));
             } else {
                 my_windows::window_translate_bubble::window_translate_bubble_show(
                     &app,
