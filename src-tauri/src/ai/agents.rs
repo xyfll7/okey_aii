@@ -3,19 +3,18 @@ use std::pin::Pin;
 use rig::agent::{Agent, MultiTurnStreamItem, StreamingResult};
 use rig::message::Message;
 use rig::streaming::{StreamedAssistantContent, StreamingChat};
-use rig::providers::{anthropic, openai, deepseek};
 
 #[derive(Clone)]
 pub enum Agents {
-    OpenAI(Agent<openai::completion::CompletionModel>),
-    Anthropic(Agent<anthropic::completion::CompletionModel>),
-    DeepSeek(Agent<deepseek::CompletionModel>),
+    OpenAI(Agent),
+    Anthropic(Agent),
+    DeepSeek(Agent),
 }
 
 /// 与 provider 无关的精简流事件,只保留下游真正关心的语义信息。
 ///
-/// 从 rig 的 `MultiTurnStreamItem<R>` / `StreamedAssistantContent<R>` 中提取,
-/// 直接丢弃 provider 相关的泛型 `R`(最终响应对象),不保留 `Final` 位置。
+/// 从 rig 的 `MultiTurnStreamItem` / `StreamedAssistantContent` 中提取,
+/// 直接丢弃 provider 相关的 `Final`(最终响应对象),不保留 `Final` 位置。
 #[derive(Clone, serde::Serialize)]
 #[serde(tag = "type", content = "data")]
 #[allow(dead_code)]
@@ -34,14 +33,9 @@ pub enum ChatEvent {
 
 /// 把某个 provider 的 stream_chat 结果映射成 `ChatEvent` 流。
 ///
-/// rig 0.41 的流产出 `MultiTurnStreamItem<R>`,这里只提取关心的信息,
-/// `Final(R)` 及其它不关心的变体直接 `filter_map` 掉,用独立的 `Done` 信号代替。
-fn map_stream<R>(
-    stream: StreamingResult<R>,
-) -> Pin<Box<dyn Stream<Item = Result<ChatEvent, String>> + Send>>
-where
-    R: Send + 'static,
-{
+/// rig 0.42 的流产出 `MultiTurnStreamItem`,这里只提取关心的信息,
+/// `Final` 及其它不关心的变体直接 `filter_map` 掉,用独立的 `Done` 信号代替。
+fn map_stream(stream: StreamingResult) -> Pin<Box<dyn Stream<Item = Result<ChatEvent, String>> + Send>> {
     let mapped = stream.filter_map(|item| async move {
         match item {
             Ok(MultiTurnStreamItem::StreamAssistantItem(content)) => {
@@ -55,9 +49,9 @@ where
     Box::pin(mapped)
 }
 
-/// 从 `StreamedAssistantContent<R>` 中提取 `ChatEvent`,
-/// `Final(R)` 及 `Unknown` 直接丢弃。
-fn map_content<R>(content: StreamedAssistantContent<R>) -> Option<ChatEvent> {
+/// 从 `StreamedAssistantContent` 中提取 `ChatEvent`,
+/// `Final` 及 `Unknown` 直接丢弃。
+fn map_content(content: StreamedAssistantContent) -> Option<ChatEvent> {
     match content {
         StreamedAssistantContent::Text(t) => Some(ChatEvent::TextDelta(t.text)),
         StreamedAssistantContent::ToolCall { tool_call, .. } => Some(ChatEvent::ToolCall {
@@ -71,9 +65,9 @@ fn map_content<R>(content: StreamedAssistantContent<R>) -> Option<ChatEvent> {
             };
             Some(ChatEvent::ToolCallDelta(s))
         }
-        StreamedAssistantContent::Reasoning(r) => {
+        StreamedAssistantContent::Reasoning { reasoning, .. } => {
             // Reasoning.content 是 Vec<ReasoningContent>,这里简单拼接文本部分
-            let text = r
+            let text = reasoning
                 .content
                 .into_iter()
                 .map(|c| match c {
