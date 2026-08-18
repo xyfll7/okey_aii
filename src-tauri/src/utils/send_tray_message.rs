@@ -10,11 +10,13 @@ use crate::ai::{commands::list_sessions, state::add_message_to_history};
 /// 前端 `chatInit.tsx` 会监听并处理。
 pub fn send_tray_message(app: &AppHandle) {
     let selected_text = crate::utils::selecte_text::get_selected_text();
+    println!("add message ======::{:#?}", selected_text);
     let user_content = OneOrMany::many([
         UserContent::text(selected_text),
         UserContent::text("请将上面的内容翻译成英文"),
         UserContent::text("像是给初学者讲解一样"),
     ]);
+
     if let Ok(user_content) = user_content {
         let message: rig::message::Message = user_content.into();
         let session_id = {

@@ -6,7 +6,6 @@ use tauri::{
 
 use crate::{
     ai::commands::create_session,
-    my_windows::{window_index::window_index_show},
 };
 
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
@@ -26,12 +25,10 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
 
     app_handle.on_menu_event(|app, event| match event.id().as_ref() {
         "show" => {
-            window_index_show(app,Some(move || {
-                 println!("执行了,执行了,牛逼！！！");
-            }));
+           
         }
         "translate_bubble" => {
-            println!("translate_bubble")
+           
         }
         "create_session" => {
             if let Some(window) = app.get_webview_window("index") {

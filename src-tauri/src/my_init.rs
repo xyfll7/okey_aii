@@ -24,7 +24,6 @@ pub fn init(app: &mut tauri::App) {
                     &app,
                     None as Option<fn()>,
                 );
-                println!("bbc");
             };
         },
         |app, x, y| {

@@ -182,7 +182,6 @@ pub async fn send_message(
         .split_last()
         .ok_or("history 为空,请先调用 add_message 添加用户消息")?;
     let prompt = prompt.message.clone();
-    println!("history::-----{:#?}\n", history);
     let history: Vec<Message> = history.iter().map(|h| h.message.clone()).collect();
     let mut stream = agent.stream_chat(prompt, history).await;
     let mut full_text = String::new();
@@ -282,7 +281,6 @@ pub fn get_history(app: tauri::AppHandle, session_id: String) -> Result<Vec<Hist
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
     let sess = guard.sessions.get(&session_id).ok_or("会话不存在")?;
-    println!("-----------\n{:#?}",sess.history.clone());
     Ok(sess.history.clone())
 }
 
