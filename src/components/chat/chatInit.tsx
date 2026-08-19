@@ -2,10 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect } from "react";
 import { useChatContext } from "#/components/chat/chatContext";
-import {
-	type RigHistoryItem,
-	rigMessageToUIMessage,
-} from "#/lib/rigMessage";
+import { type RigHistoryItem, rigMessageToUIMessage } from "#/lib/rigMessage";
 
 export function useChatInit({ session_id }: { session_id: string }) {
 	const { setMessages, append } = useChatContext();
