@@ -20,7 +20,7 @@ pub fn init(app: &mut tauri::App) {
                 my_windows::window_index::window_index_show(
                     &app,
                     Some(move || {
-                        send_message_to_ui(&app_clone, selected_text);
+                        send_message_to_ui(&app_clone, selected_text,"index".to_string());
                     }),
                 );
             } else {
@@ -28,7 +28,7 @@ pub fn init(app: &mut tauri::App) {
                 my_windows::window_translate_bubble::window_translate_bubble_show(
                     &app,
                     Some(move || {
-                        send_message_to_ui(&app_clone, selected_text);
+                        send_message_to_ui(&app_clone, selected_text,"translate_bubble".to_string());
                     }),
                 );
             };

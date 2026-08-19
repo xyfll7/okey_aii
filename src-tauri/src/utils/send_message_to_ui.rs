@@ -8,11 +8,10 @@ use crate::ai::{commands::list_sessions, state::add_message_to_history};
 /// 逻辑：取最近一个会话，写入一条组合消息（示例文本 + 翻译指令 + 讲解指令），
 /// 然后向主窗口 `index` emit 一个 `on_message_{session_id}` 事件，
 /// 前端 `chatInit.tsx` 会监听并处理。
-pub fn send_message_to_ui(app: &AppHandle, selected_text: String) {
+pub fn send_message_to_ui(app: &AppHandle, selected_text: String, target: String) {
     let user_content: Vec<UserContent> = vec![
         UserContent::text(selected_text),
         UserContent::text("请将上面的内容翻译成英文"),
-        UserContent::text("像是给初学者讲解一样"),
     ];
     let message: rig::message::Message = user_content.into();
     let session_id = {
@@ -21,7 +20,7 @@ pub fn send_message_to_ui(app: &AppHandle, selected_text: String) {
     };
     if let Some(session_id) = session_id {
         if let Ok(item) = add_message_to_history(app, session_id.clone(), message.clone()) {
-            let _ = app.emit_to("index", &format!("on_message_{session_id}"), item);
+            let _ = app.emit_to(target, &format!("on_message_{session_id}"), item);
         }
     }
 }
