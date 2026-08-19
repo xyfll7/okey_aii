@@ -45,7 +45,7 @@ where
         };
 
         let mut builder = WebviewWindowBuilder::new(app, "index", WebviewUrl::App("/".into()))
-            .title("Translate Window")
+            .title("Index Window")
             .resizable(true)
             .fullscreen(false)
             .skip_taskbar(true)

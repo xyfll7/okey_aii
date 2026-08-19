@@ -2,7 +2,7 @@ use crate::ai::commands::create_session;
 use crate::ai::config::Provider;
 use crate::ai::state::{AppConfig, ChatState};
 use crate::my_windows::window_index::should_use_existing_index_window;
-use crate::utils::send_tray_message::send_tray_message;
+use crate::utils::send_message_to_ui::send_message_to_ui;
 use crate::{my_rdev, my_tray, my_windows};
 use std::sync::{Arc, RwLock};
 use tauri::Manager;
@@ -14,11 +14,15 @@ pub fn init(app: &mut tauri::App) {
         app.handle(),
         |app| {
             let app = app.clone();
+            let selected_text = crate::utils::selecte_text::get_selected_text();
             if should_use_existing_index_window(app.clone()) {
-                let callback_app = app.clone();
-                my_windows::window_index::window_index_show(&app, Some(move || {
-                    send_tray_message(&callback_app);
-                }));
+                let app_clone = app.clone();
+                my_windows::window_index::window_index_show(
+                    &app,
+                    Some(move || {
+                        send_message_to_ui(&app_clone, selected_text);
+                    }),
+                );
             } else {
                 my_windows::window_translate_bubble::window_translate_bubble_show(
                     &app,
@@ -49,10 +53,7 @@ pub fn setup_ai_state(app: &mut tauri::App) {
     let deepseek_key = std::env::var("DEEPSEEK_API_KEY")
         .unwrap_or_else(|_| panic!("DEEPSEEK_API_KEY not set in .env"));
 
-    let api_keys = std::collections::HashMap::from([(
-        Provider::DeepSeek,
-        deepseek_key,
-    )]);
+    let api_keys = std::collections::HashMap::from([(Provider::DeepSeek, deepseek_key)]);
 
     let initial = ChatState {
         config: AppConfig { api_keys },
