@@ -54,7 +54,7 @@ where
 
         let _ = window.show();
         let _ = window.set_always_on_top(true);
-
+        
         if let Some(cb) = callback {
             cb();
         }

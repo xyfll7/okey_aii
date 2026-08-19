@@ -15,7 +15,6 @@ pub fn init(app: &mut tauri::App) {
         |app| {
             let app = app.clone();
             let selected_text = crate::utils::selecte_text::get_selected_text();
-            println!("你今天吃了吗？::{}",selected_text);
             if should_use_existing_index_window(app.clone()) {
                 let app_clone = app.clone();
                 my_windows::window_index::window_index_show(

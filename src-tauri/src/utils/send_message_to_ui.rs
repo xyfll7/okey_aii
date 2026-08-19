@@ -19,7 +19,6 @@ pub fn send_message_to_ui(app: &AppHandle, selected_text: String) {
         let list = list_sessions(app.clone());
         list.last().map(|s| s.session_id.clone())
     };
-    println!("add message ::{:#?}", message);
     if let Some(session_id) = session_id {
         if let Ok(item) = add_message_to_history(app, session_id.clone(), message.clone()) {
             let _ = app.emit_to("index", &format!("on_message_{session_id}"), item);
