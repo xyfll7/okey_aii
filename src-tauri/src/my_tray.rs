@@ -27,7 +27,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
             {
                 match button {
                     MouseButton::Left => {
-                         my_windows::window_index::window_index_show(&tray.app_handle(), Some(move || {}));
+                         my_windows::window_index::window_index_show(&tray.app_handle(), None as Option<fn()>);
                     }
                     _ => {}
                 }
