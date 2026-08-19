@@ -10,7 +10,7 @@ pub fn window_translate_bubble_show<R: Runtime, F>(app: &AppHandle<R>, callback:
 where
     F: FnOnce() + Send + 'static,
 {
-    const WINDOW_WIDTH: f64 = 170.0;
+    const WINDOW_WIDTH: f64 = 270.0;
     const CURSOR_OFFSET: f64 = 17.0;
 
     if let Some(window) = app.get_webview_window("translate_bubble") {
@@ -56,7 +56,9 @@ where
         let _ = window.set_always_on_top(true);
         
         if let Some(cb) = callback {
-            cb();
+            tauri::async_runtime::spawn(async move {
+                cb();
+            });
         }
     }
 }

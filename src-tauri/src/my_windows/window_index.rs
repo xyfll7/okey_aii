@@ -31,7 +31,9 @@ where
         let _ = window.set_focus();
         let _ = window.set_always_on_top(true);
         if let Some(cb) = callback {
-            cb();
+            tauri::async_runtime::spawn(async move {
+                cb();
+            });
         }
     } else {
         const WINDOW_WIDTH: f64 = 400.0;
@@ -79,7 +81,9 @@ where
                 if let Ok(mut cb_option) = callback_for_listener.lock() {
                     if let Some(cb) = cb_option.take() {
                         drop(cb_option);
-                        cb();
+                        tauri::async_runtime::spawn(async move {
+                            cb();
+                        });
                     }
                 }
             });

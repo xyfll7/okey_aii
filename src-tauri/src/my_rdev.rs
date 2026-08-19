@@ -5,7 +5,7 @@ use std::time::Duration;
 use std::time::Instant;
 use tauri::AppHandle;
 
-struct GlobalState<FD: Fn(&AppHandle), FC: Fn(&AppHandle, i32, i32)> {
+struct GlobalState<FD: Fn(&AppHandle) + Clone + Send, FC: Fn(&AppHandle, i32, i32)> {
     ime_handler: InputMethodEditorHandler,
     translate_bubble_handler: TranslateBubbleHandler<FD>,
     click_outside_handler: ClickOutsideHandler<FC>,
@@ -43,14 +43,14 @@ impl InputMethodEditorHandler {
     }
 }
 
-struct TranslateBubbleHandler<FD: Fn(&AppHandle)> {
+struct TranslateBubbleHandler<FD: Fn(&AppHandle) + Clone + Send> {
     click_count: u32,
     last_release_time: Option<Instant>,
     click_timeout: u128,
     on_double_click: FD,
 }
 
-impl<FD: Fn(&AppHandle)> TranslateBubbleHandler<FD> {
+impl<FD: Fn(&AppHandle) + Clone + Send + 'static> TranslateBubbleHandler<FD> {
     fn new(on_double_click: FD) -> Self {
         Self {
             click_count: 0,
@@ -97,7 +97,12 @@ impl<FD: Fn(&AppHandle)> TranslateBubbleHandler<FD> {
 
     fn trigger_double_click(&self, app: &AppHandle) {
         let app_clone = app.clone();
-        (self.on_double_click)(&app_clone);
+        let callback = self.on_double_click.clone();
+        // 在独立线程中执行回调，避免在持有 global_state 锁的状态下
+        // 同步调用窗口创建/显示等阻塞操作，导致键盘/鼠标事件处理卡死。
+        std::thread::spawn(move || {
+            callback(&app_clone);
+        });
     }
 
     fn trigger_triple_click(&self, _app: &AppHandle) {
@@ -134,7 +139,7 @@ impl<FC: Fn(&AppHandle, i32, i32)> ClickOutsideHandler<FC> {
 
 pub fn init_global_input_listener<FD, FC>(app: &AppHandle, on_double_click: FD, on_click_outside: FC)
 where
-    FD: Fn(&AppHandle) + Send + 'static,
+    FD: Fn(&AppHandle) + Clone + Send + 'static,
     FC: Fn(&AppHandle, i32, i32) + Send + 'static,
 {
     let app_clone = app.clone();

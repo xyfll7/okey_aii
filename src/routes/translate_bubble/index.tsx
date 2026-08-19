@@ -84,9 +84,11 @@ function BubbleView({ session_id }: { session_id: string }) {
 						/>
 					</Button>
 				</div>
-				<div className="flex overflow-hidden text-nowrap flex-1">
+				<div className="flex overflow-hidden text-nowrap flex-1 ">
 					{isBusy ? (
-						<span data-loading="..."> "..."</span>
+						<div className="shimmer text-muted-foreground">
+							..!@#$%^&*()_+
+						</div>
 					) : (
 						<>
 							<div>{chat && getMessageText(chat).join("")}</div>
