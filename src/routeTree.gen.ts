@@ -10,17 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as indexIndexRouteImport } from './routes/(index)/index'
-import { Route as TranslateIndexRouteImport } from './routes/translate/index'
 import { Route as Translate_bubbleIndexRouteImport } from './routes/translate_bubble/index'
 
 const indexIndexRoute = indexIndexRouteImport.update({
   id: '/(index)/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TranslateIndexRoute = TranslateIndexRouteImport.update({
-  id: '/translate/',
-  path: '/translate/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Translate_bubbleIndexRoute = Translate_bubbleIndexRouteImport.update({
@@ -31,31 +25,27 @@ const Translate_bubbleIndexRoute = Translate_bubbleIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof indexIndexRoute
-  '/translate/': typeof TranslateIndexRoute
   '/translate_bubble/': typeof Translate_bubbleIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof indexIndexRoute
-  '/translate': typeof TranslateIndexRoute
   '/translate_bubble': typeof Translate_bubbleIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(index)/': typeof indexIndexRoute
-  '/translate/': typeof TranslateIndexRoute
   '/translate_bubble/': typeof Translate_bubbleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/translate/' | '/translate_bubble/'
+  fullPaths: '/' | '/translate_bubble/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/translate' | '/translate_bubble'
-  id: '__root__' | '/(index)/' | '/translate/' | '/translate_bubble/'
+  to: '/' | '/translate_bubble'
+  id: '__root__' | '/(index)/' | '/translate_bubble/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   indexIndexRoute: typeof indexIndexRoute
-  TranslateIndexRoute: typeof TranslateIndexRoute
   Translate_bubbleIndexRoute: typeof Translate_bubbleIndexRoute
 }
 
@@ -66,13 +56,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof indexIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/translate/': {
-      id: '/translate/'
-      path: '/translate'
-      fullPath: '/translate/'
-      preLoaderRoute: typeof TranslateIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/translate_bubble/': {
@@ -87,7 +70,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   indexIndexRoute: indexIndexRoute,
-  TranslateIndexRoute: TranslateIndexRoute,
   Translate_bubbleIndexRoute: Translate_bubbleIndexRoute,
 }
 export const routeTree = rootRouteImport
