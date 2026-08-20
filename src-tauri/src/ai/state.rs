@@ -3,6 +3,7 @@ use crate::ai::config::{builtin_presets, AgentPreset, Provider};
 use rig::client::AgentClientExt;
 use rig::message::Message;
 use rig::providers::{anthropic, deepseek, openai};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::SystemTime;
@@ -12,12 +13,15 @@ use tauri::{AppHandle, Manager, State};
 ///
 /// `rig::message::Message` 是第三方类型,无法携带我们自己的元数据,所以在此包装一层,
 /// 额外保存 `id`(前端展示与按 id 删除用)和 `created_at`(创建时间,毫秒时间戳)。
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct HistoryItem {
     /// 本条历史的唯一 id,前端用于渲染 key 与按 id 删除。
     pub id: String,
     /// 创建时间(毫秒时间戳),便于前端排序与展示。
-    #[serde(serialize_with = "serialize_systemtime_millis")]
+    #[serde(
+        serialize_with = "serialize_systemtime_millis",
+        deserialize_with = "deserialize_systemtime_millis"
+    )]
     pub created_at: SystemTime,
     /// 实际对话消息内容(rig 原生结构)。
     pub message: Message,
@@ -63,6 +67,14 @@ fn serialize_systemtime_millis<S: serde::Serializer>(
     s.serialize_u64(millis)
 }
 
+/// 把前端传来的毫秒时间戳反序列化为 `SystemTime`(与 `serialize_systemtime_millis` 对称)。
+fn deserialize_systemtime_millis<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<SystemTime, D::Error> {
+    let millis = u64::deserialize(d)?;
+    Ok(SystemTime::UNIX_EPOCH + std::time::Duration::from_millis(millis))
+}
+
 /// 顶层状态:一份全局配置(含最近选择) + 多个互不干扰的独立会话
 pub struct ChatState {
     pub config: AppConfig,
@@ -70,10 +82,14 @@ pub struct ChatState {
 }
 
 
+/// 把一条已构造好的 `HistoryItem` 追加进指定会话的历史。
+///
+/// 直接接收完整的 `HistoryItem`(含 id、created_at、message),不再内部生成元数据,
+/// 便于调用方传入前端/上游已有的 item(如用户消息)。
 pub fn add_message_to_history(
     app_handle: &AppHandle,
     session_id: String,
-    message: Message,
+    item: HistoryItem,
 ) -> Result<HistoryItem, String> {
     let state: State<'_, Arc<RwLock<ChatState>>> = app_handle.state();
     let mut guard = state.write().unwrap();
@@ -84,11 +100,6 @@ pub fn add_message_to_history(
     if sess.is_loading {
         return Err("会话正在输出对话内容(loading 中),暂时禁止添加新的对话".into());
     }
-    let item = HistoryItem {
-        id: uuid::Uuid::new_v4().to_string(),
-        created_at: SystemTime::now(),
-        message,
-    };
     sess.history.push(item.clone());
     Ok(item)
 }

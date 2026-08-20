@@ -1,12 +1,14 @@
 // 前端镜像 rig-core 的 `rig::message::Message` serde 序列化结构。
 // 对齐 src-tauri/src/ai/state.rs 中 HistoryItem 与 commands.rs 里 get_history 返回的 Vec<HistoryItem>。
 //
-// 序列化约定 (来自 rig-core 0.41.0):
+// 序列化约定 (来自 rig-core 0.42.0):
 //   - Message:      #[serde(tag = "role", rename_all = "lowercase")]
 //   - UserContent:  #[serde(tag = "type", rename_all = "lowercase")]
-//   - AssistantContent: #[serde(untagged)]  (Text 含 `text` 字段, ToolCall 含 `id`+`function` ...)
-//   - OneOrMany<T>: 始终序列化为数组 (Vec<T>)
-//   - Text:         { text: string } (+ 可能被 provider 展平的额外字段)
+//   - AssistantContent: #[serde(tag = "type", rename_all = "lowercase")]
+//                    (Text 含 `text`, ToolCall 含 `function`, Reasoning 含 `content`, Image 含 `data`)
+//   - ToolCall:     id 是 ToolCallId(序列化为字符串), 新增 provider 字段
+//   - ToolResult:   字段改为 call / provider / name / content
+//   - Text:         { text: string, additional_params?: {...} } (provider 额外字段放在 additional_params,不再展平)
 //
 // HistoryItem 是后端额外包装的一层(见 state.rs):
 //   - id:         唯一 id,前端用于渲染 key 与按 id 删除
@@ -16,8 +18,8 @@
 /** 基础文本内容 (rig::message::Text)。 */
 export interface RigText {
 	text: string;
-	/** Provider 特定的额外字段 (如引用元数据),展平在 text 同层,可选。 */
-	[key: string]: unknown;
+	/** Provider 特定的额外字段 (如引用元数据),嵌套在 additional_params 下,可选。 */
+	additional_params?: unknown;
 }
 
 /** 文档/图片/音频/视频的源数据 (rig::message::DocumentSourceKind)。 */
@@ -34,28 +36,28 @@ export interface RigImage {
 	data: RigDocumentSourceKind;
 	media_type?: string;
 	detail?: string;
-	[key: string]: unknown;
+	additional_params?: unknown;
 }
 
 /** 音频内容 (rig::message::Audio)。 */
 export interface RigAudio {
 	data: RigDocumentSourceKind;
 	media_type?: string;
-	[key: string]: unknown;
+	additional_params?: unknown;
 }
 
 /** 视频内容 (rig::message::Video)。 */
 export interface RigVideo {
 	data: RigDocumentSourceKind;
 	media_type?: string;
-	[key: string]: unknown;
+	additional_params?: unknown;
 }
 
 /** 文档内容 (rig::message::Document)。 */
 export interface RigDocument {
 	data: RigDocumentSourceKind;
 	media_type?: string;
-	[key: string]: unknown;
+	additional_params?: unknown;
 }
 
 /** 工具结果内容块 (rig::message::ToolResultContent)。 */
@@ -66,8 +68,12 @@ export type RigToolResultContent =
 
 /** 工具结果 (rig::message::ToolResult)。 */
 export interface RigToolResult {
-	id: string;
-	call_id?: string;
+	/** rig 的关联句柄 (ToolCallId),总是存在,序列化为字符串。 */
+	call: string;
+	/** provider 签发的标识,可能带 item_id (双标识 wire)。 */
+	provider?: { call_id: string; item_id?: string };
+	/** 实际执行的工具名。 */
+	name: string;
 	content: RigToolResultContent[];
 }
 
@@ -88,34 +94,41 @@ export interface RigToolFunction {
 
 /** 助手工具调用 (rig::message::ToolCall)。 */
 export interface RigToolCall {
+	type: "tool_call";
+	/** rig 的关联句柄 (ToolCallId),总是存在,序列化为字符串。 */
 	id: string;
-	call_id?: string;
+	/** provider 签发的标识,可能带 item_id (双标识 wire)。 */
+	provider?: { call_id: string; item_id?: string };
 	function: RigToolFunction;
 	signature?: string;
 	additional_params?: unknown;
 }
 
-/** 助手结构化推理 (rig::message::Reasoning)。 */
+/**
+ * 助手结构化推理 (rig::message::Reasoning)。
+ * ReasoningContent 使用 `#[serde(tag = "type", content = "content", rename_all = "snake_case")]`,
+ * 因此每个 block 的负载都嵌套在 `content` 字段下。
+ */
 export interface RigReasoning {
 	id?: string;
 	content: Array<
-		| { type: "text"; text: string; signature?: string }
+		| { type: "text"; content: { text: string; signature?: string } }
 		| { type: "encrypted"; content: string }
-		| { type: "redacted"; data: string }
+		| { type: "redacted"; content: { data: string } }
 		| { type: "summary"; content: string }
 	>;
 }
 
 /**
  * 助手消息内容 (rig::message::AssistantContent)。
- * 注意: serde 为 untagged,无 `type` 标签。
- * 通过是否存在 `text` / `function` / `content`(reasoning) 字段来区分。
+ * 注意: 从 rig 0.42 起 serde 由 untagged 改为 `#[serde(tag = "type", rename_all = "lowercase")]`,
+ * 因此每个 block 都带 `type` 标签 (text / tool_call / reasoning / image)。
  */
 export type RigAssistantContent =
-	| RigText
+	| (RigText & { type: "text" })
 	| RigToolCall
-	| RigReasoning
-	| RigImage;
+	| (RigReasoning & { type: "reasoning" })
+	| (RigImage & { type: "image" });
 
 /** 顶层消息 (rig::message::Message),按 role 标签区分。 */
 export type RigMessage =
@@ -151,14 +164,18 @@ export function rigMessageToText(message: RigMessage): string {
 		case "assistant":
 			return message.content
 				.map((c) => {
-					if ("text" in c) return c.text;
-					if ("function" in c && !("data" in c)) {
-						return `[tool_call] ${(c as RigToolCall).function.name}`;
+					switch (c.type) {
+						case "text":
+							return c.text;
+						case "tool_call":
+							return `[tool_call] ${c.function.name}`;
+						case "reasoning":
+							return `[reasoning] ${JSON.stringify(c.content)}`;
+						case "image":
+							return "[image]";
+						default:
+							return `[${(c as { type: string }).type}]`;
 					}
-					if ("content" in c && !("data" in c)) {
-						return `[reasoning] ${JSON.stringify((c as RigReasoning).content)}`;
-					}
-					return "[image]";
 				})
 				.join("\n");
 	}
@@ -207,29 +224,33 @@ export function rigMessageToUIMessage(item: RigHistoryItem): UIMessage {
 		}
 		case "assistant": {
 			const parts: UIMessage["parts"] = m.content.map((c) => {
-				// 注意: RigText / RigImage 都带 `[key: string]: unknown` 索引签名,
-				// 所以不能用 `"text" in c` 区分文本与图片。需要用正文字段判别。
-				if ("function" in c) {
-					const tc = c as RigToolCall;
-					return {
-						type: "tool-call",
-						id: tc.id,
-						name: tc.function.name,
-						arguments: JSON.stringify(tc.function.arguments ?? {}),
-						state: "complete" as const,
-					} as const;
+				// 从 rig 0.42 起 AssistantContent 带 `type` 标签,直接按标签分发。
+				switch (c.type) {
+					case "tool_call":
+						return {
+							type: "tool-call",
+							id: c.id,
+							name: c.function.name,
+							arguments: JSON.stringify(c.function.arguments ?? {}),
+							state: "complete" as const,
+						} as const;
+					case "reasoning":
+						return {
+							type: "thinking",
+							content: JSON.stringify(c.content),
+						} as const;
+					case "text":
+						return { type: "text", content: c.text } as const;
+					case "image":
+						// 图片:用占位文本,避免丢失消息。
+						return { type: "text", content: "[image]" } as const;
+					default:
+						// 未知类型:用占位文本,避免丢失消息。
+						return {
+							type: "text",
+							content: `[${(c as { type: string }).type}]`,
+						} as const;
 				}
-				if ("content" in c && !("data" in c)) {
-					return {
-						type: "thinking",
-						content: JSON.stringify((c as RigReasoning).content),
-					} as const;
-				}
-				if ("text" in c && !("data" in c)) {
-					return { type: "text", content: (c as RigText).text } as const;
-				}
-				// 其余(图片等):用占位文本,避免丢失消息。
-				return { type: "text", content: "[image]" } as const;
 			});
 			return {
 				id: item.id,

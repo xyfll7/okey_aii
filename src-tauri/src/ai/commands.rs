@@ -4,7 +4,7 @@ use futures::StreamExt;
 use rig::message::Message;
 use tauri::ipc::Channel;
 
-use crate::ai::state::{build_session_agent, HistoryItem, Session};
+use crate::ai::state::{add_message_to_history, build_session_agent, HistoryItem, Session};
 
 use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
@@ -150,6 +150,7 @@ pub fn switch_model(
 pub async fn send_message(
     app: tauri::AppHandle,
     on_event: Channel<ChatEvent>,
+    prompt: HistoryItem,
 ) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
 
@@ -169,19 +170,20 @@ pub async fn send_message(
         (sess.agent.clone(), sess.history.clone())
     };
 
-    // 标记该会话为 loading 中,期间禁止再追加新的对话内容
+    // 本轮要发送给模型的消息(先 clone 出来,prompt 之后会被整体移入历史)
+    let prompt_msg: Message = prompt.message.clone();
+    // 先把前端传入的 prompt 写入历史(此时尚未置 loading,允许写入)
+    add_message_to_history(&app, session_id.clone(), prompt)?;
+    // 再标记该会话为 loading 中,期间禁止再追加新的对话内容
     {
         let mut guard = state.write().unwrap();
         if let Some(sess) = guard.sessions.get_mut(&session_id) {
             sess.is_loading = true;
         }
     }
+    // 本轮 prompt 由前端传入,其余历史作为上下文传入
+    let prompt: Message = prompt_msg;
 
-    // 取出 history 中最新的一条消息作为本轮 prompt,其余作为历史传入
-    let (prompt, history) = history
-        .split_last()
-        .ok_or("history 为空,请先调用 add_message 添加用户消息")?;
-    let prompt = prompt.message.clone();
     let history: Vec<Message> = history.iter().map(|h| h.message.clone()).collect();
     let mut stream = agent.stream_chat(prompt, history).await;
     let mut full_text = String::new();
@@ -232,22 +234,27 @@ pub async fn send_message(
         }
     }
 
-    // 2) 流结束后再拿写锁,把这一轮追加进【该会话】的历史
-    let mut guard = state.write().unwrap();
-    if let Some(sess) = guard.sessions.get_mut(&session_id) {
-        // 首条消息时,用用户输入的前 20 字作为标题
-        if sess.history.is_empty() {
-            let title: String = "".to_string();
-            sess.title = title;
+    // 2) 流结束后,先解除 loading,恢复允许追加(否则 add_message_to_history 会拒绝写入)
+    {
+        let mut guard = state.write().unwrap();
+        if let Some(sess) = guard.sessions.get_mut(&session_id) {
+            // 首条消息时,用用户输入的前 20 字作为标题
+            if sess.history.is_empty() {
+                sess.title = "".to_string();
+            }
+            sess.is_loading = false;
         }
-        sess.history.push(crate::ai::state::HistoryItem {
+    }
+    // 3) 用统一方法把助手这一轮的回复追加进该会话的历史
+    add_message_to_history(
+        &app,
+        session_id,
+        HistoryItem {
             id: uuid::Uuid::new_v4().to_string(),
             created_at: std::time::SystemTime::now(),
             message: Message::assistant(full_text.as_str()), // 助手这一轮(assistant 消息)
-        });
-        // 流已结束,解除 loading,恢复允许追加
-        sess.is_loading = false;
-    }
+        },
+    )?;
     Ok(())
 }
 
