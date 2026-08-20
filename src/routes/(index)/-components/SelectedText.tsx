@@ -8,7 +8,7 @@ import {  useSelected } from "@/store";
 import { PromptTags } from "./PromptTags";
 
 export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
-	const selected = useSelected();
+	const { text, setText } = useSelected();
 
 
 
@@ -17,43 +17,43 @@ export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
 
 
 
-	if (!selected.text) return "";
+	if (!text) return "";
 	return (
 		<div className="w-full">
 			<div className="w-full flex items-center mb-1">
 				<div className="max-w-full truncate overflow-hidden">
-					<span className={cn("mr-1")}>{selected.text}</span>
+					<span className={cn("mr-1")}>{text}</span>
 				</div>
-				{selected.text?.trim() && (
+				{text?.trim() && (
 					<Button size={"icon-sm"} variant={"ghost"}>
-						<Copyed key={selected.text} text={selected.text} />
+						<Copyed key={text} text={text} />
 					</Button>
 				)}
-				{selected.text?.trim() && (
+				{text?.trim() && (
 					<Button
 						size={"icon-sm"}
 						variant={"ghost"}
 						onClick={() => {
-							if (!selected.text) return;
-							speak(selected.text);
+							if (!text) return;
+							speak(text);
 						}}
 					>
 						<Icons.volumeHigh />
 					</Button>
 				)}
-				{selected.text?.trim() && (
+				{text?.trim() && (
 					<Button
 						size={"icon-sm"}
 						variant={"ghost"}
 						onClick={() => {
-							// selected.setState(() => ({ text: "" }));
+							setText("");
 						}}
 					>
 						<Icons.x />
 					</Button>
 				)}
 			</div>
-			{selected.text?.trim() && (
+			{text?.trim() && (
 				<div className="flex flex-wrap">
 					{[].slice(3).map((e) => (
 						<Button

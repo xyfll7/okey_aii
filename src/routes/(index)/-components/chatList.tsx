@@ -19,27 +19,41 @@ import {
 	MessageScrollerProvider,
 	MessageScrollerViewport,
 } from "#/components/ui/message-scroller";
+import { useSelected } from "#/store";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
+import MessageNavigator from "./MessageNavigator";
+import { SelectionFloatingButton } from "./SelectionFloatingButton";
 
-function handleChatSelection(e: MouseEvent<HTMLElement>) {
+function handleChatSelection(
+	e: MouseEvent<HTMLElement>,
+	callback: (e: string) => void,
+) {
+	console.log("fasdfasdf")
 	const selection = window.getSelection();
 	const text = selection?.toString().trim();
 	if (!text || !selection || selection.rangeCount === 0) return;
 	const range = selection.getRangeAt(0);
 	if (e.currentTarget.contains(range.commonAncestorContainer)) {
+		callback(text);
 	}
 }
 
 export function ChatList({ session_id }: { session_id: string }) {
 	const chatListRef = useRef<HTMLDivElement>(null);
+	const { setText } = useSelected();
 	const { messages, status } = useChatInit({ session_id });
 	const msgs = messages.filter((e) => e.role !== "system");
 	const isBusy = status === "submitted" || status === "streaming";
 	return (
 		<MessageScrollerProvider defaultScrollPosition="last-anchor">
+			<MessageNavigator />
+			<SelectionFloatingButton containerRef={chatListRef} />
 			{msgs.length === 0 ? (
-				<Empty className="h-full" onMouseUp={handleChatSelection}>
+				<Empty
+					className="h-full"
+					onMouseUp={(e) => handleChatSelection(e, (text) => setText(text))}
+				>
 					<EmptyHeader>
 						<EmptyMedia variant="icon">
 							<Icons.chat />
@@ -51,7 +65,9 @@ export function ChatList({ session_id }: { session_id: string }) {
 					</EmptyHeader>
 				</Empty>
 			) : (
-				<MessageScroller className="" onMouseUp={handleChatSelection}>
+				<MessageScroller
+					onMouseUp={(e) => handleChatSelection(e, (text) => setText(text))}
+				>
 					<MessageScrollerViewport
 						ref={chatListRef}
 						className={cn(
