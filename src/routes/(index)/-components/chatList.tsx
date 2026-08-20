@@ -30,7 +30,13 @@ function handleChatSelection(e: MouseEvent<HTMLElement>) {
 	}
 }
 
-export function ChatList({ msgs, isBusy }: { msgs: ChatContextValue["messages"]; isBusy: boolean }) {
+export function ChatList({
+	msgs,
+	isBusy,
+}: {
+	msgs: ChatContextValue["messages"];
+	isBusy: boolean;
+}) {
 	const chatListRef = useRef<HTMLDivElement>(null);
 	return (
 		<MessageScrollerProvider defaultScrollPosition="last-anchor">
@@ -48,7 +54,10 @@ export function ChatList({ msgs, isBusy }: { msgs: ChatContextValue["messages"];
 				</Empty>
 			) : (
 				<MessageScroller className="" onMouseUp={handleChatSelection}>
-					<MessageScrollerViewport ref={chatListRef} className="scrollbar-area">
+					<MessageScrollerViewport
+						ref={chatListRef}
+						className="scrollbar-none [&::-webkit-scrollbar]:hidden"
+					>
 						<MessageScrollerContent
 							aria-busy={isBusy}
 							data-chat-container
