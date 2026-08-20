@@ -30,11 +30,11 @@ function handleChatSelection(e: MouseEvent<HTMLElement>) {
 	}
 }
 
-export function ChatList({ msg, isBusy }: { msg: ChatContextValue["messages"]; isBusy: boolean }) {
+export function ChatList({ msgs, isBusy }: { msgs: ChatContextValue["messages"]; isBusy: boolean }) {
 	const chatListRef = useRef<HTMLDivElement>(null);
 	return (
 		<MessageScrollerProvider>
-			{msg.length === 0 ? (
+			{msgs.length === 0 ? (
 				<Empty className="h-full" onMouseUp={handleChatSelection}>
 					<EmptyHeader>
 						<EmptyMedia variant="icon">
@@ -54,7 +54,7 @@ export function ChatList({ msg, isBusy }: { msg: ChatContextValue["messages"]; i
 							data-chat-container
 							className="p-4 scroll-fade "
 						>
-							{msg.map((item, index) => (
+							{msgs.map((item, index) => (
 								<MessageScrollerItem
 									className="[content-visibility:visible!]"
 									key={item.id}
@@ -62,7 +62,7 @@ export function ChatList({ msg, isBusy }: { msg: ChatContextValue["messages"]; i
 									scrollAnchor={item.role === "user"}
 								>
 									<MessageBubble message={item} />
-									{msg.length - 1 === index && (
+									{msgs.length - 1 === index && (
 										<Marker
 											role="banner"
 											className={cn(
