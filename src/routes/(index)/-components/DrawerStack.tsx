@@ -1,5 +1,5 @@
 /**
- * drawer-stack.tsx
+ * DrawerStack.tsx
  *
  * A context-driven, infinitely-nestable Drawer stack built on top of
  * shadcn's Base UI Drawer (`@/components/ui/drawer`).
