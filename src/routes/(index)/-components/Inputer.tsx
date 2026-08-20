@@ -17,7 +17,10 @@ import {
 import { cn } from "@/lib/utils";
 import { s_Selected } from "@/store";
 
-export function Inputer({ className }: { className?: string }) {
+export function Inputer({
+	className,
+	isBusy,
+}: { className?: string; isBusy?: boolean }) {
 	const [value, setValue] = useState("");
 	const selected = useSelector(s_Selected, (state) => state);
 

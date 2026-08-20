@@ -15,7 +15,7 @@ export function SessionView({ session_id }: { session_id: string }) {
 			<div className={cn("relative h-full", "flex flex-col overflow-hidden")}>
 				<ChatList msgs={msgs} isBusy={isBusy} />
 				<div className="px-2 pb-2">
-					<Inputer />
+					<Inputer isBusy={isBusy} />
 				</div>
 			</div>
 		</ChatProvider>
