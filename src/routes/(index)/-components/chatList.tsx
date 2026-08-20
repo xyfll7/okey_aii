@@ -1,6 +1,5 @@
 import { type MouseEvent, useRef } from "react";
-import { useChatContext } from "#/components/chat/chatContext";
-import { useChatInit } from "#/components/chat/chatInit";
+import type { ChatContextValue } from "#/components/chat/chatContext";
 import { getMessageText } from "#/components/chat/chatUtils";
 import { Icons } from "#/components/icon";
 import {
@@ -31,12 +30,8 @@ function handleChatSelection(e: MouseEvent<HTMLElement>) {
 	}
 }
 
-export function ChatList({ session_id }: { session_id: string }) {
-	useChatInit({ session_id });
+export function ChatList({ msg, isBusy }: { msg: ChatContextValue["messages"]; isBusy: boolean }) {
 	const chatListRef = useRef<HTMLDivElement>(null);
-	const { messages, status } = useChatContext();
-	const msg = messages.filter((e) => e.role !== "system");
-	const isBusy = status === "submitted" || status === "streaming";
 	return (
 		<MessageScrollerProvider>
 			{msg.length === 0 ? (
