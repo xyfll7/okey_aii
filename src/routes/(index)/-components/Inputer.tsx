@@ -1,5 +1,6 @@
 import { useSelector } from "@tanstack/react-store";
 import { useState } from "react";
+import { useChatContext } from "#/components/chat/chatContext";
 import { Icons } from "@/components/icon";
 import {
 	DropdownMenu,
@@ -13,17 +14,29 @@ import {
 	InputGroupButton,
 	InputGroupTextarea,
 } from "@/components/ui/input-group";
-
 import { cn } from "@/lib/utils";
 import { s_Selected } from "@/store";
 
-export function Inputer({
-	className,
-	isBusy,
-}: { className?: string; isBusy?: boolean }) {
+export function Inputer({ className }: { className?: string }) {
 	const [value, setValue] = useState("");
 	const selected = useSelector(s_Selected, (state) => state);
-
+	const { append, status, stop } = useChatContext();
+	const isBusy = status === "submitted" || status === "streaming";
+	const handleSend = async () => {
+		if (isBusy) {
+			stop();
+			return;
+		}
+		const content = value.trim();
+		if (!content) return;
+		append({
+			id: crypto.randomUUID(),
+			role: "user",
+			createdAt: new Date(),
+			parts: [{ type: "text", content }],
+		});
+		setValue("");
+	};
 	return (
 		<InputGroup
 			className={cn(
@@ -41,14 +54,17 @@ export function Inputer({
 				placeholder={"m.translate_input_placeholder()"}
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
-				onKeyDown={async () => {}}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" && !e.shiftKey) {
+						e.preventDefault();
+						handleSend();
+					}
+				}}
 			/>
 			<InputGroupAddon align="block-end">
 				<DropdownMenu>
 					<DropdownMenuTrigger
-						render={
-							<InputGroupButton variant="ghost" size="icon-xs" />
-						}
+						render={<InputGroupButton variant="ghost" size="icon-xs" />}
 					/>
 					<DropdownMenuContent side="top" align="start">
 						<DropdownMenuItem>123123</DropdownMenuItem>
@@ -59,12 +75,10 @@ export function Inputer({
 					variant="default"
 					className="rounded-full ml-auto cursor-pointer"
 					size="icon-xs"
-					onClick={async () => {}}
+					onClick={handleSend}
 				>
 					{isBusy ? <Icons.stop /> : <Icons.arrowUp />}
-					<span className="sr-only">
-						{isBusy ? "abort" : "send"}
-					</span>
+					<span className="sr-only">{isBusy ? "abort" : "send"}</span>
 				</InputGroupButton>
 			</InputGroupAddon>
 		</InputGroup>
