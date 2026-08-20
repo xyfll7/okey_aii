@@ -56,12 +56,13 @@ export function ChatList({ session_id }: { session_id: string }) {
 						ref={chatListRef}
 						className={cn(
 							"[scrollbar-color:color-mix(in_oklch,var(--foreground)_17%,transparent)_transparent]",
+							"scroll-fade-t",
 						)}
 					>
 						<MessageScrollerContent
 							aria-busy={isBusy}
 							data-chat-container
-							className="p-4 scroll-fade "
+							className="p-4"
 						>
 							{msgs.map((item, index) => (
 								<MessageScrollerItem
