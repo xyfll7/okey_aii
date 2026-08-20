@@ -61,11 +61,9 @@ export function Inputer({
 					size="icon-xs"
 					onClick={async () => {}}
 				>
-					{/** biome-ignore lint/correctness/noConstantCondition: <explanation> */}
-					{true ? <Icons.stop /> : <Icons.arrowUp />}
+					{isBusy ? <Icons.stop /> : <Icons.arrowUp />}
 					<span className="sr-only">
-						{/** biome-ignore lint/correctness/noConstantCondition: <explanation> */}
-						{true ? "abort" : "send"}
+						{isBusy ? "abort" : "send"}
 					</span>
 				</InputGroupButton>
 			</InputGroupAddon>
