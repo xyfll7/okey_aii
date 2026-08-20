@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
 import { useSelected } from "@/store";
+import { SelectedText } from "./SelectedText";
 
 export function Inputer({ className }: { className?: string }) {
 	const [value, setValue] = useState("");
@@ -46,7 +47,7 @@ export function Inputer({ className }: { className?: string }) {
 		>
 			{selected.text && (
 				<InputGroupAddon align="block-start">
-					<div>fadsf</div>
+					<SelectedText onChat={(e) => {}} />
 				</InputGroupAddon>
 			)}
 			<InputGroupTextarea
