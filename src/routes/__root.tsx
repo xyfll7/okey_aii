@@ -12,17 +12,17 @@ export const Route = createRootRoute({
 function RootComponent() {
 	return (
 		<ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-			<DrawerStackProvider
-				onClose={(ids) => {
-					for (const session_id of ids) {
-						invoke("close_session", { session_id }).catch(console.error);
-					}
-				}}
-			>
-				<TooltipProvider>
+			<TooltipProvider>
+				<DrawerStackProvider
+					onClose={(ids) => {
+						for (const session_id of ids) {
+							invoke("close_session", { session_id }).catch(console.error);
+						}
+					}}
+				>
 					<Outlet />
-				</TooltipProvider>
-			</DrawerStackProvider>
+				</DrawerStackProvider>
+			</TooltipProvider>
 		</ThemeProvider>
 	);
 }
