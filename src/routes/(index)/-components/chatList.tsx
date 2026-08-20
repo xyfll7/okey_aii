@@ -33,7 +33,7 @@ function handleChatSelection(e: MouseEvent<HTMLElement>) {
 export function ChatList({ msgs, isBusy }: { msgs: ChatContextValue["messages"]; isBusy: boolean }) {
 	const chatListRef = useRef<HTMLDivElement>(null);
 	return (
-		<MessageScrollerProvider>
+		<MessageScrollerProvider defaultScrollPosition="last-anchor">
 			{msgs.length === 0 ? (
 				<Empty className="h-full" onMouseUp={handleChatSelection}>
 					<EmptyHeader>

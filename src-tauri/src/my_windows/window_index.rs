@@ -6,7 +6,7 @@ use std::{
 use tauri::Listener;
 use tauri::{window::Color, AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
 
-use crate::my_windows::window_helper::*;
+use crate::my_windows::window_helper::{calculate_center_position, calculate_window_position};
 
 pub fn should_use_existing_index_window(app: AppHandle) -> bool {
     let translate_window = app.get_webview_window("index");
