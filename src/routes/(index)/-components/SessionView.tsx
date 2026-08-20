@@ -1,9 +1,9 @@
-import { Inputer } from "#/components/Inputer";
+import { useChatContext } from "#/components/chat/chatContext";
+import { useChatInit } from "#/components/chat/chatInit";
+import { ChatProvider } from "#/components/chat/chatProvider";
 import { cn } from "#/lib/utils";
 import { ChatList } from "#/routes/(index)/-components/chatList";
-import { useChatContext } from "../../../components/chat/chatContext";
-import { useChatInit } from "../../../components/chat/chatInit";
-import { ChatProvider } from "../../../components/chat/chatProvider";
+import { Inputer } from "#/routes/(index)/-components/Inputer";
 
 export function SessionView({ session_id }: { session_id: string }) {
 	useChatInit({ session_id });

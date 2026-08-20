@@ -1,7 +1,7 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
-import { DrawerStackProvider } from "#/components/drawer-stack";
 import { ThemeProvider } from "#/components/theme-provider";
+import { DrawerStackProvider } from "#/routes/(index)/-components/DrawerStack";
 import "../styles.css";
 import { TooltipProvider } from "#/components/ui/tooltip";
 

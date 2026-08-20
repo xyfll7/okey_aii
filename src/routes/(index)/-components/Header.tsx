@@ -1,5 +1,3 @@
-import type { UIMessage } from "@tanstack/ai/client";
-import { invoke } from "@tauri-apps/api/core";
 import { type as ostype } from "@tauri-apps/plugin-os";
 import type React from "react";
 import { useEffect, useState } from "react";
