@@ -57,7 +57,7 @@ export function ChatList({
 					<MessageScrollerViewport
 						ref={chatListRef}
 						className={cn(
-							"[scrollbar-color:color-mix(in_oklch,var(--foreground)_20%,transparent)_transparent]",
+							"[scrollbar-color:color-mix(in_oklch,var(--foreground)_17%,transparent)_transparent]",
 						)}
 					>
 						<MessageScrollerContent
