@@ -56,7 +56,9 @@ export function ChatList({
 				<MessageScroller className="" onMouseUp={handleChatSelection}>
 					<MessageScrollerViewport
 						ref={chatListRef}
-						className="[scrollbar-color:color-mix(in_oklch,var(--foreground)_20%,transparent)_transparent] [&::-webkit-scrollbar-thumb]:bg-foreground/20 [&::-webkit-scrollbar-thumb:hover]:bg-foreground/40"
+						className={cn(
+							"[scrollbar-color:color-mix(in_oklch,var(--foreground)_20%,transparent)_transparent]",
+						)}
 					>
 						<MessageScrollerContent
 							aria-busy={isBusy}
