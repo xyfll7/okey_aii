@@ -26,7 +26,6 @@ pub fn send_message_to_ui(app: &AppHandle, selected_text: String, target: String
             created_at: SystemTime::now(),
             message,
         };
-        println!("+++{:#?}",item);
         let _ = app.emit_to(target, &format!("on_message_{session_id}"), item);
     }
 }

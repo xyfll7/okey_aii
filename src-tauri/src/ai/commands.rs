@@ -151,16 +151,10 @@ pub async fn send_message(
     app: tauri::AppHandle,
     on_event: Channel<ChatEvent>,
     prompt: HistoryItem,
+    session_id: String,
 ) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
-
-    let session_id = {
-        let list = list_sessions(app.clone());
-        list.last()
-            .map(|s| s.session_id.clone())
-            .ok_or("没有可用的会话,请先调用 create_session")?
-    };
-
+    
     let (agent, history) = {
         let guard = state.read().unwrap();
         let sess = guard

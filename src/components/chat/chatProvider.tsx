@@ -3,11 +3,11 @@ import type { ReactNode } from "react"
 import { chatAdapter } from "./chatAdapter"
 import { ChatContext } from "./chatContext"
 
-export function ChatProvider({ children }: { children: ReactNode }) {
+export function ChatProvider({ session_id, children }: { session_id: string; children: ReactNode }) {
 
     const chat = useChat({
         initialMessages: [],
-        connection: chatAdapter(),
+        connection: chatAdapter(session_id),
     })
 
 
@@ -15,5 +15,3 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         <ChatContext.Provider value={chat}>{children}</ChatContext.Provider>
     )
 }
-
-

@@ -16,9 +16,12 @@ export const Route = createFileRoute("/translate_bubble/")({
 });
 function RouteComponent() {
 	const session_id = useSessionId();
+	if (!session_id) {
+		return null;
+	}
 	return (
-		<ChatProvider>
-			{session_id && <BubbleView session_id={session_id}></BubbleView>}
+		<ChatProvider session_id={session_id}>
+			<BubbleView session_id={session_id}></BubbleView>
 		</ChatProvider>
 	);
 }
@@ -86,9 +89,7 @@ function BubbleView({ session_id }: { session_id: string }) {
 				</div>
 				<div className="flex overflow-hidden text-nowrap flex-1 ">
 					{isBusy ? (
-						<div className="shimmer text-muted-foreground">
-							..!@#$%^&*()_+
-						</div>
+						<div className="shimmer text-muted-foreground">..!@#$%^&*()_+</div>
 					) : (
 						<>
 							<div>{chat && getMessageText(chat).join("")}</div>

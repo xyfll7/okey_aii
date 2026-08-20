@@ -4,8 +4,9 @@ import {
 	EventType,
 	type StreamChunk,
 } from "@tanstack/ai/client";
-import { type ConnectionAdapter, stream } from "@tanstack/ai-react";
+import { type ConnectionAdapter, stream, type UIMessage } from "@tanstack/ai-react";
 import { Channel, invoke } from "@tauri-apps/api/core";
+import type { RigHistoryItem, RigMessage } from "#/lib/rigMessage";
 
 type StreamEvent =
 	| { event: "chunk"; data: { content: string } }
@@ -26,10 +27,29 @@ interface ChatStreamState {
 	aborted: boolean;
 }
 
+/** 把当前用户输入转成后端需要的 HistoryItem(与 state.rs 序列化格式一致)。 */
+function buildPromptHistoryItem(userMessage: UIMessage): RigHistoryItem {
+	const text = (userMessage.parts ?? [])
+		.filter((p) => p.type === "text")
+		.map((p) => (p.type === "text" ? p.content : ""))
+		.join("");
+	const message: RigMessage = {
+		role: "user",
+		content: [{ type: "text", text }],
+	};
+	return {
+		id: userMessage.id ?? `prompt-${Date.now()}`,
+		created_at: Date.now(),
+		message,
+	};
+}
+
 function startChatStream(
 	queue: StreamEvent[],
 	state: ChatStreamState,
 	notify: () => void,
+	session_id: string,
+	prompt: RigHistoryItem,
 ): void {
 	const channel = new Channel<ChatEventWire>();
 
@@ -50,11 +70,12 @@ function startChatStream(
 		}
 		notify();
 	};
-	console.log("abc:::-----------")
 	void (async () => {
 		try {
 			await invoke("send_message", {
 				on_event: channel,
+				prompt,
+				session_id,
 			});
 		} catch (err) {
 			if (state.aborted) return;
@@ -66,7 +87,7 @@ function startChatStream(
 	})();
 }
 
-export function chatAdapter(): ConnectionAdapter {
+export function chatAdapter(session_id: string): ConnectionAdapter {
 	return stream(async function* (messages, _, abortSignal) {
 		const runId = `run-${Date.now()}`;
 		const threadId = `thread-${Date.now()}`;
@@ -77,6 +98,8 @@ export function chatAdapter(): ConnectionAdapter {
 		if (message?.role !== "user") {
 			return;
 		}
+		// 历史与实时消息都通过 rigMessageToUIMessage 统一转成 UIMessage,这里只可能是 UIMessage
+		const prompt = buildPromptHistoryItem(message as UIMessage);
 
 		const queue: StreamEvent[] = [];
 		const state: ChatStreamState = {
@@ -105,7 +128,7 @@ export function chatAdapter(): ConnectionAdapter {
 				model,
 				timestamp: now(),
 			} satisfies StreamChunk;
-			startChatStream(queue, state, notify);
+			startChatStream(queue, state, notify, session_id, prompt);
 			yield {
 				type: EventType.TEXT_MESSAGE_START,
 				messageId,
