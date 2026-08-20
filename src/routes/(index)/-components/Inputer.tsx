@@ -1,4 +1,3 @@
-import { useSelector } from "@tanstack/react-store";
 import { useState } from "react";
 import { useChatContext } from "#/components/chat/chatContext";
 import { Icons } from "@/components/icon";
@@ -15,11 +14,11 @@ import {
 	InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
-import { s_Selected } from "@/store";
+import { useSelected } from "@/store";
 
 export function Inputer({ className }: { className?: string }) {
 	const [value, setValue] = useState("");
-	const selected = useSelector(s_Selected, (state) => state);
+	const selected = useSelected();
 	const { append, status, stop } = useChatContext();
 	const isBusy = status === "submitted" || status === "streaming";
 	const handleSend = async () => {

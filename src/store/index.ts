@@ -1,4 +1,4 @@
-import { Store } from "@tanstack/react-store";
+import { createContext, useContext } from "react";
 
-export const s_Selected = new Store<{ text: string }>({ text: "", });
-
+export const SelectedContext = createContext<{ text: string }>({ text: "" });
+export const useSelected = () => useContext(SelectedContext);
