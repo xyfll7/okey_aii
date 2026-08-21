@@ -28,7 +28,6 @@ function handleChatSelection(
 	e: MouseEvent<HTMLElement>,
 	callback: (e: string) => void,
 ) {
-	console.log("fasdfasdf")
 	const selection = window.getSelection();
 	const text = selection?.toString().trim();
 	if (!text || !selection || selection.rangeCount === 0) return;

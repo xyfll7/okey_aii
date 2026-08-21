@@ -7,7 +7,11 @@ import {
 	type UIMessage,
 } from "@tanstack/ai-react";
 import { Channel, invoke } from "@tauri-apps/api/core";
-import type { RigHistoryItem, RigMessage, RigUserContent } from "#/lib/rigMessage";
+import type {
+	RigHistoryItem,
+	RigMessage,
+	RigUserContent,
+} from "#/lib/rigMessage";
 
 type StreamEvent =
 	| { event: "chunk"; data: { content: string } }
@@ -115,10 +119,24 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 			resolveNext = null;
 		};
 
+		// 中止逻辑必须放在事件回调里同步执行——一旦生成器正挂起在
+		// `await new Promise(...)`，abort 触发后框架很可能会调用生成器的
+		// `.return()`,这会直接跳到 finally,跳过 while 循环里的后续代码。
+		// 所以不能指望"循环下一次迭代才通知后端中止"。
 		const onAbort = () => {
-			console.log("暂停了发送到发送地方，，，，")
 			state.aborted = true;
 			state.finished = true;
+			void invoke<boolean>("abort_chat_stream", { session_id })
+				.then((aborted) => {
+					if (!aborted) {
+						console.warn(
+							"abort_chat_stream: 该会话没有正在运行的任务",
+						);
+					}
+				})
+				.catch((err) => {
+					console.error("abort_chat_stream failed:", err);
+				});
 			notify();
 		};
 		abortSignal?.addEventListener("abort", onAbort);
@@ -141,7 +159,8 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 
 			while (!state.finished || queue.length > 0) {
 				if (state.aborted || abortSignal?.aborted) {
-					void invoke("EVENT_NAMES.abort_chat_stream").catch(() => {});
+					// 通知后端中止的逻辑已经在 onAbort 里同步执行过了,
+					// 这里只需要跳出循环/生成器即可。
 					return;
 				}
 				if (queue.length === 0) {
@@ -150,10 +169,10 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 					});
 					continue;
 				}
-				const message = queue.shift();
-				switch (message?.event) {
+				const event = queue.shift();
+				switch (event?.event) {
 					case "chunk": {
-						const delta = message.data?.content ?? "";
+						const delta = event.data?.content ?? "";
 						accumulated += delta;
 						yield {
 							type: EventType.TEXT_MESSAGE_CONTENT,
@@ -178,7 +197,7 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 							runId,
 							model,
 							timestamp: now(),
-							message: message.data?.message ?? "stream error",
+							message: event.data?.message ?? "stream error",
 						} satisfies StreamChunk;
 						break;
 					}
