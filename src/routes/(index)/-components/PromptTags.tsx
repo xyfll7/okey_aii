@@ -81,11 +81,12 @@ export function PromptTags({
 					e.currentTarget.blur();
 					setIsOpen(true);
 				}}
-			>
-				<Button size={"xs"} variant={"outline"} className={className}>
-					<Icons.add />
-				</Button>
-			</DrawerTrigger>
+				render={
+					<Button size={"xs"} variant={"outline"} className={className}>
+						<Icons.add />
+					</Button>
+				}
+			/>
 			<DrawerContent
 				className={cn(
 					"h-[80vh]  overflow-hidden",
