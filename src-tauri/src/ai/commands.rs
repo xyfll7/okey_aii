@@ -50,6 +50,7 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
         created_at: std::time::SystemTime::now(),
         title: "新会话".into(),
         is_loading: false,
+        cancel_handle: None,
     };
 
     guard.sessions.insert(session_id.clone(), session.clone());
@@ -61,12 +62,16 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
 #[tauri::command(rename_all = "snake_case")]
 pub fn close_session(app: tauri::AppHandle, session_id: String) -> Result<bool, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
-    let removed = state
-        .write()
-        .unwrap()
-        .sessions
-        .remove(&session_id)
-        .is_some();
+    let mut guard = state.write().unwrap();
+    // 若该会话正在生成(持有 cancel_handle),先调用 abort() 通知对应的 send_message
+    // 尽快结束(Abortable 流会在下次 poll 时产出 None),避免它在 session 被移除后
+    // 仍空跑到 add_message_to_history 才因"会话不存在"报错终止。
+    if let Some(sess) = guard.sessions.get(&session_id) {
+        if let Some(handle) = &sess.cancel_handle {
+            handle.abort();
+        }
+    }
+    let removed = guard.sessions.remove(&session_id).is_some();
     Ok(removed)
 }
 
@@ -166,20 +171,34 @@ pub async fn send_message(
 
     // 本轮要发送给模型的消息(先 clone 出来,prompt 之后会被整体移入历史)
     let prompt_msg: Message = prompt.message.clone();
-    // 先把前端传入的 prompt 写入历史(此时尚未置 loading,允许写入)
-    add_message_to_history(&app, session_id.clone(), prompt)?;
-    // 再标记该会话为 loading 中,期间禁止再追加新的对话内容
+
+    // 先创建取消句柄,再用同一次 write 锁完成三件事:
+    // 把用户消息写入历史、置 is_loading = true、挂上 cancel_handle。
+    // 三者原子完成,保证从"用户消息已提交"到"cancel_handle 可用"之间不存在窗口期,
+    // 避免用户此刻点击"停止"收到"当前没有正在进行的生成"的误报错误。
+    let (abort_handle, abort_registration) = futures::future::AbortHandle::new_pair();
     {
         let mut guard = state.write().unwrap();
-        if let Some(sess) = guard.sessions.get_mut(&session_id) {
-            sess.is_loading = true;
+        let sess = guard
+            .sessions
+            .get_mut(&session_id)
+            .ok_or("会话不存在,请先调用 create_session")?;
+        if sess.is_loading {
+            return Err("会话正在输出对话内容(loading 中),暂时禁止添加新的对话".into());
         }
+        sess.history.push(prompt.clone());
+        sess.is_loading = true;
+        sess.cancel_handle = Some(abort_handle);
     }
+
     // 本轮 prompt 由前端传入,其余历史作为上下文传入
     let prompt: Message = prompt_msg;
 
     let history: Vec<Message> = history.iter().map(|h| h.message.clone()).collect();
-    let mut stream = agent.stream_chat(prompt, history).await;
+    let stream = agent.stream_chat(prompt, history).await;
+    // 用 Abortable 包一层:一旦 abort() 被调用,流会在下次 poll 时直接结束(产出 None)
+    let mut stream = futures::stream::Abortable::new(stream, abort_registration);
+
     let mut full_text = String::new();
     while let Some(item) = stream.next().await {
         match item {
@@ -222,13 +241,19 @@ pub async fn send_message(
                 let mut guard = state.write().unwrap();
                 if let Some(sess) = guard.sessions.get_mut(&session_id) {
                     sess.is_loading = false;
+                    sess.cancel_handle = None;
                 }
                 return Err(e);
             }
         }
     }
+    let was_cancelled = stream.is_aborted();
+    if was_cancelled {
+        let _ = on_event.send(ChatEvent::Done);
+    }
 
-    // 2) 流结束后,先解除 loading,恢复允许追加(否则 add_message_to_history 会拒绝写入)
+    // 2) 流结束(正常/前端断开/用户取消)后,统一解除 loading 并清空取消句柄,
+    //    恢复允许追加(否则 add_message_to_history 会拒绝写入)
     {
         let mut guard = state.write().unwrap();
         if let Some(sess) = guard.sessions.get_mut(&session_id) {
@@ -237,19 +262,49 @@ pub async fn send_message(
                 sess.title = "".to_string();
             }
             sess.is_loading = false;
+            sess.cancel_handle = None;
         }
     }
-    // 3) 用统一方法把助手这一轮的回复追加进该会话的历史
-    add_message_to_history(
-        &app,
-        session_id,
-        HistoryItem {
-            id: uuid::Uuid::new_v4().to_string(),
-            created_at: std::time::SystemTime::now(),
-            message: Message::assistant(full_text.as_str()), // 助手这一轮(assistant 消息)
-        },
-    )?;
+    // 3) 把助手这一轮的回复追加进该会话的历史;
+    //    即使被取消,已生成的部分文本也保留,而不是整段丢弃
+    if !full_text.is_empty() || !was_cancelled {
+        add_message_to_history(
+            &app,
+            session_id,
+            HistoryItem {
+                id: uuid::Uuid::new_v4().to_string(),
+                created_at: std::time::SystemTime::now(),
+                message: Message::assistant(full_text.as_str()), // 助手这一轮(assistant 消息)
+            },
+        )?;
+    }
     Ok(())
+}
+
+/// 停止指定会话当前正在进行的生成。
+///
+/// 通过 `Session.cancel_handle` 对 `send_message` 里的 `Abortable` 流调用 `abort()`,
+/// 使其在下一次 poll 时结束;已生成的部分文本仍会写入历史。若当前没有正在进行的生成则返回错误。
+#[tauri::command(rename_all = "snake_case")]
+pub fn stop_generation(app: tauri::AppHandle, session_id: String) -> Result<(), String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
+    let guard = state.read().unwrap();
+    let sess = guard.sessions.get(&session_id).ok_or("会话不存在")?;
+    match &sess.cancel_handle {
+        Some(handle) => {
+            handle.abort();
+            Ok(())
+        }
+        None => {
+            // 按第1条修复后,is_loading 为 true 时 cancel_handle 必然已挂上,故此处一般
+            // 表示会话确实空闲;此处区分一下 loading 与完全空闲,给出更准确的提示。
+            if sess.is_loading {
+                Err("生成任务尚未初始化完成,请稍后再试".into())
+            } else {
+                Err("当前没有正在进行的生成".into())
+            }
+        }
+    }
 }
 
 /// 列出所有已打开的会话,按创建时间倒序(最新在前)

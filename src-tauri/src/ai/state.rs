@@ -54,6 +54,9 @@ pub struct Session {
     pub agent: Arc<Agents>,
     #[serde(skip)]
     pub history: Vec<HistoryItem>,
+    /// 当前生成任务的取消句柄;仅在 `is_loading = true` 期间为 `Some`。
+    #[serde(skip)]
+    pub cancel_handle: Option<futures::future::AbortHandle>,
 }
 
 fn serialize_systemtime_millis<S: serde::Serializer>(

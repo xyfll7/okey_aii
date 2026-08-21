@@ -126,16 +126,11 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 		const onAbort = () => {
 			state.aborted = true;
 			state.finished = true;
-			void invoke<boolean>("abort_chat_stream", { session_id })
-				.then((aborted) => {
-					if (!aborted) {
-						console.warn(
-							"abort_chat_stream: 该会话没有正在运行的任务",
-						);
-					}
-				})
+			void invoke("stop_generation", { session_id })
 				.catch((err) => {
-					console.error("abort_chat_stream failed:", err);
+					// stop_generation 在"没有进行中的生成"时会返回错误,
+					// 属正常情况(例如前端在流已结束时触发 abort),无需告警。
+					console.warn("stop_generation:", String(err));
 				});
 			notify();
 		};
