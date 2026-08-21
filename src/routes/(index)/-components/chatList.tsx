@@ -108,7 +108,11 @@ export function ChatList({ session_id }: { session_id: string }) {
 							))}
 						</MessageScrollerContent>
 					</MessageScrollerViewport>
-					<MessageScrollerButton className="start-s-1/2" />
+					<MessageScrollerButton
+					className="start-s-1/2 rounded-full"
+					variant="secondary"
+					size="icon-sm"
+				/>
 				</MessageScroller>
 			)}
 		</MessageScrollerProvider>

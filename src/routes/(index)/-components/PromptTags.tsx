@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
 import {
@@ -77,8 +77,8 @@ export function PromptTags({
 	return (
 		<Drawer open={isOpen} onOpenChange={setIsOpen}>
 			<DrawerTrigger
-				onClick={async (e) => {
-					(e.currentTarget as HTMLButtonElement).blur();
+				onClick={async (e: MouseEvent<HTMLButtonElement>) => {
+					e.currentTarget.blur();
 					setIsOpen(true);
 				}}
 			>
