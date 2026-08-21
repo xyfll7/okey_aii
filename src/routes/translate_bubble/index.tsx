@@ -9,8 +9,8 @@ import { ChatProvider } from "#/components/chat/chatProvider";
 import { getMessageText } from "#/components/chat/chatUtils";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
+import { cn, speak } from "#/lib/utils";
 import type { Session } from "#/types";
-import { cn, speak } from "@/lib/utils";
 export const Route = createFileRoute("/translate_bubble/")({
 	component: RouteComponent,
 });

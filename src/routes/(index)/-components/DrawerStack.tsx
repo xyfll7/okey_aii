@@ -2,7 +2,7 @@
  * DrawerStack.tsx
  *
  * A context-driven, infinitely-nestable Drawer stack built on top of
- * shadcn's Base UI Drawer (`@/components/ui/drawer`).
+ * shadcn's Base UI Drawer (`#/components/ui/drawer`).
  *
  * Instead of hand-nesting <Drawer> N levels deep in JSX, you keep a
  * push/pop stack in React state and *recursively* render that stack as

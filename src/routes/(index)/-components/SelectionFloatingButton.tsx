@@ -1,9 +1,9 @@
 import { computePosition, flip, offset, shift } from "@floating-ui/dom";
 import { useEffect, useRef, useState } from "react";
+import { Icons } from "#/components/icon";
+import { Button } from "#/components/ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "#/components/ui/button-group";
-import { Icons } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import { speak } from "@/lib/utils";
+import { speak } from "#/lib/utils";
 
 /**
  * Range.getBoundingClientRect() can be unreliable right at a soft

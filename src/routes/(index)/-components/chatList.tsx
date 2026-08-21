@@ -18,8 +18,8 @@ import {
 	MessageScrollerProvider,
 	MessageScrollerViewport,
 } from "#/components/ui/message-scroller";
+import { cn } from "#/lib/utils";
 import { useSelected } from "#/store";
-import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 import MessageNavigator from "./MessageNavigator";
 import { SelectionFloatingButton } from "./SelectionFloatingButton";

@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import Copyed from "@/components/Copyed";
-import { Icons } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import type { PromptTag } from "@/lib/types";
-import { cn, speak } from "@/lib/utils";
+import Copyed from "#/components/Copyed";
+import { Icons } from "#/components/icon";
+import { Button } from "#/components/ui/button";
+import type { PromptTag } from "#/lib/types";
+import { cn, speak } from "#/lib/utils";
 import {  useSelected } from "@/store";
 import { PromptTags } from "./PromptTags";
 

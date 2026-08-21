@@ -12,9 +12,7 @@ export function useChatInit({ session_id }: { session_id: string }) {
 		});
 		const unlisten = getCurrentWindow().listen<RigHistoryItem>(
 			`on_message_${session_id}`,
-			(e) => {
-				append(rigMessageToUIMessage(e.payload));
-			},
+			(e) => append(rigMessageToUIMessage(e.payload)),
 		);
 		return () => {
 			unlisten.then((fn) => fn());

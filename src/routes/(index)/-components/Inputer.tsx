@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { useChatContext } from "#/components/chat/chatContext";
-import { Icons } from "@/components/icon";
+import { Icons } from "#/components/icon";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "#/components/ui/dropdown-menu";
 import {
 	InputGroup,
 	InputGroupAddon,
 	InputGroupButton,
 	InputGroupTextarea,
-} from "@/components/ui/input-group";
-import { cn } from "@/lib/utils";
+} from "#/components/ui/input-group";
+import { cn } from "#/lib/utils";
 import { useSelected } from "@/store";
 import { SelectedText } from "./SelectedText";
 

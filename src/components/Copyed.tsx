@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Icons } from "@/components/icon";
+import { Icons } from "#/components/icon";
 
 const Copyed = ({ text, className }: { text?: string; className?: string }) => {
 	const [copied, setCopied] = useState(false);

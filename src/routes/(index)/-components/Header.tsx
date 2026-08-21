@@ -1,14 +1,14 @@
 import { type as ostype } from "@tauri-apps/plugin-os";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { Icons } from "#/components/icon";
+import { Button } from "#/components/ui/button";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
-import { Icons } from "@/components/icon";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "#/lib/utils";
 
 function CreateNewSession() {
 	return (

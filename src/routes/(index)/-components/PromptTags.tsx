@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
+import {
+	Drawer,
+	DrawerContent,
+	DrawerDescription,
+	DrawerHeader,
+	DrawerTitle,
+	DrawerTrigger,
+} from "#/components/ui/drawer";
 import { Input } from "#/components/ui/input";
 import {
 	Item,
@@ -11,16 +19,8 @@ import {
 	ItemTitle,
 } from "#/components/ui/item";
 import { ScrollArea } from "#/components/ui/scroll-area";
-import {
-	Drawer,
-	DrawerContent,
-	DrawerDescription,
-	DrawerHeader,
-	DrawerTitle,
-	DrawerTrigger,
-} from "@/components/ui/drawer";
-import type { PromptTag } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { PromptTag } from "#/lib/types";
+import { cn } from "#/lib/utils";
 export function PromptTags({
 	className,
 	prompts,

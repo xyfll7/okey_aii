@@ -12,7 +12,7 @@ import {
 	MessageContent,
 	MessageFooter,
 } from "#/components/ui/message";
-import { cn } from "@/lib/utils";
+import { cn } from "#/lib/utils";
 
 export function MessageBubble({ message }: { message: UIMessage }) {
 	return (
