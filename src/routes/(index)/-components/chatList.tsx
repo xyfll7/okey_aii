@@ -1,5 +1,4 @@
 import { type MouseEvent, useRef } from "react";
-import type { ChatContextValue } from "#/components/chat/chatContext";
 import { useChatInit } from "#/components/chat/chatInit";
 import { getMessageText } from "#/components/chat/chatUtils";
 import { Icons } from "#/components/icon";

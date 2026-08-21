@@ -18,7 +18,7 @@ export function MessageBubble({ message }: { message: UIMessage }) {
 	return (
 		<Message align={message.role === "user" ? "end" : "start"}>
 			<MessageContent>
-				<BubbleGroup>
+				<BubbleGroup className="w-full">
 					{message.role === "user" && (
 						<>
 							<Bubble variant={"outline"} align="end">
