@@ -1,12 +1,13 @@
 // mockAdapter.ts
 
+import { EventType, type StreamChunk } from "@tanstack/ai/client";
 import {
-	EventType,
-	type StreamChunk,
-} from "@tanstack/ai/client";
-import { type ConnectionAdapter, stream, type UIMessage } from "@tanstack/ai-react";
+	type ConnectionAdapter,
+	stream,
+	type UIMessage,
+} from "@tanstack/ai-react";
 import { Channel, invoke } from "@tauri-apps/api/core";
-import type { RigHistoryItem, RigMessage } from "#/lib/rigMessage";
+import type { RigHistoryItem, RigMessage, RigUserContent } from "#/lib/rigMessage";
 
 type StreamEvent =
 	| { event: "chunk"; data: { content: string } }
@@ -29,13 +30,15 @@ interface ChatStreamState {
 
 /** 把当前用户输入转成后端需要的 HistoryItem(与 state.rs 序列化格式一致)。 */
 function buildPromptHistoryItem(userMessage: UIMessage): RigHistoryItem {
-	const text = (userMessage.parts ?? [])
-		.filter((p) => p.type === "text")
-		.map((p) => (p.type === "text" ? p.content : ""))
-		.join("");
+	const content: RigUserContent[] = (userMessage.parts ?? [])
+		.filter(
+			(p): p is Extract<UIMessage["parts"][number], { type: "text" }> =>
+				p.type === "text",
+		)
+		.map((p) => ({ type: "text", text: p.content }));
 	const message: RigMessage = {
 		role: "user",
-		content: [{ type: "text", text }],
+		content,
 	};
 	return {
 		id: userMessage.id ?? `prompt-${Date.now()}`,
@@ -49,8 +52,9 @@ function startChatStream(
 	state: ChatStreamState,
 	notify: () => void,
 	session_id: string,
-	prompt: RigHistoryItem,
+	userMessage: UIMessage,
 ): void {
+	const prompt = buildPromptHistoryItem(userMessage);
 	const channel = new Channel<ChatEventWire>();
 
 	channel.onmessage = (message) => {
@@ -98,9 +102,6 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 		if (message?.role !== "user") {
 			return;
 		}
-		// 历史与实时消息都通过 rigMessageToUIMessage 统一转成 UIMessage,这里只可能是 UIMessage
-		const prompt = buildPromptHistoryItem(message as UIMessage);
-
 		const queue: StreamEvent[] = [];
 		const state: ChatStreamState = {
 			finished: false,
@@ -115,6 +116,7 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 		};
 
 		const onAbort = () => {
+			console.log("暂停了发送到发送地方，，，，")
 			state.aborted = true;
 			state.finished = true;
 			notify();
@@ -128,7 +130,7 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 				model,
 				timestamp: now(),
 			} satisfies StreamChunk;
-			startChatStream(queue, state, notify, session_id, prompt);
+			startChatStream(queue, state, notify, session_id, message as UIMessage);
 			yield {
 				type: EventType.TEXT_MESSAGE_START,
 				messageId,

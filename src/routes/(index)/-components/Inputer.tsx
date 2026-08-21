@@ -47,7 +47,7 @@ export function Inputer({ className }: { className?: string }) {
 		>
 			{selected.text && (
 				<InputGroupAddon align="block-start">
-					<SelectedText onChat={(e) => {}} />
+					<SelectedText onChat={() => {}} />
 				</InputGroupAddon>
 			)}
 			<InputGroupTextarea
