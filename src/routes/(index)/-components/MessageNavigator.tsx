@@ -12,6 +12,7 @@ import {
 	useMessageScrollerVisibility,
 } from "#/components/ui/message-scroller";
 import { cn } from "#/lib/utils";
+import "./MessageNavigator.css";
 
 const MIN_MESSAGES = 4;
 const MAX_MESSAGES = 17;

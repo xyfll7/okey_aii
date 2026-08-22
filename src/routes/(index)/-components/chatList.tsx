@@ -45,11 +45,12 @@ export function ChatList({ session_id }: { session_id: string }) {
 	const isBusy = status === "submitted" || status === "streaming";
 	return (
 		<MessageScrollerProvider defaultScrollPosition="last-anchor">
-			<MessageNavigator />
 			<SelectionFloatingButton containerRef={chatListRef} />
 			<MessageScroller
+				className="relative"
 				onMouseUp={(e) => handleChatSelection(e, (text) => setText(text))}
 			>
+				<MessageNavigator />
 				<MessageScrollerViewport
 					ref={chatListRef}
 					className={cn(
