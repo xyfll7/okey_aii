@@ -88,9 +88,9 @@ pub fn add_message_to_history(
     let sess = guard
         .sessions
         .get_mut(&session_id)
-        .ok_or("会话不存在,请先调用 create_session")?;
+        .ok_or("Session not found, please call create_session first")?;
     if sess.is_loading {
-        return Err("会话正在输出对话内容(loading 中),暂时禁止添加新的对话".into());
+        return Err("Session is currently generating a response (loading), adding new messages is temporarily disabled".into());
     }
     sess.history.push(item.clone());
     Ok(item)
@@ -106,11 +106,11 @@ pub fn remove_history_item(
     let sess = guard
         .sessions
         .get_mut(&session_id)
-        .ok_or("会话不存在,请先调用 create_session")?;
+        .ok_or("Session not found, please call create_session first")?;
     let before = sess.history.len();
     sess.history.retain(|item| item.id != history_id);
     if sess.history.len() == before {
-        return Err(format!("history item 不存在: {history_id}"));
+        return Err(format!("history item not found: {history_id}"));
     }
     Ok(())
 }
@@ -152,7 +152,7 @@ pub fn build_session_agent(
     let key = api_keys
         .get(&provider)
         .cloned()
-        .ok_or_else(|| format!("{provider:?} 缺少 api key"))?;
+        .ok_or_else(|| format!("{provider:?} missing api key"))?;
     let preset = builtin_presets()
         .into_iter()
         .find(|p| p.id == preset_id)

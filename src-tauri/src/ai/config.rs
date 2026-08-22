@@ -25,12 +25,12 @@ pub fn builtin_presets() -> Vec<AgentPreset> {
     vec![
         AgentPreset {
             id: "translator".into(),
-            name: "翻译助手".into(),
+            name: "Translator".into(),
             preamble: "You are a professional translator. Only output the translation.".into(),
         },
         AgentPreset {
             id: "assistant".into(),
-            name: "通用助手".into(),
+            name: "Assistant".into(),
             preamble: "You are a helpful assistant.".into(),
         },
     ]

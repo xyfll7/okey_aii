@@ -48,7 +48,7 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
         agent,
         history: Vec::new(),
         created_at: std::time::SystemTime::now(),
-        title: "新会话".into(),
+        title: "New Session".into(),
         is_loading: false,
         cancel_handle: None,
     };
@@ -104,7 +104,7 @@ pub fn switch_provider(
     let sess = guard
         .sessions
         .get_mut(&session_id)
-        .ok_or("会话不存在,请先调用 create_session")?;
+        .ok_or("Session not found, please call create_session first")?;
     sess.provider = provider;
     sess.model = model.clone();
     sess.agent = agent;
@@ -127,14 +127,14 @@ pub fn switch_model(
         let sess = guard
             .sessions
             .get(&session_id)
-            .ok_or("会话不存在,请先调用 create_session")?;
+            .ok_or("Session not found, please call create_session first")?;
         (sess.provider, sess.preset_id.clone())
     };
 
     
     let valid = available_models(provider).iter().any(|m| m.id == model);
     if !valid {
-        return Err(format!("{model} 不属于当前会话的 provider"));
+        return Err(format!("{model} does not belong to the current session's provider"));
     }
 
     
@@ -162,7 +162,7 @@ pub async fn send_message(
         let sess = guard
             .sessions
             .get(&session_id)
-            .ok_or("会话不存在,请先调用 create_session")?;
+            .ok_or("Session not found, please call create_session first")?;
         (sess.agent.clone(), sess.history.clone())
     };
 
@@ -176,9 +176,9 @@ pub async fn send_message(
         let sess = guard
             .sessions
             .get_mut(&session_id)
-            .ok_or("会话不存在,请先调用 create_session")?;
+            .ok_or("Session not found, please call create_session first")?;
         if sess.is_loading {
-            return Err("会话正在输出对话内容(loading 中),暂时禁止添加新的对话".into());
+            return Err("Session is currently generating a response (loading), adding new messages is temporarily disabled".into());
         }
         sess.history.push(prompt.clone());
         sess.is_loading = true;
@@ -279,7 +279,7 @@ pub async fn send_message(
 pub fn stop_generation(app: tauri::AppHandle, session_id: String) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
-    let sess = guard.sessions.get(&session_id).ok_or("会话不存在")?;
+    let sess = guard.sessions.get(&session_id).ok_or("Session not found")?;
     match &sess.cancel_handle {
         Some(handle) => {
             handle.abort();
@@ -289,9 +289,9 @@ pub fn stop_generation(app: tauri::AppHandle, session_id: String) -> Result<(), 
             
             
             if sess.is_loading {
-                Err("生成任务尚未初始化完成,请稍后再试".into())
+                Err("Generation task not yet initialized, please try again later".into())
             } else {
-                Err("当前没有正在进行的生成".into())
+                Err("No generation currently in progress".into())
             }
         }
     }
@@ -315,7 +315,7 @@ pub fn clear_history(app: tauri::AppHandle, session_id: String) -> Result<(), St
     guard
         .sessions
         .get_mut(&session_id)
-        .ok_or("会话不存在")?
+        .ok_or("Session not found")?
         .history
         .clear();
     Ok(())
@@ -326,7 +326,7 @@ pub fn clear_history(app: tauri::AppHandle, session_id: String) -> Result<(), St
 pub fn get_history(app: tauri::AppHandle, session_id: String) -> Result<Vec<HistoryItem>, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
-    let sess = guard.sessions.get(&session_id).ok_or("会话不存在")?;
+    let sess = guard.sessions.get(&session_id).ok_or("Session not found")?;
     Ok(sess.history.clone())
 }
 

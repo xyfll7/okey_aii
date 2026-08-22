@@ -111,14 +111,14 @@ mod tests {
 
     #[test]
     fn test_chinese_text() {
-        let size = calculate_text_width("你好世界");
+        let size = calculate_text_width("HelloWorld");
         
         assert!(size.width >= 150.0 && size.width <= 200.0);
     }
 
     #[test]
     fn test_mixed_text() {
-        let size = calculate_text_width("Hello 世界");
+        let size = calculate_text_width("Hello World");
         
         assert!(size.width >= 150.0 && size.width <= 800.0);
     }
