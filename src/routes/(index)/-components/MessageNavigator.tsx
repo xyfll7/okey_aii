@@ -64,35 +64,81 @@ const NavTick = ({
 		</HoverCard>
 	);
 };
+const NavEllipsis = ({
+	isActive,
+	remaining,
+	onClick,
+}: {
+	isActive: boolean;
+	remaining: number;
+	onClick: () => void;
+}) => {
+	return (
+		<HoverCard>
+			<HoverCardTrigger delay={70} closeDelay={0}>
+				<button
+					className="group/tick gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary disabled:hover:bg-transparent border border-transparent text-xs rounded-full relative flex items-center justify-end w-5 h-3 animate-none hover:bg-transparent"
+					type="button"
+					aria-label="More messages"
+					aria-current={isActive ? "true" : undefined}
+					onClick={onClick}
+				>
+					<div className="flex items-center gap-0.5">
+						{[0, 1, 2].map((i) => (
+							<div
+								key={i}
+								className={cn(
+									"w-px h-px",
+									"rounded-full transition-[background-color,opacity] duration-150",
+									isActive
+										? "bg-fg-primary opacity-80"
+										: "bg-fg-tertiary opacity-50 group-hover/tick:bg-fg-primary group-hover/tick:opacity-100",
+								)}
+							/>
+						))}
+					</div>
+				</button>
+			</HoverCardTrigger>
+			<HoverCardContent
+				side="left"
+				align="center"
+				sideOffset={8}
+				className="max-w-64"
+			>
+				<p className="text-xs text-fg-secondary leading-relaxed">
+					{remaining} more messages
+				</p>
+			</HoverCardContent>
+		</HoverCard>
+	);
+};
 
 const MessageNavigator = () => {
 	const { messages } = useChatContext();
-	const msg = messages.filter((e) => e.role !== "system").slice(0, MAX_MESSAGES);
-
-	const total = msg.length;
+	const allMsg = messages.filter((e) => e.role !== "system");
+	const msg = allMsg.slice(0, MAX_MESSAGES);
+	const hasOverflow = allMsg.length > MAX_MESSAGES;
+	const remaining = allMsg.length - MAX_MESSAGES;
 
 	const { scrollToMessage } = useMessageScroller();
 	const { currentAnchorId, visibleMessageIds } = useMessageScrollerVisibility();
 
 	const visibleSet = new Set(visibleMessageIds);
 
-	
+	// 用全量消息判断“当前锚点”，而不是被截断后的 msg
 	const ambientId =
-		(currentAnchorId && msg.some((m) => m.id === currentAnchorId)
+		(currentAnchorId && allMsg.some((m) => m.id === currentAnchorId)
 			? currentAnchorId
-			: msg.find((m) => visibleSet.has(m.id))?.id) ?? msg[0]?.id;
+			: allMsg.find((m) => visibleSet.has(m.id))?.id) ?? allMsg[0]?.id;
 
-	
 	const [navId, setNavId] = useState<string | undefined>(undefined);
 	const isNavigating = useRef(false);
 
-	
 	const ambientIdRef = useRef(ambientId);
 	useEffect(() => {
 		ambientIdRef.current = ambientId;
 	}, [ambientId]);
 
-	
 	useEffect(() => {
 		const onScroll = () => {
 			if (isNavigating.current) return;
@@ -103,26 +149,32 @@ const MessageNavigator = () => {
 	}, []);
 
 	const activeId = navId ?? ambientId;
-	const activeIndex = msg.findIndex((m) => m.id === activeId);
+	// 先在全量列表里定位真实位置，判断是否落在“被截断”的区域
+	const activeIndexInAll = allMsg.findIndex((m) => m.id === activeId);
+	const isOverflowActive = hasOverflow && activeIndexInAll >= MAX_MESSAGES;
+	const activeIndex = isOverflowActive
+		? MAX_MESSAGES // 省略号刻度的虚拟下标
+		: msg.findIndex((m) => m.id === activeId);
+
+	// 刻度总数 = 可见消息刻度 + 省略号刻度（如果有）
+	const tickCount = msg.length + (hasOverflow ? 1 : 0);
 
 	const scrollToIndex = (index: number) => {
-		const target = msg[index];
+		const target = index === MAX_MESSAGES ? allMsg[MAX_MESSAGES] : msg[index];
 		if (!target) return;
 		isNavigating.current = true;
 		setNavId(target.id);
 		scrollToMessage(target.id);
-		
-		
 		window.setTimeout(() => {
 			isNavigating.current = false;
 		}, 150);
 	};
 
-	if (total <= MIN_MESSAGES) return null;
+	if (allMsg.length <= MIN_MESSAGES) return null;
 
-	const clampedActive = Math.min(Math.max(activeIndex, 0), total - 1);
+	const clampedActive = Math.min(Math.max(activeIndex, 0), tickCount - 1);
 	const canGoPrev = clampedActive > 0;
-	const canGoNext = clampedActive < total - 1;
+	const canGoNext = clampedActive < tickCount - 1;
 
 	return (
 		<div className={cn("absolute right-3 top-1/2 -translate-y-1/2 z-20")}>
@@ -149,6 +201,13 @@ const MessageNavigator = () => {
 							onClick={() => scrollToIndex(index)}
 						/>
 					))}
+					{hasOverflow && (
+						<NavEllipsis
+							isActive={clampedActive === MAX_MESSAGES}
+							remaining={remaining}
+							onClick={() => scrollToIndex(MAX_MESSAGES)}
+						/>
+					)}
 				</div>
 
 				<Icons.arrowDown01
