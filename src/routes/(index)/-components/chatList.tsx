@@ -47,73 +47,72 @@ export function ChatList({ session_id }: { session_id: string }) {
 		<MessageScrollerProvider defaultScrollPosition="last-anchor">
 			<MessageNavigator />
 			<SelectionFloatingButton containerRef={chatListRef} />
-			{msgs.length === 0 ? (
-				<Empty
-					className="h-full"
-					onMouseUp={(e) => handleChatSelection(e, (text) => setText(text))}
+			<MessageScroller
+				onMouseUp={(e) => handleChatSelection(e, (text) => setText(text))}
+			>
+				<MessageScrollerViewport
+					ref={chatListRef}
+					className={cn(
+						"[scrollbar-color:color-mix(in_oklch,var(--foreground)_17%,transparent)_transparent]",
+						"scroll-fade-t",
+					)}
 				>
-					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<Icons.chat />
-						</EmptyMedia>
-						<EmptyTitle>{"m.translate_empty_title()"}</EmptyTitle>
-						<EmptyDescription>
-							{"m.translate_empty_description()"}
-						</EmptyDescription>
-					</EmptyHeader>
-				</Empty>
-			) : (
-				<MessageScroller
-					onMouseUp={(e) => handleChatSelection(e, (text) => setText(text))}
-				>
-					<MessageScrollerViewport
-						ref={chatListRef}
-						className={cn(
-							"[scrollbar-color:color-mix(in_oklch,var(--foreground)_17%,transparent)_transparent]",
-							"scroll-fade-t",
-						)}
+					<MessageScrollerContent
+						aria-busy={isBusy}
+						data-chat-container
+						className="p-4"
 					>
-						<MessageScrollerContent
-							aria-busy={isBusy}
-							data-chat-container
-							className="p-4"
-						>
-							{msgs.map((item, index) => (
-								<MessageScrollerItem
-									className="[content-visibility:visible!]"
-									key={item.id}
-									messageId={item.id}
-									scrollAnchor={item.role === "user"}
-								>
-									<MessageBubble message={item} />
-									{msgs.length - 1 === index && (
-										<Marker
-											role="banner"
-											className={cn(
-												isBusy && !getMessageText(item).join("").length
-													? ""
-													: "sr-only",
-											)}
-										>
-											<MarkerContent className="shimmer">
-												<span className="font-medium">
-													{"m.translate_loading()"}
-												</span>
-												...
-											</MarkerContent>
-										</Marker>
-									)}
-								</MessageScrollerItem>
-							))}
-						</MessageScrollerContent>
-					</MessageScrollerViewport>
-					<MessageScrollerButton
+						{msgs.map((item, index) => (
+							<MessageScrollerItem
+								className="[content-visibility:visible!]"
+								key={item.id}
+								messageId={item.id}
+								scrollAnchor={item.role === "user"}
+							>
+								<MessageBubble message={item} />
+								{msgs.length - 1 === index && (
+									<Marker
+										role="banner"
+										className={cn(
+											isBusy && !getMessageText(item).join("").length
+												? ""
+												: "sr-only",
+										)}
+									>
+										<MarkerContent className="shimmer">
+											<span className="font-medium">
+												{"m.translate_loading()"}
+											</span>
+											...
+										</MarkerContent>
+									</Marker>
+								)}
+							</MessageScrollerItem>
+						))}
+					</MessageScrollerContent>
+				</MessageScrollerViewport>
+				<MessageScrollerButton
 					className="start-s-1/2 rounded-full"
 					variant="secondary"
 					size="icon-sm"
 				/>
-				</MessageScroller>
-			)}
+				{msgs.length === 0 && (
+					<Empty
+						className="absolute inset-0"
+						onMouseUp={(e) => handleChatSelection(e, (text) => setText(text))}
+					>
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<Icons.chat />
+							</EmptyMedia>
+							<EmptyTitle>{"m.translate_empty_title()"}</EmptyTitle>
+							<EmptyDescription>
+								{"m.translate_empty_description()"}
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
+				)}
+			</MessageScroller>
 		</MessageScrollerProvider>
 	);
 }

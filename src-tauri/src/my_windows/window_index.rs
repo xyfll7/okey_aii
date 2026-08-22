@@ -101,7 +101,7 @@ where
                         if *local_cancel.lock().unwrap() {
                             return;
                         }
-                         _win.destroy().ok();
+                        //  _win.destroy().ok();
                     });
                 }
                 tauri::WindowEvent::Focused(true) => {
