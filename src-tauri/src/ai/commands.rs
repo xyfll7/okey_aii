@@ -267,7 +267,7 @@ pub async fn send_message(
     }
     // 3) 把助手这一轮的回复追加进该会话的历史;
     //    即使被取消,已生成的部分文本也保留,而不是整段丢弃
-    if !full_text.is_empty() || !was_cancelled {
+    if !full_text.is_empty() {
         add_message_to_history(
             &app,
             session_id,

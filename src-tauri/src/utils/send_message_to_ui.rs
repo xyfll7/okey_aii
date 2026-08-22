@@ -13,7 +13,7 @@ use crate::ai::{commands::list_sessions, state::HistoryItem};
 pub fn send_message_to_ui(app: &AppHandle, selected_text: String, target: String) {
     let message: rig::message::Message = vec![
         UserContent::text(selected_text),
-        UserContent::text("请将上面的内容翻译成英文"),
+        UserContent::text("请将上面的内容翻译成英文或中文"),
     ]
     .into();
     let session_id = {
