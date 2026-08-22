@@ -29,9 +29,9 @@ const NavTick = ({
 }) => {
 	return (
 		<HoverCard>
-			<HoverCardTrigger>
+			<HoverCardTrigger delay={70} closeDelay={0}>
 				<button
-					className="group/tick gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary disabled:hover:bg-transparent border border-transparent px-2.5 text-xs rounded-full relative flex items-center justify-end w-10 h-3 animate-none hover:bg-transparent"
+					className="group/tick gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary disabled:hover:bg-transparent border border-transparent  text-xs rounded-full relative flex items-center justify-end w-5 h-3 animate-none hover:bg-transparent"
 					type="button"
 					aria-label={role === "user" ? "Go to your message" : "Go to response"}
 					aria-current={isActive ? "true" : undefined}
@@ -39,13 +39,14 @@ const NavTick = ({
 				>
 					<div
 						className={cn(
+							"rounded-full h-px transition-[width,opacity,background-color] duration-150 will-change-[width] bg-fg-tertiary opacity-50 group-hover:opacity-70  group-hover/tick:bg-fg-primary group-hover/tick:opacity-100",
 							"overflow-hidden",
-							"rounded-full h-px transition-[width,opacity,background-color] duration-150 will-change-[width] bg-fg-tertiary opacity-50 group-hover:opacity-70 group-hover/tick:w-4 group-hover/tick:bg-fg-primary group-hover/tick:opacity-100",
+							"group-hover/tick:w-3.5",
 							isActive
-								? "w-4 bg-fg-primary! opacity-100!"
+								? "w-2.5 bg-fg-primary! opacity-100!"
 								: role === "assistant"
-									? "w-3"
-									: "w-1.5",
+									? "w-2"
+									: "w-1",
 						)}
 					/>
 				</button>
@@ -124,17 +125,19 @@ const MessageNavigator = () => {
 	const canGoNext = clampedActive < total - 1;
 
 	return (
-		<div className="absolute right-2 top-1/2 -translate-y-1/2 z-20">
-			<div className="group flex flex-col items-center gap-1">
-				<button
-					className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&_svg]:shrink-0 select-none text-fg-secondary hover:bg-button-ghost-hover hover:text-fg-primary disabled:hover:bg-transparent border border-transparent h-8 gap-1.5 rounded-full overflow-hidden w-8 px-1.5 py-1.5 opacity-0! transition-all duration-200 group-hover:opacity-100! disabled:group-hover:opacity-60! -me-2 translate-y-1 group-hover:translate-y-0"
-					type="button"
+		<div className={cn("absolute right-3 top-1/2 -translate-y-1/2 z-20")}>
+			<div className="group flex flex-col items-end gap-1">
+				<Icons.arrowUp01
+					className={cn(
+						"-me-0.5",
+						"size-4 text-fg-secondary hover:text-fg-primary select-none transition-all duration-200 opacity-0! group-hover:opacity-100!  translate-y-1 group-hover:translate-y-0",
+						canGoPrev
+							? "cursor-pointer"
+							: "cursor-default group-hover:opacity-60!",
+					)}
 					aria-label="Navigate to previous message"
-					disabled={!canGoPrev}
-					onClick={() => scrollToIndex(clampedActive - 1)}
-				>
-					<Icons.arrowUp01 className="size-4" />
-				</button>
+					onClick={() => canGoPrev && scrollToIndex(clampedActive - 1)}
+				/>
 
 				<div className="flex flex-col items-end gap-0">
 					{msg.map((item, index) => (
@@ -148,15 +151,17 @@ const MessageNavigator = () => {
 					))}
 				</div>
 
-				<button
-					className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&_svg]:shrink-0 select-none text-fg-secondary hover:bg-button-ghost-hover hover:text-fg-primary disabled:hover:bg-transparent border border-transparent h-8 gap-1.5 rounded-full overflow-hidden w-8 px-1.5 py-1.5 opacity-0! transition-all duration-200 group-hover:opacity-100! disabled:group-hover:opacity-60! -me-2 -translate-y-1 group-hover:translate-y-0"
-					type="button"
+				<Icons.arrowDown01
+					className={cn(
+						"-me-0.5",
+						"size-4 text-fg-secondary hover:text-fg-primary select-none transition-all duration-200 opacity-0! group-hover:opacity-100! -translate-y-1 group-hover:translate-y-0",
+						canGoNext
+							? "cursor-pointer"
+							: "cursor-default group-hover:opacity-60!",
+					)}
 					aria-label="Navigate to next message"
-					disabled={!canGoNext}
-					onClick={() => scrollToIndex(clampedActive + 1)}
-				>
-					<Icons.arrowDown01 className="size-4" />
-				</button>
+					onClick={() => canGoNext && scrollToIndex(clampedActive + 1)}
+				/>
 			</div>
 		</div>
 	);
