@@ -41,7 +41,7 @@ const NavTick = ({
 						className={cn(
 							"rounded-full h-px transition-[width,opacity,background-color] duration-150 will-change-[width] bg-fg-tertiary opacity-50 group-hover:opacity-70  group-hover/tick:bg-fg-primary group-hover/tick:opacity-100",
 							"overflow-hidden",
-							"group-hover/tick:w-3.5",
+							"group-hover/tick:w-3",
 							isActive
 								? "w-2.5 bg-fg-primary! opacity-100!"
 								: role === "assistant"
@@ -77,7 +77,7 @@ const NavEllipsis = ({
 		<HoverCard>
 			<HoverCardTrigger delay={70} closeDelay={0}>
 				<button
-					className="group/tick gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary disabled:hover:bg-transparent border border-transparent text-xs rounded-full relative flex items-center justify-end w-5 h-3 animate-none hover:bg-transparent"
+					className="group/timeline-tick gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary disabled:hover:bg-transparent border border-transparent text-xs rounded-full relative flex items-center justify-end w-5 h-3 animate-none hover:bg-transparent"
 					type="button"
 					aria-label="More messages"
 					aria-current={isActive ? "true" : undefined}
