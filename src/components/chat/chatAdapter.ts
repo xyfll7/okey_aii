@@ -1,5 +1,3 @@
-// mockAdapter.ts
-
 import { EventType, type StreamChunk } from "@tanstack/ai/client";
 import {
 	type ConnectionAdapter,
@@ -18,7 +16,7 @@ type StreamEvent =
 	| { event: "done"; data?: unknown }
 	| { event: "error"; data: { message: string } };
 
-/// 后端 ChatEvent 经 IPC 序列化后的线格式(对应 agents.rs 的 serde 配置)
+
 type ChatEventWire =
 	| { type: "TextDelta"; data: string }
 	| { type: "ToolCall"; data: { name: string; arguments: unknown } }
@@ -32,7 +30,7 @@ interface ChatStreamState {
 	aborted: boolean;
 }
 
-/** 把当前用户输入转成后端需要的 HistoryItem(与 state.rs 序列化格式一致)。 */
+
 function buildPromptHistoryItem(userMessage: UIMessage): RigHistoryItem {
 	const content: RigUserContent[] = (userMessage.parts ?? [])
 		.filter(
@@ -45,7 +43,7 @@ function buildPromptHistoryItem(userMessage: UIMessage): RigHistoryItem {
 		content,
 	};
 	return {
-		id: userMessage.id ?? `prompt-${Date.now()}`,
+		id: userMessage.id ?? `prompt-$$${Date.now()}`,
 		created_at: Date.now(),
 		message,
 	};
@@ -73,7 +71,7 @@ function startChatStream(
 				state.finished = true;
 				break;
 			default:
-				// ToolCall / ToolCallDelta / Reasoning 暂以空 chunk 透传,避免流卡死
+				
 				break;
 		}
 		notify();
@@ -97,9 +95,9 @@ function startChatStream(
 
 export function chatAdapter(session_id: string): ConnectionAdapter {
 	return stream(async function* (messages, _, abortSignal) {
-		const runId = `run-${Date.now()}`;
-		const threadId = `thread-${Date.now()}`;
-		const messageId = `msg-${Date.now()}`;
+		const runId = `run-$$${Date.now()}`;
+		const threadId = `thread-$$${Date.now()}`;
+		const messageId = `msg-$$${Date.now()}`;
 		const model = "backend-model";
 		const now = () => Date.now();
 		const message = messages.at(-1);
@@ -119,17 +117,14 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 			resolveNext = null;
 		};
 
-		// 中止逻辑必须放在事件回调里同步执行——一旦生成器正挂起在
-		// `await new Promise(...)`，abort 触发后框架很可能会调用生成器的
-		// `.return()`,这会直接跳到 finally,跳过 while 循环里的后续代码。
-		// 所以不能指望"循环下一次迭代才通知后端中止"。
+		
 		const onAbort = () => {
 			state.aborted = true;
 			state.finished = true;
 			void invoke("stop_generation", { session_id })
 				.catch((err) => {
-					// stop_generation 在"没有进行中的生成"时会返回错误,
-					// 属正常情况(例如前端在流已结束时触发 abort),无需告警。
+					
+					
 					console.warn("stop_generation:", String(err));
 				});
 			notify();
@@ -154,8 +149,8 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 
 			while (!state.finished || queue.length > 0) {
 				if (state.aborted || abortSignal?.aborted) {
-					// 通知后端中止的逻辑已经在 onAbort 里同步执行过了,
-					// 这里只需要跳出循环/生成器即可。
+					
+					
 					return;
 				}
 				if (queue.length === 0) {

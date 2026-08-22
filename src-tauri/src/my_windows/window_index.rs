@@ -14,7 +14,7 @@ pub fn should_use_existing_index_window(app: AppHandle) -> bool {
         .as_ref()
         .map(|w| w.is_focused().unwrap_or(false))
         .unwrap_or(false);
-    // 只要翻译窗口存在（is_some()），或者窗口处于聚焦状态，就返回 true，即应该复用现有窗口。
+    
     (translate_window.is_some()) || is_focused
 }
 
@@ -88,7 +88,6 @@ where
                 }
             });
 
-            // 线程安全的取消标志：窗口失焦后延迟隐藏，若期间重新聚焦或移动则置为 true 取消该操作
             let cancelled = Arc::new(Mutex::new(false));
             let win_clone = window.clone();
             let cancel_flag = cancelled.clone();
@@ -100,10 +99,9 @@ where
                     thread::spawn(move || {
                         thread::sleep(Duration::from_millis(150));
                         if *local_cancel.lock().unwrap() {
-                            // 已被取消，不执行隐藏操作
                             return;
                         }
-                        // _win.destroy().ok();
+                         _win.destroy().ok();
                     });
                 }
                 tauri::WindowEvent::Focused(true) => {

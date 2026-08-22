@@ -13,7 +13,7 @@ pub struct ModelInfo {
     pub label: &'static str,
 }
 
-/// 用户在前端下拉框里选的"agent" —— preamble/工具组合，与 provider 无关
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentPreset {
     pub id: String,
@@ -36,10 +36,7 @@ pub fn builtin_presets() -> Vec<AgentPreset> {
     ]
 }
 
-/// 每个 provider 支持哪些模型,给前端下拉框用
-///
-/// 注:deepseek-chat / deepseek-reasoner 已被 rig 标记为 deprecated(将于 2026/07/24 废弃),
-/// 这里直接用字符串字面量,等价于 DEEPSEEK_V4_FLASH 的非思考/思考模式,避免编译告警。
+
 pub fn available_models(provider: Provider) -> &'static [ModelInfo] {
     match provider {
         Provider::OpenAI => &[ModelInfo {
@@ -71,7 +68,6 @@ pub fn available_models(provider: Provider) -> &'static [ModelInfo] {
     }
 }
 
-/// 切换 provider 时,没显式选模型就用第一个当默认值
 pub fn default_model(provider: Provider) -> &'static str {
     available_models(provider)[0].id
 }

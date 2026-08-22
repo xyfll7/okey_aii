@@ -29,11 +29,11 @@ impl InputMethodEditorHandler {
             self.press_start_time = Some(Instant::now());
         } else if !is_pressed && self.was_pressed {
             self.press_start_time = None;
-            // TODO: my_windows::window_input_method_editor_hide(app); 备注：隐藏输入法窗口
+            
         } else if is_pressed && self.was_pressed {
             if let Some(start_time) = self.press_start_time {
                 if start_time.elapsed() >= Duration::from_millis(800) {
-                    // TODO: my_windows::window_input_method_editor_show(app); 备注：长按显示输入法窗口
+                    
                     self.press_start_time = None;
                 }
             }
@@ -76,7 +76,6 @@ impl<FD: Fn(&AppHandle) + Clone + Send + 'static> TranslateBubbleHandler<FD> {
         self.last_release_time = Some(now);
     }
 
-    // 在时间窗口结束后根据点击次数分发动作（用于区分双击与三连击）
     fn check_timeout(&mut self, app: &AppHandle) {
         if self.click_count == 0 {
             return;
@@ -98,15 +97,12 @@ impl<FD: Fn(&AppHandle) + Clone + Send + 'static> TranslateBubbleHandler<FD> {
     fn trigger_double_click(&self, app: &AppHandle) {
         let app_clone = app.clone();
         let callback = self.on_double_click.clone();
-        // 在独立线程中执行回调，避免在持有 global_state 锁的状态下
-        // 同步调用窗口创建/显示等阻塞操作，导致键盘/鼠标事件处理卡死。
         std::thread::spawn(move || {
             callback(&app_clone);
         });
     }
 
     fn trigger_triple_click(&self, _app: &AppHandle) {
-        // TODO: 三连击的具体逻辑待实现
     }
 }
 

@@ -3,8 +3,6 @@ use tauri::{window::Color, PhysicalPosition, Runtime};
 use crate::my_windows::window_helper::*;
 
 
-
-
 pub const WINDOW_HEIGHT_TRANSLATE_BUBBLE: f64 = [32.0, 34.0][cfg!(target_os = "macos") as usize];
 pub fn window_translate_bubble_show<R: Runtime, F>(app: &AppHandle<R>, callback: Option<F>)
 where
@@ -63,8 +61,6 @@ where
     }
 }
 
-/// 若 translate_bubble 窗口可见，且当前鼠标坐标 (x, y) 落在窗口之外，则隐藏该窗口。
-/// x, y 为物理像素坐标。
 pub fn window_translate_bubble_hide_if_outside<R: Runtime>(app: &AppHandle<R>, x: i32, y: i32) {
     if let Some(window) = app.get_webview_window("translate_bubble") {
         if window.is_visible().unwrap_or(false) {

@@ -40,9 +40,9 @@ pub fn run() {
         .expect("error while running tauri application")
         .run(|_app, event| {
             if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
-                // 仅当是窗口关闭（code 为 None）时才阻止退出，从而保留在托盘；
-                // 通过托盘 Quit 主动调用 app.exit(0)（code 为 Some）时允许正常退出
-                println!("退出code:{:?}",code);
+                
+                
+                
                 if code.is_none() {
                     api.prevent_exit();
                 }

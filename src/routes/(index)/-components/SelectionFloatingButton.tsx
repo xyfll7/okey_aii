@@ -5,14 +5,7 @@ import { Button } from "#/components/ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "#/components/ui/button-group";
 import { speak } from "#/lib/utils";
 
-/**
- * Range.getBoundingClientRect() can be unreliable right at a soft
- * line-wrap boundary: getClientRects() may include a zero-width/height
- * phantom rect trailing the previous visual line, and
- * getBoundingClientRect() unions it into the box, stretching it back
- * across the wrap and throwing off positioning. Filter those out and
- * union only the real (non-zero-area) rects instead.
- */
+
 function getSelectionRect(range: Range): DOMRect {
 	const rects = Array.from(range.getClientRects()).filter(
 		(r) => r.width > 0 && r.height > 0,
@@ -27,14 +20,7 @@ function getSelectionRect(range: Range): DOMRect {
 	return new DOMRect(left, top, right - left, bottom - top);
 }
 
-/**
- * Floating quick-action button that appears above the current mouse text
- * selection, positioned with @floating-ui/dom against a virtual reference
- * element derived from the selection Range. This is purely additive: it
- * doesn't touch s_Selected or replace the existing per-message mouseup
- * selection handling — it just offers a "speak this selection" shortcut
- * right where the selection is.
- */
+
 export function SelectionFloatingButton({
 	containerRef,
 }: {
@@ -52,7 +38,7 @@ export function SelectionFloatingButton({
 		}
 
 		function handleMouseUp(e: MouseEvent) {
-			// Ignore clicks on the floating button itself.
+			
 			if (buttonRef.current?.contains(e.target as Node)) return;
 
 			const selection = window.getSelection();
@@ -64,7 +50,7 @@ export function SelectionFloatingButton({
 
 			const range = selection.getRangeAt(0);
 
-			// Only react to selections made inside the target container.
+			
 			if (containerRef?.current && !containerRef.current.contains(range.commonAncestorContainer)) {
 				hide();
 				return;

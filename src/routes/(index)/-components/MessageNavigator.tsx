@@ -74,35 +74,23 @@ const MessageNavigator = () => {
 
 	const visibleSet = new Set(visibleMessageIds);
 
-	// Ambient "where am I" id derived from the scroller's own visibility
-	// tracking. `currentAnchorId` is the sticky anchor (stays set after it
-	// scrolls above the viewport) and only ever points at user messages
-	// (because only user messages are scroll anchors); fall back to the
-	// topmost visible message when the anchor isn't in our (sliced) window.
+	
 	const ambientId =
 		(currentAnchorId && msg.some((m) => m.id === currentAnchorId)
 			? currentAnchorId
 			: msg.find((m) => visibleSet.has(m.id))?.id) ?? msg[0]?.id;
 
-	// Explicit navigation pointer. While the user drives the prev/next
-	// controls (or a tick) we own the active index so it actually advances
-	// to the message we scrolled to, instead of being re-derived back onto
-	// the nearest user anchor after the scroll settles.
+	
 	const [navId, setNavId] = useState<string | undefined>(undefined);
 	const isNavigating = useRef(false);
 
-	// Mirror the latest ambient id into a ref so the scroll listener below
-	// always reads fresh data without re-subscribing on every render.
+	
 	const ambientIdRef = useRef(ambientId);
 	useEffect(() => {
 		ambientIdRef.current = ambientId;
 	}, [ambientId]);
 
-	// Sync the navigation pointer back to ambient tracking whenever the user
-	// scrolls the viewport on their own (not while we drive a programmatic
-	// navigation). State updates here happen inside a scroll event handler,
-	// not an effect, so they stay lint-clean. We listen in the capture phase
-	// on window because the viewport's scroll events don't bubble.
+	
 	useEffect(() => {
 		const onScroll = () => {
 			if (isNavigating.current) return;
@@ -121,8 +109,8 @@ const MessageNavigator = () => {
 		isNavigating.current = true;
 		setNavId(target.id);
 		scrollToMessage(target.id);
-		// Release the navigation lock shortly after the (instant) scroll so
-		// ambient tracking resumes on the next natural scroll.
+		
+		
 		window.setTimeout(() => {
 			isNavigating.current = false;
 		}, 150);

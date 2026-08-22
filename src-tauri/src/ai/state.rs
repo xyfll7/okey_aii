@@ -9,34 +9,28 @@ use std::sync::{Arc, RwLock};
 use std::time::SystemTime;
 use tauri::{AppHandle, Manager, State};
 
-/// 历史记录中的单条消息。
-///
-/// `rig::message::Message` 是第三方类型,无法携带我们自己的元数据,所以在此包装一层,
-/// 额外保存 `id`(前端展示与按 id 删除用)和 `created_at`(创建时间,毫秒时间戳)。
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct HistoryItem {
-    /// 本条历史的唯一 id,前端用于渲染 key 与按 id 删除。
+    
     pub id: String,
-    /// 创建时间(毫秒时间戳),便于前端排序与展示。
+    
     #[serde(
         serialize_with = "serialize_systemtime_millis",
         deserialize_with = "deserialize_systemtime_millis"
     )]
     pub created_at: SystemTime,
-    /// 实际对话消息内容(rig 原生结构)。
+    
     pub message: Message,
 }
 
-/// 全局共享状态:只保存 api key。
-///
-/// 新标签页的配置从最近一个 Session 中继承;每个已打开的会话各自锁定自己的
-/// provider/model/preset(见 `Session`),互不干扰。
+
 #[derive(Clone)]
 pub struct AppConfig {
     pub api_keys: HashMap<Provider, String>,
 }
 
-/// 单个标签页/会话的私有状态:各自锁定 provider/model/preset,互不干扰
+
 #[derive(Clone, serde::Serialize)]
 pub struct Session {
     pub session_id: String,
@@ -46,15 +40,14 @@ pub struct Session {
     #[serde(serialize_with = "serialize_systemtime_millis")]
     pub created_at: SystemTime,
     pub title: String,
-    /// 当前会话是否正在输出对话内容(loading 中)。
-    ///
-    /// 为 `true` 时禁止向该会话追加新的对话内容,避免在生成期间插入脏数据。
+    
+    
     pub is_loading: bool,
     #[serde(skip)]
     pub agent: Arc<Agents>,
     #[serde(skip)]
     pub history: Vec<HistoryItem>,
-    /// 当前生成任务的取消句柄;仅在 `is_loading = true` 期间为 `Some`。
+    
     #[serde(skip)]
     pub cancel_handle: Option<futures::future::AbortHandle>,
 }
@@ -70,7 +63,7 @@ fn serialize_systemtime_millis<S: serde::Serializer>(
     s.serialize_u64(millis)
 }
 
-/// 把前端传来的毫秒时间戳反序列化为 `SystemTime`(与 `serialize_systemtime_millis` 对称)。
+
 fn deserialize_systemtime_millis<'de, D: serde::Deserializer<'de>>(
     d: D,
 ) -> Result<SystemTime, D::Error> {
@@ -78,17 +71,13 @@ fn deserialize_systemtime_millis<'de, D: serde::Deserializer<'de>>(
     Ok(SystemTime::UNIX_EPOCH + std::time::Duration::from_millis(millis))
 }
 
-/// 顶层状态:一份全局配置(含最近选择) + 多个互不干扰的独立会话
+
 pub struct ChatState {
     pub config: AppConfig,
     pub sessions: HashMap<String, Session>,
 }
 
 
-/// 把一条已构造好的 `HistoryItem` 追加进指定会话的历史。
-///
-/// 直接接收完整的 `HistoryItem`(含 id、created_at、message),不再内部生成元数据,
-/// 便于调用方传入前端/上游已有的 item(如用户消息)。
 pub fn add_message_to_history(
     app_handle: &AppHandle,
     session_id: String,
@@ -107,7 +96,6 @@ pub fn add_message_to_history(
     Ok(item)
 }
 
-/// 按 id 从指定会话中删除一条历史记录。
 pub fn remove_history_item(
     app_handle: &AppHandle,
     session_id: String,
@@ -129,14 +117,14 @@ pub fn remove_history_item(
 
 fn build_agent(
     provider: Provider,
-    model: &str, // ← 新增,不再用 default_model 写死
+    model: &str, 
     api_key: &str,
     preset: &AgentPreset,
 ) -> Result<Agents, String> {
     match provider {
         Provider::OpenAI => {
-            // 0.41.0 里 `openai::Client` 默认走 Responses API，返回的是
-            // `GenericResponsesCompletionModel`；completion 模型要用 `CompletionsClient`。
+            
+            
             let client = openai::CompletionsClient::new(api_key).map_err(|e| e.to_string())?;
             let agent = client.agent(model).preamble(&preset.preamble).build();
             Ok(Agents::OpenAI(agent))
@@ -154,10 +142,7 @@ fn build_agent(
     }
 }
 
-/// 按给定的 provider/model/preset 为一个会话构建 agent。
-///
-/// 不依赖全局配置:每个会话各自传入自己的 provider/model/preset,实现标签页互不干扰。
-/// `api_keys` 仍来自全局(用户级别的凭据),命中不到对应 provider 的 key 时返回错误。
+
 pub fn build_session_agent(
     api_keys: &HashMap<Provider, String>,
     provider: Provider,

@@ -6,15 +6,15 @@ const Copyed = ({ text, className }: { text?: string; className?: string }) => {
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const handleCopy = async (e: React.MouseEvent) => {
-		e.stopPropagation(); // 阻止事件冒泡到 Button
-		e.preventDefault();  // 添加这个
+		e.stopPropagation(); 
+		e.preventDefault();  
 		
 		if (text) {
 			try {
 				await navigator.clipboard.writeText(text);
 				setCopied(true);
 
-				// 清除之前的定时器
+				
 				if (timeoutRef.current) {
 					clearTimeout(timeoutRef.current);
 				}
@@ -38,7 +38,7 @@ const Copyed = ({ text, className }: { text?: string; className?: string }) => {
 			onClick={handleCopy} 
 			onMouseEnter={handleMouseEnter}
 			className="inline-block"
-			style={{ pointerEvents: 'auto' }} // 关键：强制启用指针事件
+			style={{ pointerEvents: 'auto' }} 
 		>
 			{copied ? <Icons.tick className={className}/> : <Icons.copy className={className}/>}
 		</div>
