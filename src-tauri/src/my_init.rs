@@ -62,6 +62,13 @@ pub fn setup_ai_state(app: &mut tauri::App) {
     let initial = ChatState {
         config: AppConfig { api_keys },
         sessions: std::collections::HashMap::from([]),
+        db: crate::ai::db::open(
+            app.path()
+                .app_data_dir()
+                .map(|p| p.join("okey_aii.db"))
+                .unwrap_or_else(|_| std::path::PathBuf::from("okey_aii.db")),
+        )
+        .unwrap_or_else(|e| panic!("failed to open database: {e}")),
     };
     app.manage(Arc::new(RwLock::new(initial)));
 

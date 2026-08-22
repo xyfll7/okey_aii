@@ -6,18 +6,18 @@ import {
 	DrawerHeader,
 	DrawerTitle,
 } from "#/components/ui/drawer";
+import { cn } from "#/lib/utils";
 
 type SwipeDirection = "up" | "right" | "down" | "left";
 
-export interface PushLayerInput {
-	
+interface PushLayerInput {
 	id?: string;
 	title?: React.ReactNode;
 	description?: React.ReactNode;
 	content: React.ReactNode;
 	swipeDirection?: SwipeDirection;
 	showSwipeHandle?: boolean;
-	
+
 	contentClassName?: string;
 }
 
@@ -26,11 +26,11 @@ type DrawerLayerState = PushLayerInput & { id: string };
 interface DrawerStackContextValue {
 	layers: DrawerLayerState[];
 	push: (layer: PushLayerInput) => string;
-	
+
 	pop: () => void;
-	
+
 	closeTo: (id: string) => void;
-	
+
 	closeAll: () => void;
 }
 
@@ -57,21 +57,18 @@ export function DrawerStackProvider({
 	onClose,
 }: {
 	children: React.ReactNode;
-	
+
 	onClose?: (ids: string[]) => void;
 }) {
 	const [layers, setLayers] = React.useState<DrawerLayerState[]>([]);
 
-	
 	const onCloseRef = React.useRef(onClose);
 	React.useEffect(() => {
 		onCloseRef.current = onClose;
 	}, [onClose]);
-	
-	
+
 	const [closingIds, setClosingIds] = React.useState<Set<string>>(new Set());
 
-	
 	const layersRef = React.useRef<DrawerLayerState[]>(layers);
 	React.useEffect(() => {
 		layersRef.current = layers;
@@ -83,7 +80,6 @@ export function DrawerStackProvider({
 		return id;
 	}, []);
 
-	
 	const closeMany = React.useCallback((ids: string[]) => {
 		onCloseRef.current?.(ids);
 		if (ids.length === 0) return;
@@ -124,7 +120,6 @@ export function DrawerStackProvider({
 		closeMany(layersRef.current.map((l) => l.id));
 	}, [closeMany]);
 
-	
 	const handleOpenChangeComplete = React.useCallback(
 		(id: string, open: boolean) => {
 			if (open) return;
@@ -170,7 +165,6 @@ function DrawerStackOutlet({
 }) {
 	if (layers.length === 0) return null;
 
-	
 	const renderLayer = (index: number): React.ReactNode => {
 		const layer = layers[index];
 		const isLast = index === layers.length - 1;
@@ -192,7 +186,6 @@ function DrawerStackOutlet({
 	return renderLayer(0);
 }
 
-
 function DrawerLayerNode({
 	layer,
 	closing,
@@ -208,6 +201,11 @@ function DrawerLayerNode({
 }) {
 	const [entered, setEntered] = React.useState(false);
 
+	// Popup 的 parentElement 即遮罩 Viewport，挂载同一时刻给它打上拖拽区属性
+	const maskDragRef = React.useCallback((node: HTMLDivElement | null) => {
+		node?.parentElement?.setAttribute("data-tauri-drag-region", "true");
+	}, []);
+
 	React.useEffect(() => {
 		let raf2 = 0;
 		const raf1 = requestAnimationFrame(() => {
@@ -217,8 +215,6 @@ function DrawerLayerNode({
 			cancelAnimationFrame(raf1);
 			if (raf2) cancelAnimationFrame(raf2);
 		};
-		
-		
 	}, []);
 
 	const open = !closing && entered;
@@ -233,12 +229,19 @@ function DrawerLayerNode({
 			swipeDirection={layer.swipeDirection ?? "down"}
 			showSwipeHandle={layer.showSwipeHandle}
 		>
-			<DrawerContent className={layer.contentClassName ?? "h-full"}>
+			<DrawerContent
+				ref={maskDragRef}
+				className={cn(layer.contentClassName ?? "h-full")}
+			>
 				{(layer.title || layer.description) && (
-					<DrawerHeader>
-						{layer.title && <DrawerTitle>{layer.title}</DrawerTitle>}
+					<DrawerHeader data-tauri-drag-region>
+						{layer.title && (
+							<DrawerTitle data-tauri-drag-region>{layer.title}</DrawerTitle>
+						)}
 						{layer.description && (
-							<DrawerDescription>{layer.description}</DrawerDescription>
+							<DrawerDescription data-tauri-drag-region>
+								{layer.description}
+							</DrawerDescription>
 						)}
 					</DrawerHeader>
 				)}

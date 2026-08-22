@@ -5,4 +5,5 @@ export interface Session {
   model: string;
   preset_id: string;
   created_at: number;
+  update_at: number;
 }

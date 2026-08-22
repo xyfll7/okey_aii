@@ -40,7 +40,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
         "create_session" => {
             if let Some(window) = app.get_webview_window("index") {
                 if let Ok((session_id, _)) = create_session(app.clone()) {
-                    let _ = window.emit("on_create_session", session_id);
+                    let _ = window.emit("on_open_session_with_session_id", session_id);
                 }
             }
         }

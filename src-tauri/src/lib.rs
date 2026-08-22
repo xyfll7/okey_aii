@@ -30,9 +30,10 @@ pub fn run() {
             ai::commands::switch_model,
             ai::commands::send_message,
             ai::commands::stop_generation,
-            ai::commands::clear_history,
             ai::commands::get_history,
             ai::commands::remove_history_item,
+            ai::commands::list_history_sessions,
+            ai::commands::open_session,
             my_commands::detect_language,
             my_commands::open_window_index
         ])

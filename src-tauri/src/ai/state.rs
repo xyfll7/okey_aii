@@ -1,5 +1,6 @@
 use crate::ai::agents::Agents;
 use crate::ai::config::{builtin_presets, AgentPreset, Provider};
+use crate::ai::db::Db;
 use rig::client::AgentClientExt;
 use rig::message::Message;
 use rig::providers::{anthropic, deepseek, openai};
@@ -39,6 +40,8 @@ pub struct Session {
     pub preset_id: String,
     #[serde(serialize_with = "serialize_systemtime_millis")]
     pub created_at: SystemTime,
+    #[serde(serialize_with = "serialize_systemtime_millis")]
+    pub update_at: SystemTime,
     pub title: String,
     
     
@@ -52,7 +55,7 @@ pub struct Session {
     pub cancel_handle: Option<futures::future::AbortHandle>,
 }
 
-fn serialize_systemtime_millis<S: serde::Serializer>(
+pub(crate) fn serialize_systemtime_millis<S: serde::Serializer>(
     t: &SystemTime,
     s: S,
 ) -> Result<S::Ok, S::Error> {
@@ -75,6 +78,7 @@ fn deserialize_systemtime_millis<'de, D: serde::Deserializer<'de>>(
 pub struct ChatState {
     pub config: AppConfig,
     pub sessions: HashMap<String, Session>,
+    pub db: Db,
 }
 
 
@@ -93,6 +97,7 @@ pub fn add_message_to_history(
         return Err("Session is currently generating a response (loading), adding new messages is temporarily disabled".into());
     }
     sess.history.push(item.clone());
+    sess.update_at = SystemTime::now();
     Ok(item)
 }
 
@@ -112,6 +117,7 @@ pub fn remove_history_item(
     if sess.history.len() == before {
         return Err(format!("history item not found: {history_id}"));
     }
+    sess.update_at = SystemTime::now();
     Ok(())
 }
 

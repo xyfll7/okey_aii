@@ -8,8 +8,30 @@ use crate::ai::state::{add_message_to_history, build_session_agent, HistoryItem,
 
 use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
+use super::db::{self, SessionMeta};
 use super::state::ChatState;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+
+/// 从 DB 恢复一个不在内存中的会话（重建 agent + 加载历史），并缓存到内存。
+fn restore_session(guard: &mut ChatState, meta: &SessionMeta) -> Result<Session, String> {
+    let agent = build_session_agent(&guard.config.api_keys, meta.provider, &meta.model, &meta.preset_id)?;
+    let history = db::get_history(&guard.db, &meta.session_id)?;
+    let sess = Session {
+        session_id: meta.session_id.clone(),
+        provider: meta.provider,
+        model: meta.model.clone(),
+        preset_id: meta.preset_id.clone(),
+        created_at: meta.created_at,
+        update_at: std::time::SystemTime::now(),
+        title: meta.title.clone(),
+        is_loading: false,
+        agent,
+        history,
+        cancel_handle: None,
+    };
+    guard.sessions.insert(meta.session_id.clone(), sess.clone());
+    Ok(sess)
+}
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
@@ -27,7 +49,7 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
     let (provider, model, preset_id) = guard
         .sessions
         .values()
-        .max_by(|a, b| a.created_at.cmp(&b.created_at))
+        .max_by(|a, b| a.update_at.cmp(&b.update_at))
         .map(|s| (s.provider, s.model.clone(), s.preset_id.clone()))
         .unwrap_or_else(|| {
             let p = Provider::DeepSeek;
@@ -43,16 +65,18 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
     let session = Session {
         session_id: session_id.clone(),
         provider,
-        model,
-        preset_id,
+        model: model.clone(),
+        preset_id: preset_id.clone(),
         agent,
         history: Vec::new(),
         created_at: std::time::SystemTime::now(),
+        update_at: std::time::SystemTime::now(),
         title: "New Session".into(),
         is_loading: false,
         cancel_handle: None,
     };
 
+    db::insert_session(&guard.db, &session_id, provider, &model, &preset_id, session.created_at, session.update_at, &session.title)?;
     guard.sessions.insert(session_id.clone(), session.clone());
     Ok((session_id, session))
 }
@@ -70,6 +94,8 @@ pub fn close_session(app: tauri::AppHandle, session_id: String) -> Result<bool, 
         }
     }
     let removed = guard.sessions.remove(&session_id).is_some();
+    
+    db::set_session_archived(&guard.db, &session_id)?;
     Ok(removed)
 }
 
@@ -101,13 +127,18 @@ pub fn switch_provider(
     
     let agent = build_session_agent(&api_keys, provider, &model, &preset_id)?;
 
-    let sess = guard
-        .sessions
-        .get_mut(&session_id)
-        .ok_or("Session not found, please call create_session first")?;
-    sess.provider = provider;
-    sess.model = model.clone();
-    sess.agent = agent;
+    let update_at = std::time::SystemTime::now();
+    {
+        let sess = guard
+            .sessions
+            .get_mut(&session_id)
+            .ok_or("Session not found, please call create_session first")?;
+        sess.provider = provider;
+        sess.model = model.clone();
+        sess.agent = agent;
+        sess.update_at = update_at;
+    }
+    db::update_session(&guard.db, &session_id, provider, &model, update_at)?;
 
     Ok(())
 }
@@ -141,9 +172,14 @@ pub fn switch_model(
     let api_keys = guard.config.api_keys.clone();
     let agent = build_session_agent(&api_keys, provider, &model, &preset_id)?;
 
-    let sess = guard.sessions.get_mut(&session_id).unwrap();
-    sess.model = model.clone();
-    sess.agent = agent;
+    let update_at = std::time::SystemTime::now();
+    {
+        let sess = guard.sessions.get_mut(&session_id).unwrap();
+        sess.model = model.clone();
+        sess.agent = agent;
+        sess.update_at = update_at;
+    }
+    db::update_session(&guard.db, &session_id, provider, &model, update_at)?;
 
     Ok(())
 }
@@ -173,6 +209,7 @@ pub async fn send_message(
     let (abort_handle, abort_registration) = futures::future::AbortHandle::new_pair();
     {
         let mut guard = state.write().unwrap();
+        db::insert_message(&guard.db, &session_id, &prompt)?;
         let sess = guard
             .sessions
             .get_mut(&session_id)
@@ -183,6 +220,7 @@ pub async fn send_message(
         sess.history.push(prompt.clone());
         sess.is_loading = true;
         sess.cancel_handle = Some(abort_handle);
+        sess.update_at = std::time::SystemTime::now();
     }
 
     
@@ -236,6 +274,7 @@ pub async fn send_message(
                 if let Some(sess) = guard.sessions.get_mut(&session_id) {
                     sess.is_loading = false;
                     sess.cancel_handle = None;
+                    sess.update_at = std::time::SystemTime::now();
                 }
                 return Err(e);
             }
@@ -256,20 +295,23 @@ pub async fn send_message(
             }
             sess.is_loading = false;
             sess.cancel_handle = None;
+            sess.update_at = std::time::SystemTime::now();
         }
     }
     
     
     if !full_text.is_empty() {
-        add_message_to_history(
-            &app,
-            session_id,
-            HistoryItem {
-                id: uuid::Uuid::new_v4().to_string(),
-                created_at: std::time::SystemTime::now(),
-                message: Message::assistant(full_text.as_str()), 
-            },
-        )?;
+        let item = HistoryItem {
+            id: uuid::Uuid::new_v4().to_string(),
+            created_at: std::time::SystemTime::now(),
+            message: Message::assistant(full_text.as_str()), 
+        };
+        {
+            let state = app.state::<Arc<RwLock<ChatState>>>();
+            let guard = state.read().unwrap();
+            db::insert_message(&guard.db, &session_id, &item)?;
+        }
+        add_message_to_history(&app, session_id, item)?;
     }
     Ok(())
 }
@@ -303,22 +345,38 @@ pub fn list_sessions(app: tauri::AppHandle) -> Vec<Session> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
     let mut list: Vec<Session> = guard.sessions.values().cloned().collect();
-    list.sort_by_key(|a| a.created_at);
+    list.sort_by_key(|a| a.update_at);
     list
 }
 
 
+/// 列出 DB 中所有历史会话的元数据（轻量，不载入内存、不重建 agent）。
 #[tauri::command(rename_all = "snake_case")]
-pub fn clear_history(app: tauri::AppHandle, session_id: String) -> Result<(), String> {
+pub fn list_history_sessions(app: tauri::AppHandle) -> Result<Vec<SessionMeta>, String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
+    let guard = state.read().unwrap();
+    let metas = db::list_session_meta(&guard.db)?;
+    Ok(metas
+        .into_iter()
+        .filter(|m| !guard.sessions.contains_key(&m.session_id))
+        .collect())
+}
+
+
+/// 用户手动打开一个历史会话：从 DB 恢复并载入内存。已在内存中则直接返回。
+#[tauri::command(rename_all = "snake_case")]
+pub fn open_session(app: tauri::AppHandle, session_id: String) -> Result<Session, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
-    guard
-        .sessions
-        .get_mut(&session_id)
-        .ok_or("Session not found")?
-        .history
-        .clear();
-    Ok(())
+    let sess = if let Some(sess) = guard.sessions.get(&session_id) {
+        sess.clone()
+    } else {
+        let meta = db::get_session_meta(&guard.db, &session_id)?
+            .ok_or("Session not found in database")?;
+        restore_session(&mut guard, &meta)?
+    };
+    let _ = app.emit("on_open_session_with_session_id", session_id);
+    Ok(sess)
 }
 
 
@@ -326,8 +384,12 @@ pub fn clear_history(app: tauri::AppHandle, session_id: String) -> Result<(), St
 pub fn get_history(app: tauri::AppHandle, session_id: String) -> Result<Vec<HistoryItem>, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
-    let sess = guard.sessions.get(&session_id).ok_or("Session not found")?;
-    Ok(sess.history.clone())
+    if let Some(sess) = guard.sessions.get(&session_id) {
+        return Ok(sess.history.clone());
+    }
+    let db = guard.db.clone();
+    drop(guard);
+    db::get_history(&db, &session_id)
 }
 
 

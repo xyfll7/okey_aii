@@ -24,6 +24,7 @@ log = "0.4"
 tauri = { version = "2.11.3", features = ["macos-private-api", "tray-icon"] }
 tauri-plugin-log = "2"
 tauri-plugin-os = "2"
+rusqlite = { version = "0.32", features = ["bundled"] }
 rig = "0.42.0"
 rig-core = "0.42.0"
 futures = "0.3.34"

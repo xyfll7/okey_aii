@@ -46,7 +46,6 @@ function useSessionId() {
 				for (const session of rest_sessions) {
 					push({
 						id: session.session_id,
-						showSwipeHandle: true,
 						content: <SessionView session_id={session.session_id} />,
 					});
 				}
@@ -60,11 +59,10 @@ function useCreateSessionEvent() {
 	const { push } = useDrawerStack();
 	useEffect(() => {
 		const unlisten = getCurrentWindow().listen<string>(
-			"on_create_session",
+			"on_open_session_with_session_id",
 			(e) => {
 				push({
 					id: e.payload,
-					showSwipeHandle: true,
 					content: <SessionView session_id={e.payload} />,
 				});
 			},

@@ -1,6 +1,5 @@
 import { type as ostype } from "@tauri-apps/plugin-os";
 import type React from "react";
-import { useEffect, useState } from "react";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
 import {
@@ -9,6 +8,7 @@ import {
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
+import { HistorySessions } from "#/routes/(index)/-components/HistorySessions";
 
 function CreateNewSession() {
 	return (
@@ -33,9 +33,7 @@ function PinWindow({ className }: { className?: string }) {
 
 export function Header(props: React.ComponentProps<"div">) {
 	const _ostype = ostype();
-	const [hotkey, setHotkey] = useState<string>("");
-	useEffect(() => {}, []);
-
+	
 	if (["macos"].includes(_ostype)) {
 		return (
 			<div
@@ -43,6 +41,7 @@ export function Header(props: React.ComponentProps<"div">) {
 				data-tauri-drag-region
 			>
 				<CreateNewSession />
+				<HistorySessions />
 
 				<Tooltip>
 					<TooltipTrigger
@@ -72,6 +71,7 @@ export function Header(props: React.ComponentProps<"div">) {
 					<TooltipContent>123</TooltipContent>
 				</Tooltip>
 
+				<HistorySessions />
 				<CreateNewSession />
 			</div>
 			<div className=" flex">
