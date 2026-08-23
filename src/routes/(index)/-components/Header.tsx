@@ -10,6 +10,7 @@ import {
 } from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 import { HistorySessions } from "#/routes/(index)/-components/HistorySessions";
+import { Settings } from "./Settings";
 
 function CreateNewSession({
 	onNewSession,
@@ -65,7 +66,7 @@ export function Header(
 			>
 				<CreateNewSession onNewSession={props.onNewSession} />
 				<HistorySessions />
-
+				<Settings />
 				<Tooltip>
 					<TooltipTrigger
 						render={
@@ -98,6 +99,7 @@ export function Header(
 				<CreateNewSession onNewSession={props.onNewSession} />
 			</div>
 			<div className=" flex">
+				<Settings />
 				<Button
 					className="ml-1"
 					size={"icon-sm"}
