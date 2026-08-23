@@ -47,6 +47,8 @@ pub fn run() {
             ai::commands::open_session,
             my_commands::detect_language,
             my_commands::open_window_index,
+            store::commands::get_pin_index_window,
+            store::commands::set_pin_index_window,
             utils::i18n::get_current_locale,
             utils::i18n::set_current_locale,
         ])

@@ -7,6 +7,7 @@ use tauri::Listener;
 use tauri::{window::Color, AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
 
 use crate::my_windows::window_helper::{calculate_center_position, calculate_window_position};
+use crate::store::app_state::AppConfigState;
 
 pub fn should_use_existing_index_window(app: AppHandle) -> bool {
     let translate_window = app.get_webview_window("index");
@@ -26,10 +27,12 @@ where
         let _ = window.hide();
     }
 
+    let is_pin = app.state::<AppConfigState>().read().is_pin_index_window;
+
     if let Some(window) = app.get_webview_window("index") {
         let _ = window.show();
         let _ = window.set_focus();
-        let _ = window.set_always_on_top(true);
+        let _ = window.set_always_on_top(is_pin);
         if let Some(cb) = callback {
             tauri::async_runtime::spawn(async move {
                 cb();
@@ -37,7 +40,7 @@ where
         }
     } else {
         const WINDOW_WIDTH: f64 = 400.0;
-        const WINDOW_HEIGHT: f64 = 600.0;
+        const WINDOW_HEIGHT: f64 = 650.0;
         const CURSOR_OFFSET: f64 = 10.0;
 
         let (adjusted_x, adjusted_y) = if callback.is_none() {
@@ -51,8 +54,8 @@ where
             .resizable(true)
             .fullscreen(false)
             .skip_taskbar(true)
-            .always_on_top(true)
-            .min_inner_size(350.0, 600.0)
+            .always_on_top(is_pin)
+            .min_inner_size(WINDOW_WIDTH, WINDOW_HEIGHT)
             .background_color(Color(0, 0, 0, 1))
             .inner_size(WINDOW_WIDTH, WINDOW_HEIGHT)
             .position(adjusted_x, adjusted_y);

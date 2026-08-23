@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { type as ostype } from "@tauri-apps/plugin-os";
 import type React from "react";
+import { useEffect, useState } from "react";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
 import {
@@ -39,14 +40,38 @@ function CreateNewSession({
 }
 
 function PinWindow({ className }: { className?: string }) {
+	const [pinned, setPinned] = useState(false);
+
+	useEffect(() => {
+		invoke<boolean>("get_pin_index_window")
+			.then(setPinned)
+			.catch(console.error);
+	}, []);
+
 	return (
 		<Button
 			size="icon-sm"
 			variant="ghost"
 			className={cn(className)}
-			onClick={async () => {}}
+			title={pinned ? "取消置顶" : "置顶窗口"}
+			onClick={async () => {
+				try {
+					const applied = await invoke<boolean>("set_pin_index_window", {
+						pinned: !pinned,
+					});
+					setPinned(applied);
+				} catch (err) {
+					console.error(err);
+				}
+			}}
 		>
-			<Icons.pin className={"text-green-300 dark:text-green-20"} />
+			<Icons.pin
+				className={cn(
+					pinned
+						? "text-green-300 dark:text-green-200"
+						: "text-muted-foreground",
+				)}
+			/>
 		</Button>
 	);
 }
