@@ -4,13 +4,9 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "#/components/ui/tooltip";
 import { cn } from "#/lib/utils";
 import { HistorySessions } from "#/routes/(index)/-components/HistorySessions";
+import AutoSpeakVolume from "./AutoSpeakVolume";
 import { Settings } from "./Settings";
 
 function CreateNewSession({
@@ -92,16 +88,7 @@ export function Header(
 				<CreateNewSession onNewSession={props.onNewSession} />
 				<HistorySessions />
 				<Settings />
-				<Tooltip>
-					<TooltipTrigger
-						render={
-							<Button size="icon-sm" variant="ghost">
-								111
-							</Button>
-						}
-					/>
-					<TooltipContent></TooltipContent>
-				</Tooltip>
+				<AutoSpeakVolume />
 				<PinWindow className="mr-1" />
 			</div>
 		);
@@ -113,12 +100,7 @@ export function Header(
 		>
 			<div className="flex items-center">
 				<PinWindow />
-				<Tooltip>
-					<TooltipTrigger
-						render={<Button size="icon-sm" variant="ghost"></Button>}
-					/>
-					<TooltipContent>123</TooltipContent>
-				</Tooltip>
+				<AutoSpeakVolume />
 
 				<HistorySessions />
 				<CreateNewSession onNewSession={props.onNewSession} />

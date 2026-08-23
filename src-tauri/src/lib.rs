@@ -49,6 +49,8 @@ pub fn run() {
             my_commands::open_window_index,
             store::commands::get_pin_index_window,
             store::commands::set_pin_index_window,
+            store::commands::get_auto_speak,
+            store::commands::set_auto_speak,
             utils::i18n::get_current_locale,
             utils::i18n::set_current_locale,
         ])
