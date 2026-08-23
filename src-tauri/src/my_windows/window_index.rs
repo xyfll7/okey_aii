@@ -15,7 +15,7 @@ pub fn should_use_existing_index_window(app: AppHandle) -> bool {
         .as_ref()
         .map(|w| w.is_focused().unwrap_or(false))
         .unwrap_or(false);
-    
+
     (translate_window.is_some()) || is_focused
 }
 
@@ -94,17 +94,27 @@ where
             let cancelled = Arc::new(Mutex::new(false));
             let win_clone = window.clone();
             let cancel_flag = cancelled.clone();
+            let app_handle = app.clone();
             window.on_window_event(move |event| match event {
                 tauri::WindowEvent::Focused(false) => {
                     *cancel_flag.lock().unwrap() = false;
                     let _win = win_clone.clone();
                     let local_cancel = cancel_flag.clone();
+                    let app_for_thread = app_handle.clone();
                     thread::spawn(move || {
                         thread::sleep(Duration::from_millis(150));
                         if *local_cancel.lock().unwrap() {
                             return;
                         }
-                        //  _win.destroy().ok();
+                        // 实时读取当前置顶状态，而非窗口创建时的快照
+                        let pinned_now = app_for_thread
+                            .state::<AppConfigState>()
+                            .read()
+                            .is_pin_index_window;
+                        if pinned_now {
+                            return; // 置顶窗口失焦后保持常驻，不销毁
+                        }
+                        _win.destroy().ok();
                     });
                 }
                 tauri::WindowEvent::Focused(true) => {
