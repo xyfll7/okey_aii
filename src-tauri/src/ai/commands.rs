@@ -311,8 +311,10 @@ pub async fn send_message(
             let guard = state.read().unwrap();
             db::insert_message(&guard.db, &session_id, &item)?;
         }
-        add_message_to_history(&app, session_id, item)?;
+        add_message_to_history(&app, session_id.clone(), item)?;
     }
+    // 通知前端本次消息已生成完毕，前端会重新拉取历史
+    let _ = app.emit_to("index", &format!("on_message_done{session_id}"), ());
     Ok(())
 }
 

@@ -240,6 +240,7 @@ pub fn get_history(db: &Db, session_id: &str) -> Result<Vec<HistoryItem>, String
     Ok(out)
 }
 
+#[warn(dead_code)]
 pub fn clear_history(db: &Db, session_id: &str) -> Result<(), String> {
     let conn = db.lock().unwrap();
     conn.execute("DELETE FROM messages WHERE session_id = ?1", params![session_id])

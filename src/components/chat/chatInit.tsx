@@ -7,9 +7,21 @@ import { type RigHistoryItem, rigMessageToUIMessage } from "#/lib/rigMessage";
 export function useChatInit({ session_id }: { session_id: string }) {
 	const { setMessages, append, messages, status } = useChatContext();
 	useEffect(() => {
-		invoke<RigHistoryItem[]>("get_history", { session_id }).then((history) => {
-			setMessages(history.map((e) => rigMessageToUIMessage(e)));
-		});
+		function get_history() {
+			invoke<RigHistoryItem[]>("get_history", { session_id }).then((history) =>
+				setMessages(history.map((e) => rigMessageToUIMessage(e))),
+			);
+		}
+		get_history();
+		const unlisten = getCurrentWindow().listen<RigHistoryItem>(
+			`on_message_done${session_id}`,
+			() => get_history(),
+		);
+		return () => {
+			unlisten.then((fn) => fn());
+		};
+	}, [setMessages, session_id]);
+	useEffect(() => {
 		const unlisten = getCurrentWindow().listen<RigHistoryItem>(
 			`on_message_${session_id}`,
 			(e) => append(rigMessageToUIMessage(e.payload)),
@@ -17,6 +29,6 @@ export function useChatInit({ session_id }: { session_id: string }) {
 		return () => {
 			unlisten.then((fn) => fn());
 		};
-	}, [setMessages, append, session_id]);
+	}, [append, session_id]);
 	return { messages, status };
 }
