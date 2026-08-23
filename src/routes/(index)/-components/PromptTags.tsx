@@ -11,9 +11,9 @@ import {
 	ItemTitle,
 } from "#/components/ui/item";
 import { ScrollArea } from "#/components/ui/scroll-area";
+import type { PromptTag } from "#/lib/types";
 import { cn } from "#/lib/utils";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
-import type { PromptTag } from "#/lib/types";
 
 function PromptTagsContent({
 	prompts,
@@ -146,7 +146,6 @@ export function PromptTags({
 			onClick={() => {
 				push({
 					title: "m.prompts_title()",
-					showSwipeHandle: true,
 					content: (
 						<PromptTagsContent
 							prompts={prompts}

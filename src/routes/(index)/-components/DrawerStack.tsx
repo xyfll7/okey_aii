@@ -76,7 +76,7 @@ export function DrawerStackProvider({
 
 	const push = React.useCallback((input: PushLayerInput) => {
 		const id = input.id ?? makeId();
-		setLayers((prev) => [...prev, { ...input, id }]);
+		setLayers((prev) => [...prev, { ...input, showSwipeHandle: true, id }]);
 		return id;
 	}, []);
 

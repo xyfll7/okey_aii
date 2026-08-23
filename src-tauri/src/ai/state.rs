@@ -1,8 +1,8 @@
 use crate::ai::agents::Agents;
 use crate::ai::config::{builtin_presets, AgentPreset, Provider};
-use crate::ai::db::Db;
+use crate::ai::db::{self, Db, SessionMeta};
 use rig::client::AgentClientExt;
-use rig::message::Message;
+use rig::message::{Message, UserContent};
 use rig::providers::{anthropic, deepseek, openai};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -164,4 +164,60 @@ pub fn build_session_agent(
         .find(|p| p.id == preset_id)
         .ok_or("preset not found")?;
     Ok(Arc::new(build_agent(provider, model, &key, &preset)?))
+}
+
+/// 从 DB 恢复一个不在内存中的会话（重建 agent + 加载历史），并缓存到内存。
+pub fn restore_session(guard: &mut ChatState, meta: &SessionMeta) -> Result<Session, String> {
+    let agent = build_session_agent(&guard.config.api_keys, meta.provider, &meta.model, &meta.preset_id)?;
+    let history = db::get_history(&guard.db, &meta.session_id)?;
+    let sess = Session {
+        session_id: meta.session_id.clone(),
+        provider: meta.provider,
+        model: meta.model.clone(),
+        preset_id: meta.preset_id.clone(),
+        created_at: meta.created_at,
+        update_at: SystemTime::now(),
+        title: meta.title.clone(),
+        is_loading: false,
+        agent,
+        history,
+        cancel_handle: None,
+    };
+    guard.sessions.insert(meta.session_id.clone(), sess.clone());
+    Ok(sess)
+}
+
+/// 从用户消息中提取文本，截断为会话标题。
+fn derive_title(msg: &Message) -> Option<String> {
+    const MAX_TITLE_LEN: usize = 30;
+    let text = match msg {
+        Message::User { content } => content
+            .iter()
+            .find_map(|c| match c {
+                UserContent::Text(t) => Some(t.text.as_str()),
+                _ => None,
+            }),
+        _ => return None,
+    }?;
+    let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if text.is_empty() {
+        return None;
+    }
+    let truncated: String = text.chars().take(MAX_TITLE_LEN).collect();
+    Some(if text.chars().count() > MAX_TITLE_LEN {
+        format!("{truncated}…")
+    } else {
+        truncated
+    })
+}
+
+/// 始终用历史中第一条用户消息刷新会话标题，并同步内存与 DB。
+pub fn ensure_session_title(db: &Db, session_id: &str, sess: &mut Session) {
+    let Some(title) = sess.history.iter().find_map(|h| derive_title(&h.message)) else {
+        return;
+    };
+    sess.title = title.clone();
+    if let Err(e) = db::update_session_title(db, session_id, &title) {
+        log::warn!("failed to update session title: {e}");
+    }
 }

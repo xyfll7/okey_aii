@@ -4,34 +4,16 @@ use futures::StreamExt;
 use rig::message::Message;
 use tauri::ipc::Channel;
 
-use crate::ai::state::{add_message_to_history, build_session_agent, HistoryItem, Session};
+use crate::ai::state::{
+    add_message_to_history, build_session_agent, ensure_session_title, restore_session, HistoryItem,
+    Session,
+};
 
 use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
 use super::db::{self, SessionMeta};
 use super::state::ChatState;
 use tauri::{Emitter, Manager};
-
-/// 从 DB 恢复一个不在内存中的会话（重建 agent + 加载历史），并缓存到内存。
-fn restore_session(guard: &mut ChatState, meta: &SessionMeta) -> Result<Session, String> {
-    let agent = build_session_agent(&guard.config.api_keys, meta.provider, &meta.model, &meta.preset_id)?;
-    let history = db::get_history(&guard.db, &meta.session_id)?;
-    let sess = Session {
-        session_id: meta.session_id.clone(),
-        provider: meta.provider,
-        model: meta.model.clone(),
-        preset_id: meta.preset_id.clone(),
-        created_at: meta.created_at,
-        update_at: std::time::SystemTime::now(),
-        title: meta.title.clone(),
-        is_loading: false,
-        agent,
-        history,
-        cancel_handle: None,
-    };
-    guard.sessions.insert(meta.session_id.clone(), sess.clone());
-    Ok(sess)
-}
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
@@ -209,7 +191,7 @@ pub async fn send_message(
     let (abort_handle, abort_registration) = futures::future::AbortHandle::new_pair();
     {
         let mut guard = state.write().unwrap();
-        db::insert_message(&guard.db, &session_id, &prompt)?;
+        let db = guard.db.clone();
         let sess = guard
             .sessions
             .get_mut(&session_id)
@@ -217,7 +199,10 @@ pub async fn send_message(
         if sess.is_loading {
             return Err("Session is currently generating a response (loading), adding new messages is temporarily disabled".into());
         }
+        db::insert_message(&db, &session_id, &prompt)?;
         sess.history.push(prompt.clone());
+        // 首次发送消息时，用第一条用户消息作为会话标题
+        ensure_session_title(&db, &session_id, sess);
         sess.is_loading = true;
         sess.cancel_handle = Some(abort_handle);
         sess.update_at = std::time::SystemTime::now();

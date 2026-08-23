@@ -49,7 +49,6 @@ export function HistorySessions() {
 			onClick={() => {
 				push({
 					title: "History",
-					showSwipeHandle: true,
 					content: <HistorySessionsContent />,
 				});
 			}}

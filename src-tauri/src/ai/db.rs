@@ -125,6 +125,16 @@ pub fn update_session(
     Ok(())
 }
 
+pub fn update_session_title(db: &Db, session_id: &str, title: &str) -> Result<(), String> {
+    let conn = db.lock().unwrap();
+    conn.execute(
+        "UPDATE sessions SET title = ?1 WHERE id = ?2",
+        params![title, session_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub fn set_session_archived(db: &Db, session_id: &str) -> Result<(), String> {
     let conn = db.lock().unwrap();
     conn.execute(
