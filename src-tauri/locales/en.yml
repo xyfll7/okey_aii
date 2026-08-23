@@ -1,0 +1,28 @@
+# English translations
+quit: "Quit"
+show: "Show"
+test: "Test"
+autostart: "Autostart"
+notification_title: "okey.ai"
+notification_body: "okey.ai is running!"
+
+# Language display names
+language_auto: "Auto"
+language_chinese: "Chinese"
+language_english: "English"
+
+# Default prompt tags
+prompt_tag_system_label: "System Prompt"
+prompt_tag_system_content: "You are a professional translation assistant. Please accurately translate the language, preserving the original meaning and tone."
+prompt_tag_summary_label: "Summary"
+prompt_tag_summary_content: "Please analyze the following text and provide a summary:\n\n{text}"
+prompt_tag_right_ctrl_label: "Right Ctrl"
+prompt_tag_right_ctrl_content: "Please translate the following text into {target}:\n\n{text}"
+prompt_tag_self_explanation_label: "Self-Explanation"
+prompt_tag_self_explanation_content: "Please explain the following text in {detected_lang}, as if explaining to a language learner:\n\n{text}."
+prompt_tag_word_details_label: "Word Details"
+prompt_tag_word_details_content: "Please use {local} to explain the word {text} in detail."
+prompt_tag_meaning_context_label: "Meaning in Context"
+prompt_tag_meaning_context_content: "Please use {local} to explain the meaning of {text} in the sentence."
+prompt_tag_detailed_explanation_label: "Detailed Explanation"
+prompt_tag_detailed_explanation_content: "Please explain the following content in detail in {local}: {text}"

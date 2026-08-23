@@ -20,16 +20,20 @@ tauri-build = { version = "2.6.3", features = [] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-log = "0.4"
+log = "0.4.34"
 tauri = { version = "2.11.3", features = ["macos-private-api", "tray-icon"] }
 tauri-plugin-log = "2"
 tauri-plugin-os = "2"
-rusqlite = { version = "0.32", features = ["bundled"] }
+tauri-plugin-store = "2"
+tauri-plugin-autostart = "2"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 rig = "0.42.0"
 rig-core = "0.42.0"
 futures = "0.3.34"
 dotenvy = "0.15"
-uuid = { version = "1.24.1", features = ["v4"] }
+uuid = { version = "1.25.0", features = ["v4"] }
 rdev = { git = "https://github.com/rustdesk/rdev" }
 mouse_position = "0.1.4"
 selection = "1.2.0"
+rust-i18n = "4.2.1"
+

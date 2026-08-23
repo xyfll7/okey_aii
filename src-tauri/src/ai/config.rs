@@ -5,6 +5,8 @@ pub enum Provider {
     OpenAI,
     Anthropic,
     DeepSeek,
+    Qwen,
+    Zai,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,6 +65,34 @@ pub fn available_models(provider: Provider) -> &'static [ModelInfo] {
             ModelInfo {
                 id: "deepseek-v4-pro",
                 label: "DeepSeek V4 Pro",
+            },
+        ],
+        Provider::Qwen => &[
+            ModelInfo {
+                id: "qwen-max",
+                label: "Qwen Max",
+            },
+            ModelInfo {
+                id: "qwen-plus",
+                label: "Qwen Plus",
+            },
+            ModelInfo {
+                id: "qwen-turbo",
+                label: "Qwen Turbo",
+            },
+        ],
+        Provider::Zai => &[
+            ModelInfo {
+                id: "glm-4.6",
+                label: "GLM 4.6",
+            },
+            ModelInfo {
+                id: "glm-4.6-air",
+                label: "GLM 4.6 Air",
+            },
+            ModelInfo {
+                id: "glm-4.5-airx",
+                label: "GLM 4.5 AirX",
             },
         ],
     }

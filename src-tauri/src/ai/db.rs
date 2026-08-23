@@ -36,6 +36,8 @@ fn provider_to_str(p: Provider) -> &'static str {
         Provider::OpenAI => "OpenAI",
         Provider::Anthropic => "Anthropic",
         Provider::DeepSeek => "DeepSeek",
+        Provider::Qwen => "Qwen",
+        Provider::Zai => "Zai",
     }
 }
 
@@ -44,6 +46,8 @@ fn provider_from_str(s: &str) -> Result<Provider, String> {
         "OpenAI" => Ok(Provider::OpenAI),
         "Anthropic" => Ok(Provider::Anthropic),
         "DeepSeek" => Ok(Provider::DeepSeek),
+        "Qwen" => Ok(Provider::Qwen),
+        "Zai" => Ok(Provider::Zai),
         _ => Err(format!("unknown provider in db: {s}")),
     }
 }

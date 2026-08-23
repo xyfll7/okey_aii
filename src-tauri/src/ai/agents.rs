@@ -9,6 +9,8 @@ pub enum Agents {
     OpenAI(Agent),
     Anthropic(Agent),
     DeepSeek(Agent),
+    Qwen(Agent),
+    Zai(Agent),
 }
 
 
@@ -90,6 +92,8 @@ impl Agents {
             Self::OpenAI(agent) => map_stream(agent.stream_chat(prompt, history).await),
             Self::Anthropic(agent) => map_stream(agent.stream_chat(prompt, history).await),
             Self::DeepSeek(agent) => map_stream(agent.stream_chat(prompt, history).await),
+            Self::Qwen(agent) => map_stream(agent.stream_chat(prompt, history).await),
+            Self::Zai(agent) => map_stream(agent.stream_chat(prompt, history).await),
         }
     }
 }

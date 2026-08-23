@@ -13,6 +13,7 @@ use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
 use super::db::{self, SessionMeta};
 use super::state::ChatState;
+use crate::store::app_state::AppConfigState;
 use tauri::{Emitter, Manager};
 
 #[tauri::command(rename_all = "snake_case")]
@@ -22,9 +23,11 @@ pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String> {
+    let app_config_state = app.state::<AppConfigState>();
+    let api_keys = app_config_state.read().api_keys.clone();
+
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
-    let api_keys = guard.config.api_keys.clone();
 
     let session_id = uuid::Uuid::new_v4().to_string();
 
@@ -134,17 +137,23 @@ pub fn switch_provider(
     provider: Provider,
     api_key: Option<String>,
 ) -> Result<(), String> {
-    let state = app.state::<Arc<RwLock<ChatState>>>();
-    let mut guard = state.write().unwrap();
     if let Some(key) = api_key {
-        guard.config.api_keys.insert(provider, key);
+        let app_config_state = app.state::<AppConfigState>();
+        app_config_state
+            .update(|config| {
+                config.api_keys.insert(provider, key);
+            })
+            .map_err(|e| e.to_string())?;
     }
 
-    
+    let app_config_state = app.state::<AppConfigState>();
+    let api_keys = app_config_state.read().api_keys.clone();
+
+    let state = app.state::<Arc<RwLock<ChatState>>>();
+    let mut guard = state.write().unwrap();
+
     let model = default_model(provider).to_string();
 
-    
-    let api_keys = guard.config.api_keys.clone();
     let preset_id = guard
         .sessions
         .get(&session_id)
@@ -177,10 +186,12 @@ pub fn switch_model(
     session_id: String,
     model: String,
 ) -> Result<(), String> {
+    let app_config_state = app.state::<AppConfigState>();
+    let api_keys = app_config_state.read().api_keys.clone();
+
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
 
-    
     let (provider, preset_id) = {
         let sess = guard
             .sessions
@@ -189,14 +200,11 @@ pub fn switch_model(
         (sess.provider, sess.preset_id.clone())
     };
 
-    
     let valid = available_models(provider).iter().any(|m| m.id == model);
     if !valid {
         return Err(format!("{model} does not belong to the current session's provider"));
     }
 
-    
-    let api_keys = guard.config.api_keys.clone();
     let agent = build_session_agent(&api_keys, provider, &model, &preset_id)?;
 
     let update_at = std::time::SystemTime::now();
@@ -413,6 +421,9 @@ pub fn list_history_sessions(app: tauri::AppHandle) -> Result<Vec<SessionMeta>, 
 /// 用户手动打开一个历史会话：从 DB 恢复并载入内存。已在内存中则直接返回。
 #[tauri::command(rename_all = "snake_case")]
 pub fn open_session(app: tauri::AppHandle, session_id: String) -> Result<Session, String> {
+    let app_config_state = app.state::<AppConfigState>();
+    let api_keys = app_config_state.read().api_keys.clone();
+
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
     let sess = if let Some(sess) = guard.sessions.get(&session_id) {
@@ -420,7 +431,7 @@ pub fn open_session(app: tauri::AppHandle, session_id: String) -> Result<Session
     } else {
         let meta = db::get_session_meta(&guard.db, &session_id)?
             .ok_or("Session not found in database")?;
-        restore_session(&mut guard, &meta)?
+        restore_session(&mut guard, &api_keys, &meta)?
     };
     let _ = app.emit("on_open_session_with_session_id", session_id);
     Ok(sess)

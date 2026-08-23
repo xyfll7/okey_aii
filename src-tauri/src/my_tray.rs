@@ -1,19 +1,24 @@
+use std::sync::Arc;
 use tauri::{
-    AppHandle, Emitter, Manager, menu::{MenuBuilder, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
+    AppHandle, Emitter, Manager, menu::{CheckMenuItem, MenuBuilder, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent}
 };
 
-use crate::{ai::commands::create_session, my_windows};
+use crate::{ai::commands::create_session, my_types::TRKey, my_windows};
+use crate::store::app_state::AppConfigState;
+use tauri_plugin_autostart::AutoLaunchManager;
 
-pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
-    #[rustfmt::skip]
-    let menu = MenuBuilder::new(app_handle)
-        .item(&MenuItem::with_id(app_handle, "show", "Show", true, None::<&str>)?)
-        .item(&MenuItem::with_id(app_handle, "translate_bubble", "TranslateBubble", true, None::<&str>)?)
-        .item(&MenuItem::with_id(app_handle, "create_session", "CreateSession", true, None::<&str>)?)
-        .item(&MenuItem::with_id(app_handle, "quit", "Quit", true, None::<&str>)?)
-        .build()?;
+/// State to store the tray icon for later retrieval
+pub struct TrayState {
+    pub tray: Arc<TrayIcon<tauri::Wry>>,
+}
 
-    let _tray = TrayIconBuilder::new()
+/*******  ab7e53dc-7cba-45e1-8b3a-3837c9b2580a  *******/
+pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<TrayIcon<tauri::Wry>> {
+    // Create tray menu
+    let menu = build_tray_menu(app_handle)?;
+
+    // Create system tray
+    let tray = TrayIconBuilder::new()
         .icon(app_handle.default_window_icon().cloned().unwrap())
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -26,7 +31,10 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
             {
                 match button {
                     MouseButton::Left => {
-                         my_windows::window_index::window_index_show(&tray.app_handle(), None as Option<fn()>);
+                        my_windows::window_index::window_index_show(
+                            &tray.app_handle(),
+                            None as Option<fn()>,
+                        );
                     }
                     _ => {}
                 }
@@ -34,21 +42,75 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<()> {
         })
         .build(app_handle)?;
 
-    app_handle.on_menu_event(|app, event| match event.id().as_ref() {
-        "show" => {}
-        "translate_bubble" => {}
-        "create_session" => {
+    app_handle.on_menu_event(move |app, event| match event.id().as_ref() {
+        "show" => {
+            let app_state = app.state::<AppConfigState>();
+            let config = app_state.read();
+            log::debug!("config: {:#?}", *config);
+        }
+        "test" => {
             if let Some(window) = app.get_webview_window("index") {
                 if let Ok((session_id, _)) = create_session(app.clone()) {
                     let _ = window.emit("on_open_session_with_session_id", session_id);
                 }
             }
         }
-        "quit" => {
-            app.exit(0);
+        "autostart" => {
+            let autostart_manager = app.state::<AutoLaunchManager>();
+            // Toggle autostart state
+            let current_enabled = autostart_manager.is_enabled().unwrap_or(false);
+            if current_enabled {
+                let _ = autostart_manager.disable();
+            } else {
+                let _ = autostart_manager.enable();
+            }
         }
+        "quit" => std::process::exit(0),
         _ => {}
     });
 
+    Ok(tray)
+}
+
+/// Build the tray menu with current translations
+fn build_tray_menu(app_handle: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    // Create menu items with translations
+    let show_item = MenuItem::with_id(app_handle, "show", &TRKey::Show.t(), true, None::<&str>)?;
+    let test_item = MenuItem::with_id(app_handle, "test", &TRKey::Test.t(), true, None::<&str>)?;
+
+    // Create autostart menu item
+    let autostart_manager = app_handle.state::<AutoLaunchManager>();
+    let is_auto_start = autostart_manager.is_enabled().unwrap_or(false);
+    let autostart_item = CheckMenuItem::with_id(
+        app_handle,
+        "autostart",
+        &TRKey::Autostart.t(),
+        true,
+        is_auto_start,
+        None::<&str>,
+    )?;
+
+    let quit_item = MenuItem::with_id(app_handle, "quit", &TRKey::Quit.t(), true, None::<&str>)?;
+
+    // Build menu
+    let menu = MenuBuilder::new(app_handle)
+        .item(&show_item)
+        .item(&test_item)
+        .item(&autostart_item)
+        .separator()
+        .item(&quit_item)
+        .build()?;
+
+    Ok(menu)
+}
+
+/// Rebuild the tray menu with new locale
+pub fn rebuild_tray_menu(app_handle: &AppHandle) -> tauri::Result<()> {
+    // Get the tray state
+    let tray_state = app_handle.state::<TrayState>();
+    // Build new menu with updated translations
+    let new_menu = build_tray_menu(app_handle)?;
+    // Set the new menu
+    tray_state.tray.set_menu(Some(new_menu))?;
     Ok(())
 }

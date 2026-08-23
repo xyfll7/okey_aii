@@ -1,20 +1,29 @@
+rust_i18n::i18n!("locales");
 mod ai;
 mod my_commands;
 mod my_init;
 mod my_rdev;
 mod my_tray;
+mod my_types;
 mod my_windows;
+mod store;
 mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--autostart"]),
+        ))
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
                         .level(log::LevelFilter::Info)
+                        .filter(utils::log_filter::log_filter)
                         .build(),
                 )?;
             }
@@ -37,15 +46,14 @@ pub fn run() {
             ai::commands::list_history_sessions,
             ai::commands::open_session,
             my_commands::detect_language,
-            my_commands::open_window_index
+            my_commands::open_window_index,
+            utils::i18n::get_current_locale,
+            utils::i18n::set_current_locale,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|_app, event| {
             if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
-                
-                
-                
                 if code.is_none() {
                     api.prevent_exit();
                 }

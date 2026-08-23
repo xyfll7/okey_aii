@@ -3,7 +3,7 @@ use crate::ai::config::{builtin_presets, AgentPreset, Provider};
 use crate::ai::db::{self, Db, SessionMeta};
 use rig::client::AgentClientExt;
 use rig::message::{Message, UserContent};
-use rig::providers::{anthropic, deepseek, openai};
+use rig::providers::{anthropic, deepseek, openai, zai};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -23,12 +23,6 @@ pub struct HistoryItem {
     pub created_at: SystemTime,
     
     pub message: Message,
-}
-
-
-#[derive(Clone)]
-pub struct AppConfig {
-    pub api_keys: HashMap<Provider, String>,
 }
 
 
@@ -76,7 +70,6 @@ fn deserialize_systemtime_millis<'de, D: serde::Deserializer<'de>>(
 
 
 pub struct ChatState {
-    pub config: AppConfig,
     pub sessions: HashMap<String, Session>,
     pub db: Db,
 }
@@ -145,6 +138,21 @@ fn build_agent(
             let agent = client.agent(model).preamble(&preset.preamble).build();
             Ok(Agents::DeepSeek(agent))
         }
+        Provider::Qwen => {
+            // Qwen 通过阿里云 DashScope 的 OpenAI 兼容接口接入
+            let client = openai::CompletionsClient::builder()
+                .api_key(api_key)
+                .base_url("https://dashscope.aliyuncs.com/compatible-mode/v1")
+                .build()
+                .map_err(|e| e.to_string())?;
+            let agent = client.agent(model).preamble(&preset.preamble).build();
+            Ok(Agents::Qwen(agent))
+        }
+        Provider::Zai => {
+            let client = zai::Client::new(api_key).map_err(|e| e.to_string())?;
+            let agent = client.agent(model).preamble(&preset.preamble).build();
+            Ok(Agents::Zai(agent))
+        }
     }
 }
 
@@ -167,8 +175,12 @@ pub fn build_session_agent(
 }
 
 /// 从 DB 恢复一个不在内存中的会话（重建 agent + 加载历史），并缓存到内存。
-pub fn restore_session(guard: &mut ChatState, meta: &SessionMeta) -> Result<Session, String> {
-    let agent = build_session_agent(&guard.config.api_keys, meta.provider, &meta.model, &meta.preset_id)?;
+pub fn restore_session(
+    guard: &mut ChatState,
+    api_keys: &HashMap<Provider, String>,
+    meta: &SessionMeta,
+) -> Result<Session, String> {
+    let agent = build_session_agent(api_keys, meta.provider, &meta.model, &meta.preset_id)?;
     let history = db::get_history(&guard.db, &meta.session_id)?;
     let sess = Session {
         session_id: meta.session_id.clone(),
