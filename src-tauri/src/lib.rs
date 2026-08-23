@@ -24,6 +24,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             ai::commands::list_models,
             ai::commands::create_session,
+            ai::commands::new_session,
             ai::commands::close_session,
             ai::commands::delete_session,
             ai::commands::list_sessions,

@@ -66,6 +66,34 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
 }
 
 
+/// 新建会话（主窗口"新建会话"按钮）：
+/// 若所有已加载会话的历史均为空，则不做任何操作；
+/// 否则清理（中止生成、从内存移除并归档 DB）所有非空会话，
+/// 然后创建一个全新的空会话，仅返回新会话 id。
+#[tauri::command(rename_all = "snake_case")]
+pub fn new_session(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
+    let to_clear: Vec<String> = {
+        let guard = state.read().unwrap();
+        guard
+            .sessions
+            .values()
+            .filter(|s| !s.history.is_empty())
+            .map(|s| s.session_id.clone())
+            .collect()
+    };
+    // 当前会话无历史数据 → 什么也不做
+    if to_clear.is_empty() {
+        return Ok(None);
+    }
+    for session_id in to_clear {
+        close_session(app.clone(), session_id)?;
+    }
+    let (session_id, _) = create_session(app)?;
+    Ok(Some(session_id))
+}
+
+
 #[tauri::command(rename_all = "snake_case")]
 pub fn close_session(app: tauri::AppHandle, session_id: String) -> Result<bool, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();

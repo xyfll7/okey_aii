@@ -12,7 +12,7 @@ export const Route = createFileRoute("/(index)/")({ component: Home });
 
 function Home() {
 	useCreateSessionEvent();
-	const session_id = useSessionId();
+	const [session_id, setSession_id] = useSessionId();
 	const _ostype = ostype();
 	useEffect(() => {
 		getCurrentWindow().emit("on_page_index_loaded").catch(console.error);
@@ -27,15 +27,15 @@ function Home() {
 			)}
 			data-tauri-drag-region
 		>
-			<Header className="p-1" />
+			<Header className="p-1" onNewSession={setSession_id} />
 			<div className={cn("relative h-full", "flex flex-col overflow-hidden")}>
-				{session_id && <SessionView session_id={session_id} />}
+				{session_id && <SessionView key={session_id} session_id={session_id} />}
 			</div>
 		</div>
 	);
 }
 
-function useSessionId() {
+function useSessionId(): [string, (id: string) => void] {
 	const [session_id, setSession_id] = useState("");
 	const { push } = useDrawerStack();
 	useEffect(() => {
@@ -52,7 +52,7 @@ function useSessionId() {
 			})
 			.catch(console.error);
 	}, [push]);
-	return session_id;
+	return [session_id, setSession_id];
 }
 
 function useCreateSessionEvent() {
