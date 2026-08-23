@@ -25,6 +25,7 @@ pub fn run() {
             ai::commands::list_models,
             ai::commands::create_session,
             ai::commands::close_session,
+            ai::commands::delete_session,
             ai::commands::list_sessions,
             ai::commands::switch_provider,
             ai::commands::switch_model,

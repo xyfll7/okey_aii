@@ -250,11 +250,19 @@ pub fn get_history(db: &Db, session_id: &str) -> Result<Vec<HistoryItem>, String
     Ok(out)
 }
 
-#[warn(dead_code)]
-pub fn clear_history(db: &Db, session_id: &str) -> Result<(), String> {
-    let conn = db.lock().unwrap();
-    conn.execute("DELETE FROM messages WHERE session_id = ?1", params![session_id])
+
+/// 永久删除一个会话及其全部消息。
+pub fn delete_session(db: &Db, session_id: &str) -> Result<(), String> {
+    let mut conn = db.lock().unwrap();
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    tx.execute(
+        "DELETE FROM messages WHERE session_id = ?1",
+        params![session_id],
+    )
+    .map_err(|e| e.to_string())?;
+    tx.execute("DELETE FROM sessions WHERE id = ?1", params![session_id])
         .map_err(|e| e.to_string())?;
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(())
 }
 

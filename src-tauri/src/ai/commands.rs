@@ -58,7 +58,9 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
         cancel_handle: None,
     };
 
-    db::insert_session(&guard.db, &session_id, provider, &model, &preset_id, session.created_at, session.update_at, &session.title)?;
+    // 延迟持久化：此处仅放入内存，不写入 DB。
+    // 只有当会话真正发送了第一条消息（见 send_message）才会落库，
+    // 避免"创建后未聊天"的空会话在重启后出现在历史记录中。
     guard.sessions.insert(session_id.clone(), session.clone());
     Ok((session_id, session))
 }
@@ -79,6 +81,21 @@ pub fn close_session(app: tauri::AppHandle, session_id: String) -> Result<bool, 
     
     db::set_session_archived(&guard.db, &session_id)?;
     Ok(removed)
+}
+
+
+/// 永久删除一个会话：从内存移除（若已载入），并从 DB 级联删除会话及其消息。
+#[tauri::command(rename_all = "snake_case")]
+pub fn delete_session(app: tauri::AppHandle, session_id: String) -> Result<(), String> {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
+    let mut guard = state.write().unwrap();
+    if let Some(sess) = guard.sessions.get(&session_id) {
+        if let Some(handle) = &sess.cancel_handle {
+            handle.abort();
+        }
+    }
+    guard.sessions.remove(&session_id);
+    db::delete_session(&guard.db, &session_id)
 }
 
 
@@ -198,6 +215,21 @@ pub async fn send_message(
             .ok_or("Session not found, please call create_session first")?;
         if sess.is_loading {
             return Err("Session is currently generating a response (loading), adding new messages is temporarily disabled".into());
+        }
+        // 延迟持久化：会话首次发送消息时才写入 DB。
+        // 用当前内存中的最新配置（用户可能已切换过 provider/model）。
+        if db::get_session_meta(&db, &session_id)?.is_none() {
+            let now = std::time::SystemTime::now();
+            db::insert_session(
+                &db,
+                &session_id,
+                sess.provider,
+                &sess.model,
+                &sess.preset_id,
+                sess.created_at,
+                now,
+                &sess.title,
+            )?;
         }
         db::insert_message(&db, &session_id, &prompt)?;
         sess.history.push(prompt.clone());
