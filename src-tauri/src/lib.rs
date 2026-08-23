@@ -51,6 +51,10 @@ pub fn run() {
             store::commands::set_pin_index_window,
             store::commands::get_auto_speak,
             store::commands::set_auto_speak,
+            store::commands::get_prompt_tags,
+            store::commands::add_prompt_tag,
+            store::commands::update_prompt_tag,
+            store::commands::delete_prompt_tag,
             utils::i18n::get_current_locale,
             utils::i18n::set_current_locale,
         ])

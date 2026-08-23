@@ -1,22 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
+import { useCallback, useEffect, useState } from "react";
 import Copyed from "#/components/Copyed";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
 import type { PromptTag } from "#/lib/types";
 import { cn, speak } from "#/lib/utils";
-import {  useSelected } from "@/store";
+import { useSelected } from "@/store";
 import { PromptTags } from "./PromptTags";
 
 export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
 	const { text, setText } = useSelected();
-
-
-
-
-
-
-
-
+	const { tags, add, update, remove } = usePromptTags();
+	console.log("ttttt:", tags);
 	if (!text) return "";
 	return (
 		<div className="w-full">
@@ -55,28 +50,57 @@ export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
 			</div>
 			{text?.trim() && (
 				<div className="flex flex-wrap">
-					{[].slice(3).map((e) => (
+					{tags.map((tag) => (
 						<Button
 							className="mr-1 mb-1"
 							size={"xs"}
 							variant={"outline"}
-							key={""}
-							disabled={true}
-							onClick={() => {
-							
-							}}
+							key={tag.id}
+							onClick={() => onChat(tag)}
 						>
-							{"e.label"}
+							{tag.label}
 						</Button>
 					))}
 					<PromptTags
-						prompts={[]}
-						onDelete={()=>{}}
-						onAdd={()=>{}}
-						onEdit={()=>{}}
+						prompts={tags}
+						onDelete={(id) => remove(id)}
+						onAdd={(label, content) => add(label, content)}
+						onEdit={(id, label, content) => update({ id, label, content })}
 					/>
 				</div>
 			)}
 		</div>
 	);
+}
+
+export function usePromptTags() {
+	const [tags, setTags] = useState<PromptTag[]>([]);
+
+	const refresh = useCallback(async () => {
+		setTags(await invoke<PromptTag[]>("get_prompt_tags"));
+	}, []);
+
+	useEffect(() => {
+		refresh().catch((err) => console.error("Failed to load prompt tags:", err));
+	}, [refresh]);
+
+	const add = useCallback(async (label: string, content: string) => {
+		setTags(await invoke<PromptTag[]>("add_prompt_tag", { label, content }));
+	}, []);
+
+	const update = useCallback(async (tag: PromptTag) => {
+		setTags(
+			await invoke<PromptTag[]>("update_prompt_tag", {
+				id: tag.id,
+				label: tag.label ?? "",
+				content: tag.content ?? "",
+			}),
+		);
+	}, []);
+
+	const remove = useCallback(async (id: number) => {
+		setTags(await invoke<PromptTag[]>("delete_prompt_tag", { id }));
+	}, []);
+
+	return { tags, refresh, add, update, remove };
 }

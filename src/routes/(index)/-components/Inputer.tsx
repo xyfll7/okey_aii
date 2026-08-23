@@ -13,6 +13,7 @@ import {
 	InputGroupButton,
 	InputGroupTextarea,
 } from "#/components/ui/input-group";
+import type { PromptTag } from "#/lib/types";
 import { cn } from "#/lib/utils";
 import { useSelected } from "@/store";
 import { SelectedText } from "./SelectedText";
@@ -47,7 +48,21 @@ export function Inputer({ className }: { className?: string }) {
 		>
 			{selected.text && (
 				<InputGroupAddon align="block-start">
-					<SelectedText onChat={() => {}} />
+					<SelectedText
+						onChat={(tag: PromptTag) => {
+							const text = selected.text.trim();
+							if (!text) return;
+							append({
+								id: crypto.randomUUID(),
+								role: "user",
+								createdAt: new Date(),
+								parts: [
+									{ type: "text", content: text },
+									{ type: "text", content: tag.content ?? "" },
+								],
+							});
+						}}
+					/>
 				</InputGroupAddon>
 			)}
 			<InputGroupTextarea
