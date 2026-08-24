@@ -13,12 +13,14 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
+import { useLocale } from "#/lib/locale";
 import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
 
 type LanguageOption = { label: string; value: string };
 
 export default function LanguageSelector() {
+	const locale = useLocale();
 	const [localLanguage, setLocalLanguage] = useState<string>("zh-CN");
 	const [targetLanguage, setTargetLanguage] = useState<string>("en");
 	const [options, setOptions] = useState<LanguageOption[]>([]);
@@ -30,6 +32,8 @@ export default function LanguageSelector() {
 		options.find((item) => item.value === targetLanguage)?.label || targetLanguage;
 
 	useEffect(() => {
+		// locale 变化时重新拉取：语言选项显示名由后端按当前 UI locale 生成
+		void locale;
 		(async () => {
 			try {
 				const local = await invoke<string>("get_local_language");
@@ -46,7 +50,7 @@ export default function LanguageSelector() {
 				// ignore
 			}
 		})();
-	}, []);
+	}, [locale]);
 
 	const setLocalLanguageAndPersist = async (value: string) => {
 		try {
@@ -86,7 +90,7 @@ export default function LanguageSelector() {
 						</Button>
 					}
 				/>
-				<TooltipContent>
+				<TooltipContent className={"flex flex-col items-start"}>
 					<div>
 						{m.translate_language_selector_tooltip_line1({ localLanguage: localLanguageLabel })}
 					</div>
