@@ -56,6 +56,13 @@ pub fn run() {
             store::commands::add_prompt_tag,
             store::commands::update_prompt_tag,
             store::commands::delete_prompt_tag,
+            store::commands::get_language_options,
+            store::commands::get_local_language,
+            store::commands::set_local_language,
+            store::commands::get_target_language,
+            store::commands::set_target_language,
+            store::commands::get_self_explaining_model,
+            store::commands::set_self_explaining_model,
             utils::i18n::get_current_locale,
             utils::i18n::set_current_locale,
         ])

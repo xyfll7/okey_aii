@@ -1,5 +1,5 @@
 use crate::ai::config::Provider;
-use crate::store::app_config::{AutoSpeakState, PromptTag};
+use crate::store::app_config::{AutoSpeakState, Language, PromptTag};
 use crate::store::app_state::AppConfigState;
 use std::collections::HashMap;
 use tauri::{AppHandle, Manager};
@@ -105,4 +105,57 @@ pub fn delete_prompt_tag(app: AppHandle, id: u32) -> Result<Vec<PromptTag>, Stri
         .update(|config| config.prompt_tags = new_tags.clone())
         .map_err(|e| e.to_string())?;
     Ok(new_tags)
+}
+
+/// 可选的翻译语言列表，返回 `(locale, 显示名)` 二元组。
+/// 显示名跟随当前 UI 语言（i18n），由 `Language::to_display_name()` 提供。
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_language_options() -> Vec<(String, String)> {
+    use crate::store::app_config::Language;
+    vec![
+        (Language::ZhCn.to_locale(), Language::ZhCn.to_display_name()),
+        (Language::En.to_locale(), Language::En.to_display_name()),
+    ]
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_local_language(app: AppHandle) -> Language {
+    app.state::<AppConfigState>().read().local_language
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_local_language(app: AppHandle, language: Language) -> Result<Language, String> {
+    let state = app.state::<AppConfigState>();
+    state
+        .update(|config| config.local_language = language)
+        .map_err(|e| e.to_string())?;
+    Ok(language)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_target_language(app: AppHandle) -> Language {
+    app.state::<AppConfigState>().read().target_language
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_target_language(app: AppHandle, language: Language) -> Result<Language, String> {
+    let state = app.state::<AppConfigState>();
+    state
+        .update(|config| config.target_language = language)
+        .map_err(|e| e.to_string())?;
+    Ok(language)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_self_explaining_model(app: AppHandle) -> bool {
+    app.state::<AppConfigState>().read().self_explaining_model
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_self_explaining_model(app: AppHandle, enabled: bool) -> Result<bool, String> {
+    let state = app.state::<AppConfigState>();
+    state
+        .update(|config| config.self_explaining_model = enabled)
+        .map_err(|e| e.to_string())?;
+    Ok(enabled)
 }

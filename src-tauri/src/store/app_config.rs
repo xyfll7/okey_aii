@@ -39,6 +39,14 @@ impl Language {
         }
     }
 
+    /// 当前 UI 语言下的语言显示名（本地化）。
+    pub fn to_display_name(&self) -> String {
+        match self {
+            Language::Auto => rust_i18n::t!("language_auto").to_string(),
+            Language::ZhCn => rust_i18n::t!("language_chinese").to_string(),
+            Language::En => rust_i18n::t!("language_english").to_string(),
+        }
+    }
 
     pub fn effective_language(&self) -> Self {
         match self {

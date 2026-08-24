@@ -3,6 +3,7 @@ import { cn } from "#/lib/utils";
 import { ChatList } from "#/routes/(index)/-components/ChatList";
 import { Inputer } from "#/routes/(index)/-components/Inputer";
 import { SelectedProvider } from "@/store";
+import LanguageSelector from "./LanguageSelector";
 
 export function SessionView({ session_id }: { session_id: string }) {
 	return (
@@ -13,6 +14,7 @@ export function SessionView({ session_id }: { session_id: string }) {
 					<div className="px-2 pb-2">
 						<Inputer />
 					</div>
+					<LanguageSelector />
 				</div>
 			</ChatProvider>
 		</SelectedProvider>
