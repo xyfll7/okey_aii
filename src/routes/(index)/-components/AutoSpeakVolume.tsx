@@ -11,6 +11,7 @@ import {
 	AutoSpeakState,
 	type AutoSpeakState as AutoSpeakStateValue,
 } from "@/lib/types";
+import { m } from "@/paraglide/messages";
 
 const NEXT: Record<AutoSpeakStateValue, AutoSpeakStateValue> = {
 	[AutoSpeakState.Off]: AutoSpeakState.Single,
@@ -62,9 +63,9 @@ const AutoSpeakVolume = ({ className }: { className?: string }) => {
 			<TooltipContent>
 				{
 					{
-						[AutoSpeakState.Off]: "m.auto_speak_off()",
-						[AutoSpeakState.Single]: "m.auto_speak_single()",
-						[AutoSpeakState.All]: "m.auto_speak_all()",
+						[AutoSpeakState.Off]: m.auto_speak_off(),
+						[AutoSpeakState.Single]: m.auto_speak_single(),
+						[AutoSpeakState.All]: m.auto_speak_all(),
 					}[state]
 				}
 			</TooltipContent>

@@ -19,6 +19,7 @@ import {
 	MessageScrollerViewport,
 } from "#/components/ui/message-scroller";
 import { cn } from "#/lib/utils";
+import { m } from "#/paraglide/messages";
 import { useSelected } from "#/store";
 import { MessageBubble } from "./MessageBubble";
 import MessageNavigator from "./MessageNavigator";
@@ -82,7 +83,7 @@ export function ChatList({ session_id }: { session_id: string }) {
 									>
 										<MarkerContent className="shimmer">
 											<span className="font-medium">
-												{"m.translate_loading()"}
+												{m.translate_loading()}
 											</span>
 											...
 										</MarkerContent>
@@ -106,9 +107,9 @@ export function ChatList({ session_id }: { session_id: string }) {
 							<EmptyMedia variant="icon">
 								<Icons.chat />
 							</EmptyMedia>
-							<EmptyTitle>{"m.translate_empty_title()"}</EmptyTitle>
+							<EmptyTitle>{m.translate_empty_title()}</EmptyTitle>
 							<EmptyDescription>
-								{"m.translate_empty_description()"}
+								{m.translate_empty_description()}
 							</EmptyDescription>
 						</EmptyHeader>
 					</Empty>

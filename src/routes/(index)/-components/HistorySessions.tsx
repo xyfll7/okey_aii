@@ -5,6 +5,7 @@ import { Button } from "#/components/ui/button";
 import { Item, ItemGroup } from "#/components/ui/item";
 import { ScrollArea } from "#/components/ui/scroll-area";
 import { cn } from "#/lib/utils";
+import { m } from "#/paraglide/messages";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
 import type { Session } from "#/types";
 
@@ -87,8 +88,8 @@ export function HistorySessions() {
 			variant={"ghost"}
 			onClick={() => {
 				push({
-					title: "History",
-					content: <HistorySessionsContent />,
+					title: () => m.common_history(),
+					content: () => <HistorySessionsContent />,
 				});
 			}}
 		>

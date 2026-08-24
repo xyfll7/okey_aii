@@ -13,6 +13,7 @@ import {
 import { ScrollArea } from "#/components/ui/scroll-area";
 import type { PromptTag } from "#/lib/types";
 import { cn } from "#/lib/utils";
+import { m } from "#/paraglide/messages";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
 
 function PromptTagsContent({
@@ -61,12 +62,12 @@ function PromptTagsContent({
 		<>
 			<div className="flex flex-col gap-2 px-2 pb-2">
 				<Input
-					placeholder={"m.prompts_label_placeholder()"}
+					placeholder={m.prompts_label_placeholder()}
 					value={newLabel}
 					onChange={(e) => setNewLabel(e.target.value)}
 				/>
 				<Input
-					placeholder={"m.prompts_content_placeholder()"}
+					placeholder={m.prompts_content_placeholder()}
 					value={newContent}
 					onChange={(e) => setNewContent(e.target.value)}
 				/>
@@ -77,14 +78,14 @@ function PromptTagsContent({
 						disabled={editingId === null}
 						onClick={handleEdit}
 					>
-						{"m.prompts_edit()"}
+						{m.prompts_edit()}
 					</Button>
 					<Button
 						size={"xs"}
 						variant={"default"}
 						onClick={editingId === null ? handleAdd : resetForm}
 					>
-						{editingId === null ? "m.prompts_add()" : "m.common_cancel()"}
+						{editingId === null ? m.prompts_add() : m.common_cancel()}
 					</Button>
 				</div>
 			</div>
@@ -145,8 +146,8 @@ export function PromptTags({
 			className={className}
 			onClick={() => {
 				push({
-					title: "m.prompts_title()",
-					content: (
+					title: () => m.prompts_title(),
+					content: () => (
 						<PromptTagsContent
 							prompts={prompts}
 							onDelete={onDelete}

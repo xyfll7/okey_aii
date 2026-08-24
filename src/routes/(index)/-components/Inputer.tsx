@@ -15,6 +15,7 @@ import {
 } from "#/components/ui/input-group";
 import type { PromptTag } from "#/lib/types";
 import { cn } from "#/lib/utils";
+import { m } from "#/paraglide/messages";
 import { useSelected } from "@/store";
 import { SelectedText } from "./SelectedText";
 
@@ -66,7 +67,7 @@ export function Inputer({ className }: { className?: string }) {
 				</InputGroupAddon>
 			)}
 			<InputGroupTextarea
-				placeholder={"m.translate_input_placeholder()"}
+				placeholder={m.translate_input_placeholder()}
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				onKeyDown={(e) => {

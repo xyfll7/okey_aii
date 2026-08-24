@@ -1,6 +1,7 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { ThemeProvider } from "#/components/theme-provider";
+import { useLocale } from "#/lib/locale";
 import { DrawerStackProvider } from "#/routes/(index)/-components/DrawerStack";
 import "../styles.css";
 import { TooltipProvider } from "#/components/ui/tooltip";
@@ -10,6 +11,8 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+	// 语言切换时重新渲染整棵组件树，让 m.*() 消息文本即时更新
+	useLocale();
 	return (
 		<ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
 			<TooltipProvider>

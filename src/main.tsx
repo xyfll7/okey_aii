@@ -1,7 +1,9 @@
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
+import { initLocale } from "#/lib/locale";
 import { routeTree } from "./routeTree.gen";
 
+initLocale();
 const router = createRouter({
 	routeTree,
 	defaultPreload: "intent",

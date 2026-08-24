@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type as ostype } from "@tauri-apps/plugin-os";
 import { useEffect, useState } from "react";
 import { cn } from "#/lib/utils";
+import { useLocale } from "#/lib/locale";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
 import { SessionView } from "#/routes/(index)/-components/SessionView";
 import type { Session } from "#/types";
@@ -12,6 +13,10 @@ export const Route = createFileRoute("/(index)/")({ component: Home });
 
 function Home() {
 	useCreateSessionEvent();
+	// 语言切换时强制本组件（及 Header、SessionView 等主内容）重渲染。
+	// 必须在此订阅：上游 <Outlet /> 是 React.memo 且不订阅 locale store，
+	// 仅靠 RootComponent 重渲染会被 memo bail-out 拦截，无法传到这里。
+	useLocale();
 	const [session_id, setSession_id] = useSessionId();
 	const _ostype = ostype();
 	useEffect(() => {
@@ -46,7 +51,7 @@ function useSessionId(): [string, (id: string) => void] {
 				for (const session of rest_sessions) {
 					push({
 						id: session.session_id,
-						content: <SessionView session_id={session.session_id} />,
+						content: () => <SessionView session_id={session.session_id} />,
 					});
 				}
 			})
@@ -63,7 +68,7 @@ function useCreateSessionEvent() {
 			(e) => {
 				push({
 					id: e.payload,
-					content: <SessionView session_id={e.payload} />,
+					content: () => <SessionView session_id={e.payload} />,
 				});
 			},
 		);
