@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
+import { Card } from "#/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -8,19 +10,20 @@ import {
 	DropdownMenuGroup,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import {
+	Field,
+	FieldDescription,
+	FieldGroup,
+	FieldLabel,
+	FieldSet,
+} from "#/components/ui/field";
+import { Input } from "#/components/ui/input";
 import { ScrollArea } from "#/components/ui/scroll-area";
+import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { setLocale, useLocale } from "#/lib/locale";
 import { cn } from "#/lib/utils";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
 import { m } from "@/paraglide/messages.js";
-
-function SettingsContent({ className }: { className?: string }) {
-	return (
-		<ScrollArea className={cn("h-full", "overflow-hidden", className)}>
-			<div className="max-w-screen flex-coh items-start px-2 pr-4">123123</div>
-		</ScrollArea>
-	);
-}
 
 export function Settings() {
 	const { push } = useDrawerStack();
@@ -47,7 +50,130 @@ export function Settings() {
 	);
 }
 
-export function LanguageSelector() {
+function SettingsContent({ className }: { className?: string }) {
+	const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+	const [currentProvider, setCurrentProvider] = useState<ProviderId>("OpenAI");
+	const labels = providerLabels();
+
+	useEffect(() => {
+		void invoke<Record<string, string>>("get_api_keys").then((keys) => {
+			setApiKeys(keys);
+		});
+	}, []);
+
+	const resetKey = `${currentProvider}-${apiKeys[currentProvider] ?? ""}`;
+
+	return (
+		<ScrollArea className={cn("h-full", "overflow-hidden", className)}>
+			<div className="max-w-screen flex-coh items-start px-2 pr-4 pt-1">
+				<Card className="px-2.5 w-full">
+					<form>
+						<FieldGroup>
+							<FieldSet>
+								<FieldGroup>
+									<Field>
+										<FieldLabel>
+											{m.common_api_provider()} ({labels[currentProvider]})
+										</FieldLabel>
+										<ToggleGroup
+											size="sm"
+											value={[currentProvider]}
+											onValueChange={(values) => {
+												const value = values[0] as ProviderId | undefined;
+												if (value && PROVIDERS.includes(value)) {
+													setCurrentProvider(value);
+												}
+											}}
+											variant="outline"
+											spacing={2}
+											className="flex-wrap w-full"
+										>
+											{PROVIDERS.map((id) => (
+												<ToggleGroupItem
+													key={id}
+													value={id}
+													aria-label={labels[id]}
+												>
+													{labels[id]}
+												</ToggleGroupItem>
+											))}
+										</ToggleGroup>
+									</Field>
+									<Field>
+										<FieldLabel htmlFor="model-provider-api-key">
+											{labels[currentProvider]} {m.common_api_key()}
+										</FieldLabel>
+										<Input
+											key={resetKey}
+											defaultValue={apiKeys[currentProvider] ?? ""}
+											id="model-provider-api-key"
+											placeholder="Enter API Key"
+											required
+											onBlur={async (e) => {
+												const value = e.target.value.trim();
+												if (value !== (apiKeys[currentProvider] ?? "")) {
+													try {
+														await invoke("set_api_key", {
+															provider: currentProvider,
+															api_key: value,
+														});
+														setApiKeys((prev) => ({
+															...prev,
+															[currentProvider]: value,
+														}));
+													} catch (error) {
+														console.error(error);
+													}
+												}
+											}}
+										/>
+										<FieldDescription>
+											{m.common_stored_locally()}{" "}
+											<a
+												href={
+													{
+														OpenAI: "https://platform.openai.com/api-keys",
+														Anthropic:
+															"https://console.anthropic.com/settings/keys",
+														DeepSeek: "https://www.deepseek.com/",
+														Qwen: "https://bailian.console.aliyun.com/cn-beijing/#/home",
+														Zai: "https://open.bigmodel.cn/login",
+													}[currentProvider]
+												}
+												target="_blank"
+												rel="noreferrer"
+											>
+												{m.common_get_api_key({
+													provider: labels[currentProvider],
+												})}
+											</a>
+										</FieldDescription>
+									</Field>
+								</FieldGroup>
+							</FieldSet>
+						</FieldGroup>
+					</form>
+				</Card>
+			</div>
+		</ScrollArea>
+	);
+}
+
+const PROVIDERS = ["OpenAI", "Anthropic", "DeepSeek", "Qwen", "Zai"] as const;
+
+type ProviderId = (typeof PROVIDERS)[number];
+
+function providerLabels(): Record<ProviderId, string> {
+	return {
+		OpenAI: m.model_providers_OpenAI(),
+		Anthropic: m.model_providers_Anthropic(),
+		DeepSeek: m.model_providers_DeepSeek(),
+		Qwen: m.model_providers_Qwen(),
+		Zai: m.model_providers_ZAI(),
+	};
+}
+
+function LanguageSelector() {
 	const currentLocale = useLocale();
 
 	const changeLocale = async (locale: "en" | "zh-CN") => {

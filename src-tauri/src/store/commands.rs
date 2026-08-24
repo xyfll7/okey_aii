@@ -1,6 +1,25 @@
+use crate::ai::config::Provider;
 use crate::store::app_config::{AutoSpeakState, PromptTag};
 use crate::store::app_state::AppConfigState;
+use std::collections::HashMap;
 use tauri::{AppHandle, Manager};
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_api_keys(app: AppHandle) -> HashMap<Provider, String> {
+    let state = app.state::<AppConfigState>();
+    let keys = state.read().api_keys.clone();
+    keys
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn set_api_key(app: AppHandle, provider: Provider, api_key: String) -> Result<(), String> {
+    let state = app.state::<AppConfigState>();
+    state
+        .update(|config| {
+            config.api_keys.insert(provider, api_key);
+        })
+        .map_err(|e| e.to_string())
+}
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_pin_index_window(app: AppHandle) -> bool {

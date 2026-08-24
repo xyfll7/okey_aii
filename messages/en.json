@@ -31,6 +31,7 @@
   "model_providers_Qwen": "Qwen AI",
   "model_providers_DeepSeek": "DeepSeek",
   "model_providers_OpenAI": "OpenAI",
+  "model_providers_Anthropic": "Anthropic",
   "model_providers_ZAI": "Z AI",
   "auto_speak_off": "Speech off",
   "auto_speak_single": "Read single words only",
