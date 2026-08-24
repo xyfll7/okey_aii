@@ -62,11 +62,7 @@ function PinWindow({ className }: { className?: string }) {
 			}}
 		>
 			<Icons.pin
-				className={cn(
-					pinned
-						? "text-green-300 dark:text-green-200"
-						: "text-muted-foreground",
-				)}
+				className={cn(pinned && "text-green-300")}
 			/>
 		</Button>
 	);
