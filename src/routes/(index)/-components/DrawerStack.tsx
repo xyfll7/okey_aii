@@ -6,6 +6,7 @@ import {
 	DrawerHeader,
 	DrawerTitle,
 } from "#/components/ui/drawer";
+import { useLocale } from "#/lib/locale";
 import { cn } from "#/lib/utils";
 
 type SwipeDirection = "up" | "right" | "down" | "left";
@@ -73,6 +74,9 @@ export function DrawerStackProvider({
 
 	onClose?: (ids: string[]) => void;
 }) {
+	// 订阅 locale：语言切换时整个抽屉层重渲染，title/content 的 factory
+	// 函数重新求值，弹窗内的 m.*() 文本即时更新，同时保留弹窗内部 state。
+	useLocale();
 	const [layers, setLayers] = React.useState<DrawerLayerState[]>([]);
 
 	const onCloseRef = React.useRef(onClose);
