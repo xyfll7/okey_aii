@@ -3,7 +3,7 @@ use tauri::{
     AppHandle, Emitter, Manager, menu::{CheckMenuItem, MenuBuilder, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent}
 };
 
-use crate::{ai::commands::create_session, my_types::TRKey, my_windows};
+use crate::{ai::commands::create_session, my_windows};
 use crate::store::app_state::AppConfigState;
 use tauri_plugin_autostart::AutoLaunchManager;
 
@@ -75,8 +75,8 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<TrayIcon<tauri::Wry>
 /// Build the tray menu with current translations
 fn build_tray_menu(app_handle: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     // Create menu items with translations
-    let show_item = MenuItem::with_id(app_handle, "show", &TRKey::Show.t(), true, None::<&str>)?;
-    let test_item = MenuItem::with_id(app_handle, "test", &TRKey::Test.t(), true, None::<&str>)?;
+    let show_item = MenuItem::with_id(app_handle, "show", rust_i18n::t!("show"), true, None::<&str>)?;
+    let test_item = MenuItem::with_id(app_handle, "test", rust_i18n::t!("test"), true, None::<&str>)?;
 
     // Create autostart menu item
     let autostart_manager = app_handle.state::<AutoLaunchManager>();
@@ -84,13 +84,13 @@ fn build_tray_menu(app_handle: &AppHandle) -> tauri::Result<tauri::menu::Menu<ta
     let autostart_item = CheckMenuItem::with_id(
         app_handle,
         "autostart",
-        &TRKey::Autostart.t(),
+        rust_i18n::t!("autostart"),
         true,
         is_auto_start,
         None::<&str>,
     )?;
 
-    let quit_item = MenuItem::with_id(app_handle, "quit", &TRKey::Quit.t(), true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app_handle, "quit", rust_i18n::t!("quit"), true, None::<&str>)?;
 
     // Build menu
     let menu = MenuBuilder::new(app_handle)

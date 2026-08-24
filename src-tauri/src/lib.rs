@@ -4,7 +4,6 @@ mod my_commands;
 mod my_init;
 mod my_rdev;
 mod my_tray;
-mod my_types;
 mod my_windows;
 mod store;
 mod utils;
