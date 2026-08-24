@@ -8,9 +8,13 @@ tab:
 	@osascript \
 	    -e 'tell application "Terminal"' \
 	    -e 'activate' \
-	    -e 'tell application "System Events" to keystroke "t" using command down' \
-	    -e 'delay 0.5' \
-	    -e 'do script "cd $(ADMIN_DIR) && pnpm start " in (selected tab of front window)' \
+	    -e 'if (count of windows) = 0 then' \
+	    -e '  do script "cd $(ADMIN_DIR) && pnpm start"' \
+	    -e 'else' \
+	    -e '  tell application "System Events" to tell process "Terminal" to keystroke "t" using command down' \
+	    -e '  delay 0.8' \
+	    -e '  do script "cd $(ADMIN_DIR) && pnpm start" in front window' \
+	    -e 'end if' \
 	    -e 'end tell'
 
 icon:
