@@ -15,9 +15,9 @@ interface PushLayerInput {
 	title?: React.ReactNode;
 	description?: React.ReactNode;
 	content: React.ReactNode;
+
 	swipeDirection?: SwipeDirection;
 	showSwipeHandle?: boolean;
-
 	contentClassName?: string;
 }
 
@@ -201,7 +201,6 @@ function DrawerLayerNode({
 }) {
 	const [entered, setEntered] = React.useState(false);
 
-	// Popup 的 parentElement 即遮罩 Viewport，挂载同一时刻给它打上拖拽区属性
 	const maskDragRef = React.useCallback((node: HTMLDivElement | null) => {
 		node?.parentElement?.setAttribute("data-tauri-drag-region", "true");
 	}, []);
@@ -234,7 +233,7 @@ function DrawerLayerNode({
 				className={cn(layer.contentClassName ?? "h-full")}
 			>
 				{(layer.title || layer.description) && (
-					<DrawerHeader data-tauri-drag-region>
+					<DrawerHeader data-tauri-drag-region className="pb-2">
 						{layer.title && (
 							<DrawerTitle data-tauri-drag-region>{layer.title}</DrawerTitle>
 						)}
