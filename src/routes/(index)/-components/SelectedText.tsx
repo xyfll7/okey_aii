@@ -11,7 +11,6 @@ import { PromptTags } from "./PromptTags";
 export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
 	const { text, setText } = useSelected();
 	const { tags, add, update, remove } = usePromptTags();
-	console.log("ttttt:", tags);
 	if (!text) return "";
 	return (
 		<div className="w-full">
@@ -50,7 +49,7 @@ export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
 			</div>
 			{text?.trim() && (
 				<div className="flex flex-wrap">
-					{tags.map((tag) => (
+					{tags.slice(3).map((tag) => (
 						<Button
 							className="mr-1 mb-1"
 							size={"xs"}
