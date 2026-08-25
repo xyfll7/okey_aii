@@ -411,10 +411,12 @@ pub fn list_history_sessions(app: tauri::AppHandle) -> Result<Vec<SessionMeta>, 
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let guard = state.read().unwrap();
     let metas = db::list_session_meta(&guard.db)?;
-    Ok(metas
+    let mut history: Vec<SessionMeta> = metas
         .into_iter()
         .filter(|m| !guard.sessions.contains_key(&m.session_id))
-        .collect())
+        .collect();
+    history.sort_by_key(|m| std::cmp::Reverse(m.update_at));
+    Ok(history)
 }
 
 
