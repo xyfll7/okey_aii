@@ -71,23 +71,23 @@ function PromptTagsContent({
 					value={newContent}
 					onChange={(e) => setNewContent(e.target.value)}
 				/>
-				<div className="flex justify-end gap-2">
-					<Button
-						size={"xs"}
-						variant={"ghost"}
-						disabled={editingId === null}
-						onClick={handleEdit}
-					>
-						{m.prompts_edit()}
-					</Button>
-					<Button
-						size={"xs"}
-						variant={"default"}
-						onClick={editingId === null ? handleAdd : resetForm}
-					>
-						{editingId === null ? m.prompts_add() : m.common_cancel()}
-					</Button>
-				</div>
+				{editingId == null && (
+					<div className="flex justify-end gap-2">
+						<Button size={"xs"} variant={"outline"} onClick={handleAdd}>
+							{m.prompts_add()}
+						</Button>
+					</div>
+				)}
+				{editingId !== null && (
+					<div className="flex justify-end gap-2">
+						<Button size={"xs"} variant={"ghost"} onClick={handleEdit}>
+							{m.prompts_edit()}
+						</Button>
+						<Button size={"xs"} variant={"ghost"} onClick={resetForm}>
+							{m.common_cancel()}
+						</Button>
+					</div>
+				)}
 			</div>
 			<ScrollArea className={cn("h-full", "overflow-hidden")}>
 				<ItemGroup className="px-2">
