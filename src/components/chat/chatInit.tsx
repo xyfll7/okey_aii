@@ -13,12 +13,17 @@ export function useChatInit({ session_id }: { session_id: string }) {
 			);
 		}
 		get_history();
-		const unlisten = getCurrentWindow().listen<RigHistoryItem>(
+		const unlistenPromise = getCurrentWindow().listen<RigHistoryItem>(
 			`on_message_done${session_id}`,
-			() => get_history(),
+			() => {
+				get_history();
+				// 仅用于兜底首屏挂载时后台那一轮恰好结束的竞态，
+				// 首次触发后即解绑，避免后续每轮对话都全量拉取历史。
+				unlistenPromise.then((fn) => fn());
+			},
 		);
 		return () => {
-			unlisten.then((fn) => fn());
+			unlistenPromise.then((fn) => fn());
 		};
 	}, [setMessages, session_id]);
 	useEffect(() => {
