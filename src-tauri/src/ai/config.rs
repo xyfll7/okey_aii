@@ -16,29 +16,6 @@ pub struct ModelInfo {
 }
 
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentPreset {
-    pub id: String,
-    pub name: String,
-    pub preamble: String,
-}
-
-pub fn builtin_presets() -> Vec<AgentPreset> {
-    vec![
-        AgentPreset {
-            id: "translator".into(),
-            name: "Translator".into(),
-            preamble: "You are a professional translator. Only output the translation.".into(),
-        },
-        AgentPreset {
-            id: "assistant".into(),
-            name: "Assistant".into(),
-            preamble: "You are a helpful assistant.".into(),
-        },
-    ]
-}
-
-
 pub fn available_models(provider: Provider) -> &'static [ModelInfo] {
     match provider {
         Provider::OpenAI => &[ModelInfo {

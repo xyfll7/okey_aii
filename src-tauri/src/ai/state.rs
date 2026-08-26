@@ -1,5 +1,6 @@
 use crate::ai::agents::Agents;
-use crate::ai::config::{builtin_presets, AgentPreset, Provider};
+use crate::ai::config::Provider;
+use crate::store::app_config::{AgentPreset};
 use crate::ai::db::{self, Db, SessionMeta};
 use rig::client::AgentClientExt;
 use rig::message::{Message, UserContent};
@@ -120,22 +121,28 @@ fn build_agent(
     api_key: &str,
     preset: &AgentPreset,
 ) -> Result<Agents, String> {
+    let preamble = &preset.prompt_tags.iter()
+        .find(|t| t.id == Some(0))
+        .and_then(|t| t.content.as_ref())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_default();
     match provider {
         Provider::OpenAI => {
             
             
             let client = openai::CompletionsClient::new(api_key).map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preset.preamble).build();
+            let agent = client.agent(model).preamble(&preamble).build();
             Ok(Agents::OpenAI(agent))
         }
         Provider::Anthropic => {
             let client = anthropic::Client::new(api_key).map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preset.preamble).build();
+            let agent = client.agent(model).preamble(&preamble).build();
             Ok(Agents::Anthropic(agent))
         }
         Provider::DeepSeek => {
             let client = deepseek::Client::new(api_key).map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preset.preamble).build();
+            let agent = client.agent(model).preamble(&preamble).build();
             Ok(Agents::DeepSeek(agent))
         }
         Provider::Qwen => {
@@ -145,42 +152,43 @@ fn build_agent(
                 .base_url("https://dashscope.aliyuncs.com/compatible-mode/v1")
                 .build()
                 .map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preset.preamble).build();
+            let agent = client.agent(model).preamble(&preamble).build();
             Ok(Agents::Qwen(agent))
         }
         Provider::Zai => {
             let client = zai::Client::new(api_key).map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preset.preamble).build();
+            let agent = client.agent(model).preamble(&preamble).build();
             Ok(Agents::Zai(agent))
         }
     }
 }
-
 
 pub fn build_session_agent(
     api_keys: &HashMap<Provider, String>,
     provider: Provider,
     model: &str,
     preset_id: &str,
+    presets: &[AgentPreset],
 ) -> Result<Arc<Agents>, String> {
     let key = api_keys
         .get(&provider)
         .cloned()
         .ok_or_else(|| format!("{provider:?} missing api key"))?;
-    let preset = builtin_presets()
-        .into_iter()
+    let preset = presets
+        .iter()
         .find(|p| p.id == preset_id)
         .ok_or("preset not found")?;
-    Ok(Arc::new(build_agent(provider, model, &key, &preset)?))
+    Ok(Arc::new(build_agent(provider, model, &key, preset)?))
 }
 
 /// 从 DB 恢复一个不在内存中的会话（重建 agent + 加载历史），并缓存到内存。
 pub fn restore_session(
     guard: &mut ChatState,
     api_keys: &HashMap<Provider, String>,
+    presets: &[AgentPreset],
     meta: &SessionMeta,
 ) -> Result<Session, String> {
-    let agent = build_session_agent(api_keys, meta.provider, &meta.model, &meta.preset_id)?;
+    let agent = build_session_agent(api_keys, meta.provider, &meta.model, &meta.preset_id, presets)?;
     let history = db::get_history(&guard.db, &meta.session_id)?;
     let sess = Session {
         session_id: meta.session_id.clone(),

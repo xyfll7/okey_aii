@@ -24,7 +24,10 @@ pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
 #[tauri::command(rename_all = "snake_case")]
 pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String> {
     let app_config_state = app.state::<AppConfigState>();
-    let api_keys = app_config_state.read().api_keys.clone();
+    let (api_keys, agent_presets) = {
+        let config = app_config_state.read();
+        (config.api_keys.clone(), config.agent_presets.clone())
+    };
 
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
@@ -45,7 +48,7 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
             )
         });
 
-    let agent = build_session_agent(&api_keys, provider, &model, &preset_id)?;
+    let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
 
     let session = Session {
         session_id: session_id.clone(),
@@ -147,7 +150,10 @@ pub fn switch_provider(
     }
 
     let app_config_state = app.state::<AppConfigState>();
-    let api_keys = app_config_state.read().api_keys.clone();
+    let (api_keys, agent_presets) = {
+        let config = app_config_state.read();
+        (config.api_keys.clone(), config.agent_presets.clone())
+    };
 
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
@@ -161,7 +167,7 @@ pub fn switch_provider(
         .unwrap_or_else(|| "assistant".to_string());
 
     
-    let agent = build_session_agent(&api_keys, provider, &model, &preset_id)?;
+    let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
 
     let update_at = std::time::SystemTime::now();
     {
@@ -187,7 +193,10 @@ pub fn switch_model(
     model: String,
 ) -> Result<(), String> {
     let app_config_state = app.state::<AppConfigState>();
-    let api_keys = app_config_state.read().api_keys.clone();
+    let (api_keys, agent_presets) = {
+        let config = app_config_state.read();
+        (config.api_keys.clone(), config.agent_presets.clone())
+    };
 
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
@@ -205,7 +214,7 @@ pub fn switch_model(
         return Err(format!("{model} does not belong to the current session's provider"));
     }
 
-    let agent = build_session_agent(&api_keys, provider, &model, &preset_id)?;
+    let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
 
     let update_at = std::time::SystemTime::now();
     {
@@ -424,7 +433,10 @@ pub fn list_history_sessions(app: tauri::AppHandle) -> Result<Vec<SessionMeta>, 
 #[tauri::command(rename_all = "snake_case")]
 pub fn open_session(app: tauri::AppHandle, session_id: String) -> Result<Session, String> {
     let app_config_state = app.state::<AppConfigState>();
-    let api_keys = app_config_state.read().api_keys.clone();
+    let (api_keys, agent_presets) = {
+        let config = app_config_state.read();
+        (config.api_keys.clone(), config.agent_presets.clone())
+    };
 
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
@@ -433,7 +445,7 @@ pub fn open_session(app: tauri::AppHandle, session_id: String) -> Result<Session
     } else {
         let meta = db::get_session_meta(&guard.db, &session_id)?
             .ok_or("Session not found in database")?;
-        restore_session(&mut guard, &api_keys, &meta)?
+        restore_session(&mut guard, &api_keys, &agent_presets, &meta)?
     };
     let _ = app.emit("on_open_session_with_session_id", session_id);
     Ok(sess)

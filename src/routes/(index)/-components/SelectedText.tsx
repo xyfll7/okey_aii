@@ -72,34 +72,35 @@ export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
 	);
 }
 
-export function usePromptTags() {
+export function usePromptTags(preset_id: string = "assistant") {
 	const [tags, setTags] = useState<PromptTag[]>([]);
 
 	const refresh = useCallback(async () => {
-		setTags(await invoke<PromptTag[]>("get_prompt_tags"));
-	}, []);
+		setTags(await invoke<PromptTag[]>("get_prompt_tags", { preset_id }));
+	}, [preset_id]);
 
 	useEffect(() => {
 		refresh().catch((err) => console.error("Failed to load prompt tags:", err));
 	}, [refresh]);
 
 	const add = useCallback(async (label: string, content: string) => {
-		setTags(await invoke<PromptTag[]>("add_prompt_tag", { label, content }));
-	}, []);
+		setTags(await invoke<PromptTag[]>("add_prompt_tag", { preset_id, label, content }));
+	}, [preset_id]);
 
 	const update = useCallback(async (tag: PromptTag) => {
 		setTags(
 			await invoke<PromptTag[]>("update_prompt_tag", {
+				preset_id,
 				id: tag.id,
 				label: tag.label ?? "",
 				content: tag.content ?? "",
 			}),
 		);
-	}, []);
+	}, [preset_id]);
 
 	const remove = useCallback(async (id: number) => {
-		setTags(await invoke<PromptTag[]>("delete_prompt_tag", { id }));
-	}, []);
+		setTags(await invoke<PromptTag[]>("delete_prompt_tag", { preset_id, id }));
+	}, [preset_id]);
 
 	return { tags, refresh, add, update, remove };
 }

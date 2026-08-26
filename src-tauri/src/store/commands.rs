@@ -58,53 +58,122 @@ pub fn set_auto_speak(app: AppHandle, auto_speak: AutoSpeakState) -> Result<Auto
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn get_prompt_tags(app: AppHandle) -> Vec<PromptTag> {
+pub fn get_prompt_tags(app: AppHandle, preset_id: String) -> Result<Vec<PromptTag>, String> {
     let state = app.state::<AppConfigState>();
-    let tags = state.read().prompt_tags.clone();
-    tags
+    let config = state.read();
+    let preset = config
+        .agent_presets
+        .iter()
+        .find(|p| p.id == preset_id)
+        .ok_or_else(|| format!("Agent preset {preset_id} not found"))?;
+    Ok(preset.prompt_tags.clone())
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn add_prompt_tag(app: AppHandle, label: String, content: String) -> Result<Vec<PromptTag>, String> {
+pub fn add_prompt_tag(
+    app: AppHandle,
+    preset_id: String,
+    label: String,
+    content: String,
+) -> Result<Vec<PromptTag>, String> {
     let state = app.state::<AppConfigState>();
-    let mut new_tags = state.read().prompt_tags.clone();
-    let next_id = new_tags.iter().filter_map(|t| t.id).max().map_or(0, |m| m + 1);
-    new_tags.push(PromptTag {
-        raw: None,
-        label: Some(label),
-        content: Some(content),
-        id: Some(next_id),
-    });
+    if !state
+        .read()
+        .agent_presets
+        .iter()
+        .any(|p| p.id == preset_id)
+    {
+        return Err(format!("Agent preset {preset_id} not found"));
+    }
     state
-        .update(|config| config.prompt_tags = new_tags.clone())
+        .update(|config| {
+            let preset = config
+                .agent_presets
+                .iter_mut()
+                .find(|p| p.id == preset_id)
+                .expect("preset existence checked above");
+            let next_id = preset
+                .prompt_tags
+                .iter()
+                .filter_map(|t| t.id)
+                .max()
+                .map_or(0, |m| m + 1);
+            preset.prompt_tags.push(PromptTag {
+                label: Some(label),
+                content: Some(content),
+                id: Some(next_id),
+            });
+        })
         .map_err(|e| e.to_string())?;
-    Ok(new_tags)
+    get_prompt_tags(app, preset_id)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn update_prompt_tag(app: AppHandle, id: u32, label: String, content: String) -> Result<Vec<PromptTag>, String> {
+pub fn update_prompt_tag(
+    app: AppHandle,
+    preset_id: String,
+    id: u32,
+    label: String,
+    content: String,
+) -> Result<Vec<PromptTag>, String> {
     let state = app.state::<AppConfigState>();
-    let mut new_tags = state.read().prompt_tags.clone();
-    let Some(tag) = new_tags.iter_mut().find(|t| t.id == Some(id)) else {
+    let preset_exists = state
+        .read()
+        .agent_presets
+        .iter()
+        .any(|p| p.id == preset_id);
+    if !preset_exists {
+        return Err(format!("Agent preset {preset_id} not found"));
+    }
+    let mut found = true;
+    state
+        .update(|config| {
+            let preset = config
+                .agent_presets
+                .iter_mut()
+                .find(|p| p.id == preset_id)
+                .expect("preset existence checked above");
+            match preset.prompt_tags.iter_mut().find(|t| t.id == Some(id)) {
+                Some(tag) => {
+                    tag.label = Some(label);
+                    tag.content = Some(content);
+                }
+                None => found = false,
+            }
+        })
+        .map_err(|e| e.to_string())?;
+    if !found {
         return Err(format!("Prompt tag {id} not found"));
-    };
-    tag.label = Some(label);
-    tag.content = Some(content);
-    state
-        .update(|config| config.prompt_tags = new_tags.clone())
-        .map_err(|e| e.to_string())?;
-    Ok(new_tags)
+    }
+    get_prompt_tags(app, preset_id)
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn delete_prompt_tag(app: AppHandle, id: u32) -> Result<Vec<PromptTag>, String> {
+pub fn delete_prompt_tag(
+    app: AppHandle,
+    preset_id: String,
+    id: u32,
+) -> Result<Vec<PromptTag>, String> {
     let state = app.state::<AppConfigState>();
-    let mut new_tags = state.read().prompt_tags.clone();
-    new_tags.retain(|t| t.id != Some(id));
+    if !state
+        .read()
+        .agent_presets
+        .iter()
+        .any(|p| p.id == preset_id)
+    {
+        return Err(format!("Agent preset {preset_id} not found"));
+    }
     state
-        .update(|config| config.prompt_tags = new_tags.clone())
+        .update(|config| {
+            let preset = config
+                .agent_presets
+                .iter_mut()
+                .find(|p| p.id == preset_id)
+                .expect("preset existence checked above");
+            preset.prompt_tags.retain(|t| t.id != Some(id));
+        })
         .map_err(|e| e.to_string())?;
-    Ok(new_tags)
+    get_prompt_tags(app, preset_id)
 }
 
 /// 可选的翻译语言列表，返回 `(locale, 显示名)` 二元组。

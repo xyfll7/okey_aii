@@ -9,6 +9,14 @@ pub struct Shortcut {
     pub hot_key: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentPreset {
+    pub id: String,
+    pub name: String,
+    pub prompt_tags: Vec<PromptTag>,
+}
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum AutoSpeakState {
@@ -66,7 +74,6 @@ impl Language {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PromptTag {
-    pub raw: Option<String>,
     pub label: Option<String>,
     pub content: Option<String>,
     pub id: Option<u32>,
@@ -84,25 +91,10 @@ pub struct AppConfig {
     pub local_language: Language,
     pub target_language: Language,
     pub self_explaining_model: bool,
-    pub prompt_tags: Vec<PromptTag>,
+    #[serde(default = "default_agent_presets_serde")]
+    pub agent_presets: Vec<AgentPreset>,
 }
 
-/// Build the default prompt tags localized for the given locale.
-/// Labels and contents are loaded from the i18n locale files so a fresh
-/// install (no `store.json`) starts in the user's system language.
-pub fn default_prompt_tags_for_locale(locale: &str) -> Vec<PromptTag> {
-    #[rustfmt::skip]
-    let tags = vec![
-        PromptTag { raw: None, label: Some(rust_i18n::t!("prompt_tag_system_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_system_content", locale = locale).to_string()), id: Some(0) },
-        PromptTag { raw: None, label: Some(rust_i18n::t!("prompt_tag_summary_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_summary_content", locale = locale).to_string()), id: Some(1) },
-        PromptTag { raw: None, label: Some(rust_i18n::t!("prompt_tag_right_ctrl_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_right_ctrl_content", locale = locale).to_string()), id: Some(2) },
-        PromptTag { raw: None, label: Some(rust_i18n::t!("prompt_tag_self_explanation_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_self_explanation_content", locale = locale).to_string()), id: Some(3) },
-        PromptTag { raw: None, label: Some(rust_i18n::t!("prompt_tag_word_details_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_word_details_content", locale = locale).to_string()), id: Some(4) },
-        PromptTag { raw: None, label: Some(rust_i18n::t!("prompt_tag_meaning_context_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_meaning_context_content", locale = locale).to_string()), id: Some(5) },
-        PromptTag { raw: None, label: Some(rust_i18n::t!("prompt_tag_detailed_explanation_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_detailed_explanation_content", locale = locale).to_string()), id: Some(6) },
-    ];
-    tags
-}
 
 /// 从 .env 读取默认的 API Keys（首次运行或旧版 store.json 缺少该字段时使用）。
 /// 缺失或仍为占位符的 key 会被跳过，避免把无效值写入配置。
@@ -125,6 +117,41 @@ fn default_api_keys() -> HashMap<Provider, String> {
     keys
 }
 
+fn default_agent_presets_serde() -> Vec<AgentPreset> {
+    default_agent_presets(&crate::utils::i18n::get_default_locale())
+}
+
+fn default_agent_presets(locale: &str) -> Vec<AgentPreset> {
+    vec![
+        AgentPreset {
+            id: "translator".into(),
+            name: "Translator".into(),
+            prompt_tags: vec![
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_system_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_system_content", locale = locale).to_string()), id: Some(0) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_summary_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_summary_content", locale = locale).to_string()), id: Some(1) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_right_ctrl_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_right_ctrl_content", locale = locale).to_string()), id: Some(2) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_self_explanation_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_self_explanation_content", locale = locale).to_string()), id: Some(3) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_word_details_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_word_details_content", locale = locale).to_string()), id: Some(4) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_meaning_context_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_meaning_context_content", locale = locale).to_string()), id: Some(5) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_detailed_explanation_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_detailed_explanation_content", locale = locale).to_string()), id: Some(6) },
+            ],
+        },
+        AgentPreset {
+            id: "assistant".into(),
+            name: "Assistant".into(),
+            prompt_tags: vec![
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_system_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_system_content", locale = locale).to_string()), id: Some(0) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_summary_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_summary_content", locale = locale).to_string()), id: Some(1) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_right_ctrl_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_right_ctrl_content", locale = locale).to_string()), id: Some(2) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_self_explanation_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_self_explanation_content", locale = locale).to_string()), id: Some(3) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_word_details_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_word_details_content", locale = locale).to_string()), id: Some(4) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_meaning_context_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_meaning_context_content", locale = locale).to_string()), id: Some(5) },
+                PromptTag { label: Some(rust_i18n::t!("prompt_tag_detailed_explanation_label", locale = locale).to_string()), content: Some(rust_i18n::t!("prompt_tag_detailed_explanation_content", locale = locale).to_string()), id: Some(6) },
+            ],
+        },
+    ]
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         AppConfig {
@@ -137,7 +164,7 @@ impl Default for AppConfig {
             local_language: if cfg!(debug_assertions) { Language::ZhCn } else { Language::Auto.effective_language() },
             target_language: Language::Auto.effective_language(),
             self_explaining_model: false,
-            prompt_tags: default_prompt_tags_for_locale(&crate::utils::i18n::get_default_locale()),
+            agent_presets: default_agent_presets(&crate::utils::i18n::get_default_locale()),
         }
     }
 }
