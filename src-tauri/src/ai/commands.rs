@@ -14,6 +14,7 @@ use super::config::{available_models, default_model, ModelInfo, Provider};
 use super::db::{self, SessionMeta};
 use super::state::ChatState;
 use crate::store::app_state::AppConfigState;
+use crate::utils::assemble_prompt_item::assemble_prompt_item;
 use tauri::{Emitter, Manager};
 
 #[tauri::command(rename_all = "snake_case")]
@@ -232,6 +233,7 @@ pub async fn send_message(
 ) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     println!("prompt::::::::{:#?}", prompt);
+    let prompt = assemble_prompt_item(&app, prompt);
     let (agent, history) = {
         let guard = state.read().unwrap();
         let sess = guard
