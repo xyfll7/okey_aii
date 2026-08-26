@@ -176,15 +176,6 @@ function providerLabels(): Record<ProviderId, string> {
 function LanguageSelector() {
 	const currentLocale = useLocale();
 
-	const changeLocale = async (locale: "en" | "zh-CN") => {
-		try {
-			await invoke("set_current_locale", { locale });
-			setLocale(locale);
-		} catch (error) {
-			console.error(error);
-		}
-	};
-
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
@@ -207,7 +198,11 @@ function LanguageSelector() {
 							key={locale}
 							checked={currentLocale === locale}
 							onCheckedChange={(checked) => {
-								if (checked) void changeLocale(locale);
+								if (checked) {
+									invoke("set_current_locale", { locale })
+										.then(() => setLocale(locale))
+										.catch((error) => console.error(error));
+								}
 							}}
 						>
 							<span className="text-nowrap">{displayLabel}</span>

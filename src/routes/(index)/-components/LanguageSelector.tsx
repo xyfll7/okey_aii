@@ -58,35 +58,6 @@ export default function LanguageSelector() {
 		})();
 	}, [locale]);
 
-	const setLocalLanguageAndPersist = async (value: string) => {
-		try {
-			await invoke("set_local_language", { language: value });
-			setLocalLanguage(value);
-		} catch (error) {
-			console.error(error);
-		}
-	};
-
-	const setTargetLanguageAndPersist = async (value: string) => {
-		try {
-			await invoke("set_target_language", { language: value });
-			setTargetLanguage(value);
-		} catch (error) {
-			console.error(error);
-		}
-	};
-
-	const toggleSelfExplaining = async () => {
-		try {
-			const enabled = await invoke<boolean>("set_self_explaining_model", {
-				enabled: !selfExplaining,
-			});
-			setSelfExplaining(enabled);
-		} catch (error) {
-			console.error(error);
-		}
-	};
-
 	return (
 		<div className="px-2 pb-2 flex  flex-wrap">
 			<Tooltip>
@@ -125,7 +96,11 @@ export default function LanguageSelector() {
 					{options.map((item) => (
 						<DropdownMenuItem
 							key={item.value}
-							onClick={() => void setLocalLanguageAndPersist(item.value)}
+							onClick={() => {
+								invoke("set_local_language", { language: item.value })
+									.then(() => setLocalLanguage(item.value))
+									.catch((error) => console.error(error));
+							}}
 						>
 							{item.label}
 						</DropdownMenuItem>
@@ -148,7 +123,11 @@ export default function LanguageSelector() {
 					{options.map((item) => (
 						<DropdownMenuItem
 							key={item.value}
-							onClick={() => void setTargetLanguageAndPersist(item.value)}
+							onClick={() => {
+								invoke("set_target_language", { language: item.value })
+									.then(() => setTargetLanguage(item.value))
+									.catch((error) => console.error(error));
+							}}
 						>
 							{item.label}
 						</DropdownMenuItem>
@@ -159,7 +138,13 @@ export default function LanguageSelector() {
 				size="xs"
 				variant="ghost"
 				className={cn(selfExplaining ? "" : "opacity-50", "hover:text-inherit")}
-				onClick={() => void toggleSelfExplaining()}
+				onClick={() => {
+					invoke<boolean>("set_self_explaining_model", {
+						enabled: !selfExplaining,
+					})
+						.then((enabled) => setSelfExplaining(enabled))
+						.catch((error) => console.error(error));
+				}}
 			>
 				{selfExplaining
 					? m.translate_language_selector_self_explaining_on()

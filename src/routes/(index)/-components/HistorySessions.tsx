@@ -18,15 +18,6 @@ function HistorySessionsContent({ className }: { className?: string }) {
 			.catch(console.error);
 	}, []);
 
-	const remove = async (session_id: string) => {
-		try {
-			await invoke("delete_session", { session_id });
-			setItems((prev) => prev.filter((s) => s.session_id !== session_id));
-		} catch (err) {
-			console.error(err);
-		}
-	};
-
 	return (
 		<ScrollArea className={cn("h-full", "overflow-hidden", className)}>
 			<div className="max-w-screen flex-coh items-start px-2 pr-4">
@@ -65,7 +56,16 @@ function HistorySessionsContent({ className }: { className?: string }) {
 										onClick={(e) => {
 											e.stopPropagation();
 											e.preventDefault();
-											remove(s.session_id);
+											invoke("delete_session", { session_id: s.session_id })
+												.then(() =>
+													setItems((prev) =>
+														prev.filter(
+															(session) =>
+																session.session_id !== s.session_id,
+														),
+													),
+												)
+												.catch((err) => console.error(err));
 										}}
 									>
 										<Icons.delete />
