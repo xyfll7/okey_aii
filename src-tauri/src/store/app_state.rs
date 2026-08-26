@@ -92,7 +92,7 @@ impl AppConfigState {
         self.inner.read().unwrap()
     }
 
-    pub fn update<F>(&self, f: F) -> Result<(), Box<dyn std::error::Error>>
+    pub fn update_and_save<F>(&self, f: F) -> Result<(), Box<dyn std::error::Error>>
     where
         F: FnOnce(&mut AppConfig),
     {

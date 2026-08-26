@@ -15,7 +15,7 @@ pub fn get_api_keys(app: AppHandle) -> HashMap<Provider, String> {
 pub fn set_api_key(app: AppHandle, provider: Provider, api_key: String) -> Result<(), String> {
     let state = app.state::<AppConfigState>();
     state
-        .update(|config| {
+        .update_and_save(|config| {
             config.api_keys.insert(provider, api_key);
         })
         .map_err(|e| e.to_string())
@@ -32,7 +32,7 @@ pub fn get_pin_index_window(app: AppHandle) -> bool {
 pub fn set_pin_index_window(app: AppHandle, pinned: bool) -> Result<bool, String> {
     let state = app.state::<AppConfigState>();
     state
-        .update(|config| config.is_pin_index_window = pinned)
+        .update_and_save(|config| config.is_pin_index_window = pinned)
         .map_err(|e| e.to_string())?;
 
     if let Some(window) = app.get_webview_window("index") {
@@ -52,7 +52,7 @@ pub fn get_auto_speak(app: AppHandle) -> AutoSpeakState {
 pub fn set_auto_speak(app: AppHandle, auto_speak: AutoSpeakState) -> Result<AutoSpeakState, String> {
     let state = app.state::<AppConfigState>();
     state
-        .update(|config| config.auto_speak = auto_speak)
+        .update_and_save(|config| config.auto_speak = auto_speak)
         .map_err(|e| e.to_string())?;
     Ok(auto_speak)
 }
@@ -86,7 +86,7 @@ pub fn add_prompt_tag(
         return Err(format!("Agent preset {preset_id} not found"));
     }
     state
-        .update(|config| {
+        .update_and_save(|config| {
             let preset = config
                 .agent_presets
                 .iter_mut()
@@ -127,7 +127,7 @@ pub fn update_prompt_tag(
     }
     let mut found = true;
     state
-        .update(|config| {
+        .update_and_save(|config| {
             let preset = config
                 .agent_presets
                 .iter_mut()
@@ -164,7 +164,7 @@ pub fn delete_prompt_tag(
         return Err(format!("Agent preset {preset_id} not found"));
     }
     state
-        .update(|config| {
+        .update_and_save(|config| {
             let preset = config
                 .agent_presets
                 .iter_mut()
@@ -196,7 +196,7 @@ pub fn get_local_language(app: AppHandle) -> Language {
 pub fn set_local_language(app: AppHandle, language: Language) -> Result<Language, String> {
     let state = app.state::<AppConfigState>();
     state
-        .update(|config| config.local_language = language)
+        .update_and_save(|config| config.local_language = language)
         .map_err(|e| e.to_string())?;
     Ok(language)
 }
@@ -210,7 +210,7 @@ pub fn get_target_language(app: AppHandle) -> Language {
 pub fn set_target_language(app: AppHandle, language: Language) -> Result<Language, String> {
     let state = app.state::<AppConfigState>();
     state
-        .update(|config| config.target_language = language)
+        .update_and_save(|config| config.target_language = language)
         .map_err(|e| e.to_string())?;
     Ok(language)
 }
@@ -224,7 +224,7 @@ pub fn get_self_explaining_model(app: AppHandle) -> bool {
 pub fn set_self_explaining_model(app: AppHandle, enabled: bool) -> Result<bool, String> {
     let state = app.state::<AppConfigState>();
     state
-        .update(|config| config.self_explaining_model = enabled)
+        .update_and_save(|config| config.self_explaining_model = enabled)
         .map_err(|e| e.to_string())?;
     Ok(enabled)
 }

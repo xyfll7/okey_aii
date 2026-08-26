@@ -143,7 +143,7 @@ pub fn switch_provider(
     if let Some(key) = api_key {
         let app_config_state = app.state::<AppConfigState>();
         app_config_state
-            .update(|config| {
+            .update_and_save(|config| {
                 config.api_keys.insert(provider, key);
             })
             .map_err(|e| e.to_string())?;

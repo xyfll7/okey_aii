@@ -15,7 +15,7 @@ pub fn set_current_locale(app_handle: tauri::AppHandle, locale: String, app_conf
     let language = Language::from_locale(&locale);
 
     // Persist to app config
-    let _ = app_config_state.update(|config| {
+    let _ = app_config_state.update_and_save(|config| {
         config.language = language;
     });
 
