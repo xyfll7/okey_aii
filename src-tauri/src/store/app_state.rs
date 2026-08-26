@@ -71,6 +71,7 @@ impl AppStateManager {
 
     fn save<R: Runtime>(&self, app: &AppHandle<R>, config: &AppConfig) -> Result<(), Box<dyn std::error::Error>> {
         let store = app.store("store.json")?;
+        println!("_______{:#?}",config);
         store.set(&self.store_key, json!(config));
         store.save().map_err(|e| e.into())
     }
