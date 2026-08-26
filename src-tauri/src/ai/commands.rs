@@ -5,8 +5,8 @@ use rig::message::Message;
 use tauri::ipc::Channel;
 
 use crate::ai::state::{
-    add_message_to_history, build_session_agent, ensure_session_title, restore_session, HistoryItem,
-    Session,
+    add_message_to_history, build_session_agent, ensure_session_title, restore_session,
+    HistoryItem, Session,
 };
 
 use super::agents::ChatEvent;
@@ -71,7 +71,6 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
     Ok((session_id, session))
 }
 
-
 /// 新建会话（主窗口"新建会话"按钮）：
 /// 若所有已加载会话的历史均为空，则不做任何操作；
 /// 否则清理（中止生成、从内存移除并归档 DB）所有非空会话，
@@ -99,24 +98,21 @@ pub fn new_session(app: tauri::AppHandle) -> Result<Option<String>, String> {
     Ok(Some(session_id))
 }
 
-
 #[tauri::command(rename_all = "snake_case")]
 pub fn close_session(app: tauri::AppHandle, session_id: String) -> Result<bool, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
-    
-    
+
     if let Some(sess) = guard.sessions.get(&session_id) {
         if let Some(handle) = &sess.cancel_handle {
             handle.abort();
         }
     }
     let removed = guard.sessions.remove(&session_id).is_some();
-    
+
     db::set_session_archived(&guard.db, &session_id)?;
     Ok(removed)
 }
-
 
 /// 永久删除一个会话：从内存移除（若已载入），并从 DB 级联删除会话及其消息。
 #[tauri::command(rename_all = "snake_case")]
@@ -131,7 +127,6 @@ pub fn delete_session(app: tauri::AppHandle, session_id: String) -> Result<(), S
     guard.sessions.remove(&session_id);
     db::delete_session(&guard.db, &session_id)
 }
-
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn switch_provider(
@@ -166,7 +161,6 @@ pub fn switch_provider(
         .map(|s| s.preset_id.clone())
         .unwrap_or_else(|| "assistant".to_string());
 
-    
     let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
 
     let update_at = std::time::SystemTime::now();
@@ -184,7 +178,6 @@ pub fn switch_provider(
 
     Ok(())
 }
-
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn switch_model(
@@ -211,7 +204,9 @@ pub fn switch_model(
 
     let valid = available_models(provider).iter().any(|m| m.id == model);
     if !valid {
-        return Err(format!("{model} does not belong to the current session's provider"));
+        return Err(format!(
+            "{model} does not belong to the current session's provider"
+        ));
     }
 
     let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
@@ -236,7 +231,7 @@ pub async fn send_message(
     session_id: String,
 ) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
-    
+    println!("prompt::::::::{:#?}", prompt);
     let (agent, history) = {
         let guard = state.read().unwrap();
         let sess = guard
@@ -246,10 +241,8 @@ pub async fn send_message(
         (sess.agent.clone(), sess.history.clone())
     };
 
-    
     let prompt_msg: Message = prompt.message.clone();
 
-    
     let (abort_handle, abort_registration) = futures::future::AbortHandle::new_pair();
     {
         let mut guard = state.write().unwrap();
@@ -285,12 +278,11 @@ pub async fn send_message(
         sess.update_at = std::time::SystemTime::now();
     }
 
-    
     let prompt: Message = prompt_msg;
 
     let history: Vec<Message> = history.iter().map(|h| h.message.clone()).collect();
     let stream = agent.stream_chat(prompt, history).await;
-    
+
     let mut stream = futures::stream::Abortable::new(stream, abort_registration);
 
     let mut full_text = String::new();
@@ -301,9 +293,8 @@ pub async fn send_message(
                     continue;
                 }
                 full_text.push_str(&text);
-                
+
                 if on_event.send(ChatEvent::TextDelta(text)).is_err() {
-                    
                     break;
                 }
             }
@@ -326,12 +317,10 @@ pub async fn send_message(
                 }
             }
             Ok(ChatEvent::Done) => {
-                
                 let _ = on_event.send(ChatEvent::Done);
                 break;
             }
             Err(e) => {
-                
                 let mut guard = state.write().unwrap();
                 if let Some(sess) = guard.sessions.get_mut(&session_id) {
                     sess.is_loading = false;
@@ -347,11 +336,9 @@ pub async fn send_message(
         let _ = on_event.send(ChatEvent::Done);
     }
 
-    
     {
         let mut guard = state.write().unwrap();
         if let Some(sess) = guard.sessions.get_mut(&session_id) {
-            
             if sess.history.is_empty() {
                 sess.title = "".to_string();
             }
@@ -360,13 +347,12 @@ pub async fn send_message(
             sess.update_at = std::time::SystemTime::now();
         }
     }
-    
-    
+
     if !full_text.is_empty() {
         let item = HistoryItem {
             id: uuid::Uuid::new_v4().to_string(),
             created_at: std::time::SystemTime::now(),
-            message: Message::assistant(full_text.as_str()), 
+            message: Message::assistant(full_text.as_str()),
         };
         {
             let state = app.state::<Arc<RwLock<ChatState>>>();
@@ -380,7 +366,6 @@ pub async fn send_message(
     Ok(())
 }
 
-
 #[tauri::command(rename_all = "snake_case")]
 pub fn stop_generation(app: tauri::AppHandle, session_id: String) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
@@ -392,8 +377,6 @@ pub fn stop_generation(app: tauri::AppHandle, session_id: String) -> Result<(), 
             Ok(())
         }
         None => {
-            
-            
             if sess.is_loading {
                 Err("Generation task not yet initialized, please try again later".into())
             } else {
@@ -403,7 +386,6 @@ pub fn stop_generation(app: tauri::AppHandle, session_id: String) -> Result<(), 
     }
 }
 
-
 #[tauri::command(rename_all = "snake_case")]
 pub fn list_sessions(app: tauri::AppHandle) -> Vec<Session> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
@@ -412,7 +394,6 @@ pub fn list_sessions(app: tauri::AppHandle) -> Vec<Session> {
     list.sort_by_key(|a| a.update_at);
     list
 }
-
 
 /// 列出 DB 中所有历史会话的元数据（轻量，不载入内存、不重建 agent）。
 #[tauri::command(rename_all = "snake_case")]
@@ -428,7 +409,6 @@ pub fn list_history_sessions(app: tauri::AppHandle) -> Result<Vec<SessionMeta>, 
     Ok(history)
 }
 
-
 /// 用户手动打开一个历史会话：从 DB 恢复并载入内存。已在内存中则直接返回。
 #[tauri::command(rename_all = "snake_case")]
 pub fn open_session(app: tauri::AppHandle, session_id: String) -> Result<Session, String> {
@@ -443,14 +423,13 @@ pub fn open_session(app: tauri::AppHandle, session_id: String) -> Result<Session
     let sess = if let Some(sess) = guard.sessions.get(&session_id) {
         sess.clone()
     } else {
-        let meta = db::get_session_meta(&guard.db, &session_id)?
-            .ok_or("Session not found in database")?;
+        let meta =
+            db::get_session_meta(&guard.db, &session_id)?.ok_or("Session not found in database")?;
         restore_session(&mut guard, &api_keys, &agent_presets, &meta)?
     };
     let _ = app.emit("on_open_session_with_session_id", session_id);
     Ok(sess)
 }
-
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_history(app: tauri::AppHandle, session_id: String) -> Result<Vec<HistoryItem>, String> {
@@ -463,7 +442,6 @@ pub fn get_history(app: tauri::AppHandle, session_id: String) -> Result<Vec<Hist
     drop(guard);
     db::get_history(&db, &session_id)
 }
-
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn remove_history_item(
