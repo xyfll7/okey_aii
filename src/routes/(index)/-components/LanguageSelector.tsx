@@ -27,9 +27,11 @@ export default function LanguageSelector() {
 	const [selfExplaining, setSelfExplaining] = useState(false);
 
 	const localLanguageLabel =
-		options.find((item) => item.value === localLanguage)?.label || localLanguage;
+		options.find((item) => item.value === localLanguage)?.label ||
+		localLanguage;
 	const targetLanguageLabel =
-		options.find((item) => item.value === targetLanguage)?.label || targetLanguage;
+		options.find((item) => item.value === targetLanguage)?.label ||
+		targetLanguage;
 
 	useEffect(() => {
 		// locale 变化时重新拉取：语言选项显示名由后端按当前 UI locale 生成
@@ -38,8 +40,12 @@ export default function LanguageSelector() {
 			try {
 				const local = await invoke<string>("get_local_language");
 				const target = await invoke<string>("get_target_language");
-				const selfExplainingModel = await invoke<boolean>("get_self_explaining_model");
-				const remoteOptions = await invoke<[string, string][]>("get_language_options");
+				const selfExplainingModel = await invoke<boolean>(
+					"get_self_explaining_model",
+				);
+				const remoteOptions = await invoke<[string, string][]>(
+					"get_language_options",
+				);
 				if (Array.isArray(remoteOptions)) {
 					setOptions(remoteOptions.map(([value, label]) => ({ value, label })));
 				}
@@ -71,9 +77,10 @@ export default function LanguageSelector() {
 	};
 
 	const toggleSelfExplaining = async () => {
-		const enabled = !selfExplaining;
 		try {
-			await invoke("set_self_explaining_model", { enabled });
+			const enabled = await invoke<boolean>("set_self_explaining_model", {
+				enabled: !selfExplaining,
+			});
 			setSelfExplaining(enabled);
 		} catch (error) {
 			console.error(error);
@@ -92,10 +99,15 @@ export default function LanguageSelector() {
 				/>
 				<TooltipContent className={"flex flex-col items-start"}>
 					<div>
-						{m.translate_language_selector_tooltip_line1({ localLanguage: localLanguageLabel })}
+						{m.translate_language_selector_tooltip_line1({
+							localLanguage: localLanguageLabel,
+						})}
 					</div>
 					<div>
-						{m.translate_language_selector_tooltip_line2({ localLanguage: localLanguageLabel, targetLanguage: targetLanguageLabel })}
+						{m.translate_language_selector_tooltip_line2({
+							localLanguage: localLanguageLabel,
+							targetLanguage: targetLanguageLabel,
+						})}
 					</div>
 				</TooltipContent>
 			</Tooltip>
@@ -146,13 +158,12 @@ export default function LanguageSelector() {
 			<Button
 				size="xs"
 				variant="ghost"
-				className={cn(
-					selfExplaining ? "" : "opacity-50",
-					"hover:text-inherit",
-				)}
+				className={cn(selfExplaining ? "" : "opacity-50", "hover:text-inherit")}
 				onClick={() => void toggleSelfExplaining()}
 			>
-				{selfExplaining ? m.translate_language_selector_self_explaining_on() : m.translate_language_selector_self_explaining_off()}
+				{selfExplaining
+					? m.translate_language_selector_self_explaining_on()
+					: m.translate_language_selector_self_explaining_off()}
 			</Button>
 		</div>
 	);
