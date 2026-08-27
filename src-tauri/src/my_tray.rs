@@ -44,9 +44,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<TrayIcon<tauri::Wry>
 
     app_handle.on_menu_event(move |app, event| match event.id().as_ref() {
         "show" => {
-            let app_state = app.state::<AppConfigState>();
-            let config = app_state.read();
-            log::debug!("config: {:#?}", *config);
+             my_windows::window_index::window_index_show(&app, Some(move || {}));
         }
         "test" => {
             if let Some(window) = app.get_webview_window("index") {
