@@ -4,7 +4,6 @@ use tauri::{
 };
 
 use crate::{ai::commands::create_session, my_windows};
-use crate::store::app_state::AppConfigState;
 use tauri_plugin_autostart::AutoLaunchManager;
 
 /// State to store the tray icon for later retrieval
