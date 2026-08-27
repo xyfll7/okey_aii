@@ -47,8 +47,6 @@ pub fn init(app: &mut tauri::App) {
 
 fn init_state(app: &mut tauri::App) {
     let state_manager = AppStateManager::new("app_config");
-    #[cfg(debug_assertions)]
-    state_manager.clear_store_dev(app.handle());
     let app_config_state = state_manager
         .init_app_config_state(app.handle())
         .expect("failed to init app config state");

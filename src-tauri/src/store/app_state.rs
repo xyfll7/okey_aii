@@ -2,8 +2,7 @@ use crate::store::app_config::AppConfig;
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::RwLock;
-#[allow(unused_imports)]
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 use tauri_plugin_store::StoreExt;
 
 #[derive(Clone)]
@@ -16,21 +15,6 @@ impl AppStateManager {
         Self { store_key: store_key.into() }
     }
 
-    #[cfg(debug_assertions)]
-    pub fn clear_store_dev(&self, app: &AppHandle) {
-        if let Ok(app_data_dir) = app.path().app_data_dir() {
-            let store_path = app_data_dir.join("store.json");
-            if store_path.exists() {
-                match std::fs::remove_file(&store_path) {
-                    Ok(_) => log::info!("🧹 [dev] cleared store.json at {}", store_path.display()),
-                    Err(e) => log::error!("⚠️ [dev] failed to remove store.json at {}: {e}", store_path.display()),
-                }
-            } else {
-                log::info!("🧹 [dev] store.json not found at {}, nothing to clear", store_path.display());
-            }
-        }
-    }
-
     pub fn init_app_config_state(&self, app: &AppHandle) -> Result<AppConfigState, Box<dyn std::error::Error>> {
         let config = self.load(app)?;
         let state = Arc::new(RwLock::new(config));
@@ -39,19 +23,26 @@ impl AppStateManager {
     }
 
     #[cfg(debug_assertions)]
-    fn print_store_path(&self, app: &AppHandle) {
-        let app_data_dir = app.path().app_data_dir().expect("Failed to get app data directory");
-        let store_path = app_data_dir.join("store.json");
-        log::debug!("📁 store.json path: {}", store_path.to_string_lossy());
+    fn load(&self, app: &AppHandle) -> Result<AppConfig, Box<dyn std::error::Error>> {
+        // 开发模式：强制重置为默认配置，不读 store.json。
+        // create_new() 会先从 tauri-plugin-store 的缓存（按路径单例）中移除旧 store，
+        // 再新建空 store（不读磁盘），避免磁盘文件删了但内存缓存还在导致旧配置残留。
+        app.store_builder("store.json").create_new().build()?;
+        let config = AppConfig::default();
+        self.save(app, &config)?;
+        log::info!("🔄 [dev] reset `{}` to defaults", self.store_key);
+        Ok(config)
     }
 
+    #[cfg(not(debug_assertions))]
     fn load(&self, app: &AppHandle) -> Result<AppConfig, Box<dyn std::error::Error>> {
+        self.load_from_store(app)
+    }
+
+    #[cfg(not(debug_assertions))]
+    fn load_from_store(&self, app: &AppHandle) -> Result<AppConfig, Box<dyn std::error::Error>> {
         let store = app.store("store.json")?;
-        #[cfg(debug_assertions)]
-        self.print_store_path(app);
         if let Some(value) = store.get(&self.store_key) {
-            // 兼容旧版本 store.json：如果配置结构变更导致反序列化失败，
-            // 则回退到默认配置并覆盖存储，避免应用在 setup 阶段直接崩溃。
             let config_result: Result<AppConfig, serde_json::Error> = serde_json::from_value(value.clone());
             match config_result {
                 Ok(config) => Ok(config),

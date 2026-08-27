@@ -7,7 +7,8 @@
     "frontendDist": "../build",
     "devUrl": "http://localhost:5002",
     "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build"
+    "beforeBuildCommand": "pnpm build",
+    "additionalWatchFolders": ["src-tauri/locales"]
   },
   "app": {
     "windows": [
