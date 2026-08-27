@@ -39,6 +39,7 @@ pub fn run() {
             ai::commands::switch_provider,
             ai::commands::switch_model,
             ai::commands::send_message,
+            ai::commands::assemble_prompt,
             ai::commands::stop_generation,
             ai::commands::get_history,
             ai::commands::remove_history_item,

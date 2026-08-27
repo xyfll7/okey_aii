@@ -31,7 +31,7 @@ interface ChatStreamState {
 }
 
 
-function buildPromptHistoryItem(userMessage: UIMessage): RigHistoryItem {
+export function buildPromptHistoryItem(userMessage: UIMessage): RigHistoryItem {
 	const content: RigUserContent[] = (userMessage.parts ?? [])
 		.filter(
 			(p): p is Extract<UIMessage["parts"][number], { type: "text" }> =>

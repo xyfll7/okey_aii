@@ -13,8 +13,8 @@ use super::agents::ChatEvent;
 use super::config::{available_models, default_model, ModelInfo, Provider};
 use super::db::{self, SessionMeta};
 use super::state::ChatState;
+use crate::my_windows::window_index::should_use_existing_index_window;
 use crate::store::app_state::AppConfigState;
-use crate::utils::assemble_prompt_item::assemble_prompt_item;
 use tauri::{Emitter, Manager};
 
 #[tauri::command(rename_all = "snake_case")]
@@ -225,15 +225,20 @@ pub fn switch_model(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn assemble_prompt(app: tauri::AppHandle, item: HistoryItem) -> HistoryItem {
+	crate::utils::assemble_prompt_item::assemble_prompt_item(&app, item)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn send_message(
     app: tauri::AppHandle,
     on_event: Channel<ChatEvent>,
     prompt: HistoryItem,
     session_id: String,
 ) -> Result<(), String> {
+    let should_emit_done = !should_use_existing_index_window(app.clone());
+
     let state = app.state::<Arc<RwLock<ChatState>>>();
-    println!("prompt::::::::{:#?}", prompt);
-    let prompt = assemble_prompt_item(&app, prompt);
     let (agent, history) = {
         let guard = state.read().unwrap();
         let sess = guard
@@ -364,7 +369,9 @@ pub async fn send_message(
         add_message_to_history(&app, session_id.clone(), item)?;
     }
     // 通知前端本次消息已生成完毕，前端会重新拉取历史
-    let _ = app.emit_to("index", &format!("on_message_done{session_id}"), ());
+    if should_emit_done {
+        let _ = app.emit_to("index", &format!("on_message_done{session_id}"), ());
+    }
     Ok(())
 }
 
