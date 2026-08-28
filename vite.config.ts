@@ -15,8 +15,8 @@ const config = defineConfig({
 			project: "./project.inlang",
 			outdir: "./src/paraglide",
 			emitTsDeclarations: true,
-			// Tauri 桌面应用：无 URL 前缀路由，也不需要 SSR，
-			// 显式声明不含 "url" 的策略，切换语言不依赖 document navigation。
+			// Tauri desktop app: no URL-prefixed routing and no SSR needed,
+			// so explicitly declare a strategy without "url"; locale switching doesn't rely on document navigation.
 			strategy: ["cookie", "baseLocale"],
 		}),
 		tailwindcss(),

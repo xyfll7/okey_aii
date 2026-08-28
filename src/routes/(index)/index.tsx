@@ -13,9 +13,9 @@ export const Route = createFileRoute("/(index)/")({ component: Home });
 
 function Home() {
 	useCreateSessionEvent();
-	// 语言切换时强制本组件（及 Header、SessionView 等主内容）重渲染。
-	// 必须在此订阅：上游 <Outlet /> 是 React.memo 且不订阅 locale store，
-	// 仅靠 RootComponent 重渲染会被 memo bail-out 拦截，无法传到这里。
+	// Force this component (and main content such as Header, SessionView) to re-render on locale change.
+	// Must subscribe here: the upstream <Outlet /> is React.memo and does not subscribe to the locale store,
+	// so relying only on RootComponent re-render would be blocked by memo bail-out and never reach here.
 	useLocale();
 	const [session_id, setSession_id] = useSessionId();
 	const _ostype = ostype();

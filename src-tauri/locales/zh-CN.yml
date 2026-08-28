@@ -6,12 +6,12 @@ autostart: "开机启动"
 notification_title: "okey.ai"
 notification_body: "okey.ai 正在运行！"
 
-# 语言显示名
+# Language display names
 language_auto: "自动"
 language_chinese: "中文"
 language_english: "英语"
 
-# 默认提示词标签
+# Default prompt tags
 prompt_tag_system_label: "系统提示词"
 prompt_tag_system_content: "你是一名专业的翻译助手。请准确翻译语言，保持原文的含义和语调。"
 prompt_tag_summary_label: "总结"

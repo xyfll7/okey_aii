@@ -11,7 +11,7 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-	// 语言切换时重新渲染整棵组件树，让 m.*() 消息文本即时更新
+	// Re-render the whole component tree on locale change so m.*() message texts update immediately
 	useLocale();
 	return (
 		<ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">

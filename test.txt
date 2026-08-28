@@ -1,0 +1,119 @@
+diff --git a/src-tauri/build.rs b/src-tauri/build.rs
+index eda6cbe..245571d 100644
+--- a/src-tauri/build.rs
++++ b/src-tauri/build.rs
+@@ -1,5 +1,4 @@
+ fn main() {
+-  // rust_i18n::i18n! 编译期嵌入 locales/*.yml，cargo 不会自动追踪，必须显式声明。
+   println!("cargo:rerun-if-changed=locales");
+   tauri_build::build()
+ }
+diff --git a/src-tauri/locales/en.yml b/src-tauri/locales/en.yml
+index c3e29c9..e6902b6 100644
+--- a/src-tauri/locales/en.yml
++++ b/src-tauri/locales/en.yml
+@@ -1,17 +1,12 @@
+-# English translations
+ quit: "Quit"
+ show: "Show"
+ test: "Test"
+ autostart: "Autostart"
+ notification_title: "okey.ai"
+ notification_body: "okey.ai is running!"
+-
+-# Language display names
+ language_auto: "Auto"
+ language_chinese: "Chinese"
+ language_english: "English"
+-
+-# Default prompt tags
+ prompt_tag_system_label: "System Prompt"
+ prompt_tag_system_content: "You are a professional translation assistant. Please accurately translate the language, preserving the original meaning and tone."
+ prompt_tag_summary_label: "Summary"
+diff --git a/src-tauri/locales/zh-CN.yml b/src-tauri/locales/zh-CN.yml
+index f369d2e..a403aff 100644
+--- a/src-tauri/locales/zh-CN.yml
++++ b/src-tauri/locales/zh-CN.yml
+@@ -1,17 +1,12 @@
+-# Chinese translations
+ quit: "退出"
+ show: "显示"
+ test: "测试"
+ autostart: "开机启动"
+ notification_title: "okey.ai"
+ notification_body: "okey.ai 正在运行！"
+-
+-# 语言显示名
+ language_auto: "自动"
+ language_chinese: "中文"
+ language_english: "英语"
+-
+-# 默认提示词标签
+ prompt_tag_system_label: "系统提示词"
+ prompt_tag_system_content: "你是一名专业的翻译助手。请准确翻译语言，保持原文的含义和语调。"
+ prompt_tag_summary_label: "总结"
+diff --git a/src/components/chat/chatInit.tsx b/src/components/chat/chatInit.tsx
+index 98fec36..adf095a 100644
+--- a/src/components/chat/chatInit.tsx
++++ b/src/components/chat/chatInit.tsx
+@@ -17,8 +17,6 @@ export function useChatInit({ session_id }: { session_id: string }) {
+ 			`on_message_done${session_id}`,
+ 			() => {
+ 				get_history();
+-				// 仅用于兜底首屏挂载时后台那一轮恰好结束的竞态，
+-				// 首次触发后即解绑，避免后续每轮对话都全量拉取历史。
+ 				unlistenPromise.then((fn) => fn());
+ 			},
+ 		);
+diff --git a/src/components/chat/chatProvider.tsx b/src/components/chat/chatProvider.tsx
+index a0822d4..9c23c34 100644
+--- a/src/components/chat/chatProvider.tsx
++++ b/src/components/chat/chatProvider.tsx
+@@ -20,8 +20,6 @@ export function ChatProvider({
+ 
+ 	const originalAppend = chat.append;
+ 	const append = async (arg: UIMessage) => {
+-		// 尽早在前端组装 prompt 模板（语言检测 + 用户语言配置），
+-		// 避免在 send_message 后端环节才组装而错过更早的时机。
+ 		try {
+ 			const item = buildPromptHistoryItem(arg);
+ 			const assembled = await invoke<RigHistoryItem>("assemble_prompt", {
+diff --git a/src/routes/(index)/index.tsx b/src/routes/(index)/index.tsx
+index 27d1435..06cb593 100644
+--- a/src/routes/(index)/index.tsx
++++ b/src/routes/(index)/index.tsx
+@@ -13,9 +13,6 @@ export const Route = createFileRoute("/(index)/")({ component: Home });
+ 
+ function Home() {
+ 	useCreateSessionEvent();
+-	// 语言切换时强制本组件（及 Header、SessionView 等主内容）重渲染。
+-	// 必须在此订阅：上游 <Outlet /> 是 React.memo 且不订阅 locale store，
+-	// 仅靠 RootComponent 重渲染会被 memo bail-out 拦截，无法传到这里。
+ 	useLocale();
+ 	const [session_id, setSession_id] = useSessionId();
+ 	const _ostype = ostype();
+diff --git a/src/routes/__root.tsx b/src/routes/__root.tsx
+index 2b4d1ce..e18c670 100644
+--- a/src/routes/__root.tsx
++++ b/src/routes/__root.tsx
+@@ -11,7 +11,6 @@ export const Route = createRootRoute({
+ });
+ 
+ function RootComponent() {
+-	// 语言切换时重新渲染整棵组件树，让 m.*() 消息文本即时更新
+ 	useLocale();
+ 	return (
+ 		<ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+diff --git a/vite.config.ts b/vite.config.ts
+index 296228d..00d0a68 100644
+--- a/vite.config.ts
++++ b/vite.config.ts
+@@ -15,8 +15,6 @@ const config = defineConfig({
+ 			project: "./project.inlang",
+ 			outdir: "./src/paraglide",
+ 			emitTsDeclarations: true,
+-			// Tauri 桌面应用：无 URL 前缀路由，也不需要 SSR，
+-			// 显式声明不含 "url" 的策略，切换语言不依赖 document navigation。
+ 			strategy: ["cookie", "baseLocale"],
+ 		}),
+ 		tailwindcss(),

@@ -17,8 +17,8 @@ export function useChatInit({ session_id }: { session_id: string }) {
 			`on_message_done${session_id}`,
 			() => {
 				get_history();
-				// 仅用于兜底首屏挂载时后台那一轮恰好结束的竞态，
-				// 首次触发后即解绑，避免后续每轮对话都全量拉取历史。
+				// Only covers the race when a background round finishes exactly at first mount;
+				// unbind after the first trigger to avoid pulling full history on every turn.
 				unlistenPromise.then((fn) => fn());
 			},
 		);

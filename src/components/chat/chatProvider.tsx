@@ -20,8 +20,8 @@ export function ChatProvider({
 
 	const originalAppend = chat.append;
 	const append = async (arg: UIMessage) => {
-		// 尽早在前端组装 prompt 模板（语言检测 + 用户语言配置），
-		// 避免在 send_message 后端环节才组装而错过更早的时机。
+		// Assemble the prompt template in the frontend as early as possible (language detection + user language config),
+		// instead of assembling it in the backend send_message step where the earlier timing would be missed.
 		try {
 			const item = buildPromptHistoryItem(arg);
 			const assembled = await invoke<RigHistoryItem>("assemble_prompt", {
