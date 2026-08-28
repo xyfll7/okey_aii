@@ -1,5 +1,6 @@
 import {
   Add01Icon,
+  AlertCircleIcon,
   ArrowDataTransferHorizontalIcon,
   ArrowDown01Icon,
   ArrowExpand01Icon,
@@ -15,6 +16,7 @@ import {
   MessageQuestionIcon,
   Pen01Icon,
   Pin02Icon,
+  RefreshIcon,
   Settings01Icon,
   StopIcon,
   Tick02Icon,
@@ -54,6 +56,8 @@ const _Icons = {
   chat: createHugeicon(Chatting01Icon),
   exchange: createHugeicon(ArrowDataTransferHorizontalIcon),
   question: createHugeicon(MessageQuestionIcon),
+  alert: createHugeicon(AlertCircleIcon),
+  refresh: createHugeicon(RefreshIcon),
   arrowUp01: createHugeicon(ArrowUp01Icon),
   arrowDown01: createHugeicon(ArrowDown01Icon),
 } satisfies Record<string, Icon>;

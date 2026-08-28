@@ -240,6 +240,7 @@ pub async fn send_message(
     };
 
     let prompt_msg: Message = prompt.message.clone();
+    let prompt_id = prompt.id.clone();
 
     let (abort_handle, abort_registration) = futures::future::AbortHandle::new_pair();
     {
@@ -266,7 +267,15 @@ pub async fn send_message(
             )?;
         }
         db::insert_message(&db, &session_id, &prompt)?;
-        sess.history.push(prompt.clone());
+        // A retry sends the same user message again with the same id: replace the
+        // previous attempt instead of stacking a duplicate onto the history.
+        if sess.history.last().is_some_and(|h| h.id == prompt_id) {
+            if let Some(last) = sess.history.last_mut() {
+                *last = prompt.clone();
+            }
+        } else {
+            sess.history.push(prompt.clone());
+        }
         ensure_session_title(&db, &session_id, sess);
         sess.is_loading = true;
         sess.cancel_handle = Some(abort_handle);
@@ -275,7 +284,14 @@ pub async fn send_message(
 
     let prompt: Message = prompt_msg;
 
-    let history: Vec<Message> = history.iter().map(|h| h.message.clone()).collect();
+    // The prompt is passed separately, so drop its own copy from the context.
+    // On a retry it is already the last history item and would otherwise be
+    // sent to the model twice.
+    let history: Vec<Message> = history
+        .iter()
+        .filter(|h| h.id != prompt_id)
+        .map(|h| h.message.clone())
+        .collect();
     let stream = agent.stream_chat(prompt, history).await;
 
     let mut stream = futures::stream::Abortable::new(stream, abort_registration);

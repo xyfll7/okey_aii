@@ -40,5 +40,7 @@
   "prompts_label_placeholder": "Label",
   "prompts_content_placeholder": "Content",
   "prompts_add": "Add",
-  "prompts_edit": "Edit"
+  "prompts_edit": "Edit",
+  "chat_error_title": "Something went wrong",
+  "chat_retry": "Retry"
 }

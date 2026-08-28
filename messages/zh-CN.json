@@ -40,5 +40,7 @@
   "prompts_label_placeholder": "标签",
   "prompts_content_placeholder": "内容",
   "prompts_add": "添加",
-  "prompts_edit": "修改"
+  "prompts_edit": "修改",
+  "chat_error_title": "生成失败",
+  "chat_retry": "重试"
 }

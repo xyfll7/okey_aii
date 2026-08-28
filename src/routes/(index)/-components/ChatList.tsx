@@ -21,6 +21,7 @@ import {
 import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
 import { useSelected } from "#/store";
+import { ErrorBubble } from "./ErrorBubble";
 import { MessageBubble } from "./MessageBubble";
 import MessageNavigator from "./MessageNavigator";
 import { SelectionFloatingButton } from "./SelectionFloatingButton";
@@ -44,6 +45,8 @@ export function ChatList({ session_id }: { session_id: string }) {
 	const { messages, status } = useChatInit({ session_id });
 	const msgs = messages.filter((e) => e.role !== "system");
 	const isBusy = status === "submitted" || status === "streaming";
+	const lastMsg = msgs.at(-1);
+	if (!lastMsg) return null;
 	return (
 		<MessageScrollerProvider defaultScrollPosition="last-anchor">
 			<SelectionFloatingButton containerRef={chatListRef} />
@@ -64,33 +67,39 @@ export function ChatList({ session_id }: { session_id: string }) {
 						data-chat-container
 						className="p-4"
 					>
-						{msgs.map((item, index) => (
-							<MessageScrollerItem
-								className="[content-visibility:visible!]"
-								key={item.id}
-								messageId={item.id}
-								scrollAnchor={item.role === "user"}
-							>
-								<MessageBubble message={item} />
-								{msgs.length - 1 === index && (
-									<Marker
-										role="banner"
-										className={cn(
-											isBusy && !getMessageText(item).join("").length
-												? ""
-												: "sr-only",
-										)}
-									>
-										<MarkerContent className="shimmer">
-											<span className="font-medium">
-												{m.translate_loading()}
-											</span>
-											...
-										</MarkerContent>
-									</Marker>
-								)}
-							</MessageScrollerItem>
-						))}
+						{msgs.map((item) => {
+							const isLast = item.id === lastMsg.id;
+							return (
+								<MessageScrollerItem
+									className="[content-visibility:visible!]"
+									key={item.id}
+									messageId={item.id}
+									scrollAnchor={item.role === "user"}
+								>
+									<MessageBubble message={item} />
+									{isLast && (
+										<>
+											<ErrorBubble />
+											<Marker
+												role="banner"
+												className={cn(
+													isBusy && !getMessageText(item).join("").length
+														? ""
+														: "sr-only",
+												)}
+											>
+												<MarkerContent className="shimmer">
+													<span className="font-medium">
+														{m.translate_loading()}
+													</span>
+													...
+												</MarkerContent>
+											</Marker>
+										</>
+									)}
+								</MessageScrollerItem>
+							);
+						})}
 					</MessageScrollerContent>
 				</MessageScrollerViewport>
 				<MessageScrollerButton
