@@ -24,9 +24,6 @@ impl AppStateManager {
 
     #[cfg(debug_assertions)]
     fn load(&self, app: &AppHandle) -> Result<AppConfig, Box<dyn std::error::Error>> {
-        // 开发模式：强制重置为默认配置，不读 store.json。
-        // create_new() 会先从 tauri-plugin-store 的缓存（按路径单例）中移除旧 store，
-        // 再新建空 store（不读磁盘），避免磁盘文件删了但内存缓存还在导致旧配置残留。
         app.store_builder("store.json").create_new().build()?;
         let config = AppConfig::default();
         self.save(app, &config)?;

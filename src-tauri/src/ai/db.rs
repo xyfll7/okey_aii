@@ -255,7 +255,6 @@ pub fn get_history(db: &Db, session_id: &str) -> Result<Vec<HistoryItem>, String
 }
 
 
-/// 永久删除一个会话及其全部消息。
 pub fn delete_session(db: &Db, session_id: &str) -> Result<(), String> {
     let mut conn = db.lock().unwrap();
     let tx = conn.transaction().map_err(|e| e.to_string())?;

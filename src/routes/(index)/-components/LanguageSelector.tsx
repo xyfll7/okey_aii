@@ -34,7 +34,6 @@ export default function LanguageSelector() {
 		targetLanguage;
 
 	useEffect(() => {
-		// locale 变化时重新拉取：语言选项显示名由后端按当前 UI locale 生成
 		void locale;
 		(async () => {
 			try {
@@ -53,7 +52,6 @@ export default function LanguageSelector() {
 				if (target) setTargetLanguage(target);
 				setSelfExplaining(!!selfExplainingModel);
 			} catch {
-				// ignore
 			}
 		})();
 	}, [locale]);

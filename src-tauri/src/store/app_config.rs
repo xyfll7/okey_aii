@@ -26,7 +26,6 @@ pub enum AutoSpeakState {
     All,
 }
 
-/// 支持的语言选项
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
 pub enum Language {
     #[serde(rename = "auto")]
@@ -47,7 +46,6 @@ impl Language {
         }
     }
 
-    /// 当前 UI 语言下的语言显示名（本地化）。
     pub fn to_display_name(&self) -> String {
         match self {
             Language::Auto => rust_i18n::t!("language_auto").to_string(),
@@ -96,8 +94,6 @@ pub struct AppConfig {
 }
 
 
-/// 从 .env 读取默认的 API Keys（首次运行或旧版 store.json 缺少该字段时使用）。
-/// 缺失或仍为占位符的 key 会被跳过，避免把无效值写入配置。
 fn default_api_keys() -> HashMap<Provider, String> {
     dotenvy::dotenv().ok();
     let mut keys = HashMap::new();

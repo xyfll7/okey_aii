@@ -6,8 +6,6 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::ai::{commands::list_sessions, state::HistoryItem};
 use crate::store::app_state::AppConfigState;
 
-/// 取 `translator` preset 的快捷翻译指令：
-/// `self_explaining_model` 开启时取 id=3（自我解释），否则取 id=2（right_ctrl 翻译）。
 fn translate_prompt(app: &AppHandle) -> String {
     let state = app.state::<AppConfigState>();
     let config = state.read();

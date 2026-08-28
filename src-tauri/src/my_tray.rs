@@ -6,17 +6,13 @@ use tauri::{
 use crate::{ai::commands::create_session, my_windows};
 use tauri_plugin_autostart::AutoLaunchManager;
 
-/// State to store the tray icon for later retrieval
 pub struct TrayState {
     pub tray: Arc<TrayIcon<tauri::Wry>>,
 }
 
-/*******  ab7e53dc-7cba-45e1-8b3a-3837c9b2580a  *******/
 pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<TrayIcon<tauri::Wry>> {
-    // Create tray menu
     let menu = build_tray_menu(app_handle)?;
 
-    // Create system tray
     let tray = TrayIconBuilder::new()
         .icon(app_handle.default_window_icon().cloned().unwrap())
         .menu(&menu)
@@ -54,7 +50,6 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<TrayIcon<tauri::Wry>
         }
         "autostart" => {
             let autostart_manager = app.state::<AutoLaunchManager>();
-            // Toggle autostart state
             let current_enabled = autostart_manager.is_enabled().unwrap_or(false);
             if current_enabled {
                 let _ = autostart_manager.disable();
@@ -69,13 +64,10 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<TrayIcon<tauri::Wry>
     Ok(tray)
 }
 
-/// Build the tray menu with current translations
 fn build_tray_menu(app_handle: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
-    // Create menu items with translations
     let show_item = MenuItem::with_id(app_handle, "show", rust_i18n::t!("show"), true, None::<&str>)?;
     let test_item = MenuItem::with_id(app_handle, "test", rust_i18n::t!("test"), true, None::<&str>)?;
 
-    // Create autostart menu item
     let autostart_manager = app_handle.state::<AutoLaunchManager>();
     let is_auto_start = autostart_manager.is_enabled().unwrap_or(false);
     let autostart_item = CheckMenuItem::with_id(
@@ -89,7 +81,6 @@ fn build_tray_menu(app_handle: &AppHandle) -> tauri::Result<tauri::menu::Menu<ta
 
     let quit_item = MenuItem::with_id(app_handle, "quit", rust_i18n::t!("quit"), true, None::<&str>)?;
 
-    // Build menu
     let menu = MenuBuilder::new(app_handle)
         .item(&show_item)
         .item(&test_item)
@@ -101,13 +92,9 @@ fn build_tray_menu(app_handle: &AppHandle) -> tauri::Result<tauri::menu::Menu<ta
     Ok(menu)
 }
 
-/// Rebuild the tray menu with new locale
 pub fn rebuild_tray_menu(app_handle: &AppHandle) -> tauri::Result<()> {
-    // Get the tray state
     let tray_state = app_handle.state::<TrayState>();
-    // Build new menu with updated translations
     let new_menu = build_tray_menu(app_handle)?;
-    // Set the new menu
     tray_state.tray.set_menu(Some(new_menu))?;
     Ok(())
 }

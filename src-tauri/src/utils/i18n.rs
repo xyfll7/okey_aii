@@ -11,10 +11,8 @@ pub fn get_current_locale() -> String {
 pub fn set_current_locale(app_handle: tauri::AppHandle, locale: String, app_config_state: tauri::State<AppConfigState>) {
     rust_i18n::set_locale(&locale);
 
-    // Map locale string to Language enum
     let language = Language::from_locale(&locale);
 
-    // Persist to app config
     let _ = app_config_state.update_and_save(|config| {
         config.language = language;
     });

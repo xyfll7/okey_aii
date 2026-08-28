@@ -125,7 +125,6 @@ const MessageNavigator = () => {
 
 	const visibleSet = new Set(visibleMessageIds);
 
-	// 用全量消息判断“当前锚点”，而不是被截断后的 msg
 	const ambientId =
 		(currentAnchorId && allMsg.some((m) => m.id === currentAnchorId)
 			? currentAnchorId
@@ -149,14 +148,12 @@ const MessageNavigator = () => {
 	}, []);
 
 	const activeId = navId ?? ambientId;
-	// 先在全量列表里定位真实位置，判断是否落在“被截断”的区域
 	const activeIndexInAll = allMsg.findIndex((m) => m.id === activeId);
 	const isOverflowActive = hasOverflow && activeIndexInAll >= MAX_MESSAGES;
 	const activeIndex = isOverflowActive
-		? MAX_MESSAGES // 省略号刻度的虚拟下标
+		? MAX_MESSAGES
 		: msg.findIndex((m) => m.id === activeId);
 
-	// 刻度总数 = 可见消息刻度 + 省略号刻度（如果有）
 	const tickCount = msg.length + (hasOverflow ? 1 : 0);
 
 	const scrollToIndex = (index: number) => {

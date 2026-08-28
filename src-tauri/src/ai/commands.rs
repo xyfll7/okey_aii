@@ -65,17 +65,10 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
         cancel_handle: None,
     };
 
-    // 延迟持久化：此处仅放入内存，不写入 DB。
-    // 只有当会话真正发送了第一条消息（见 send_message）才会落库，
-    // 避免"创建后未聊天"的空会话在重启后出现在历史记录中。
     guard.sessions.insert(session_id.clone(), session.clone());
     Ok((session_id, session))
 }
 
-/// 新建会话（主窗口"新建会话"按钮）：
-/// 若所有已加载会话的历史均为空，则不做任何操作；
-/// 否则清理（中止生成、从内存移除并归档 DB）所有非空会话，
-/// 然后创建一个全新的空会话，仅返回新会话 id。
 #[tauri::command(rename_all = "snake_case")]
 pub fn new_session(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
@@ -88,7 +81,6 @@ pub fn new_session(app: tauri::AppHandle) -> Result<Option<String>, String> {
             .map(|s| s.session_id.clone())
             .collect()
     };
-    // 当前会话无历史数据 → 什么也不做
     if to_clear.is_empty() {
         return Ok(None);
     }
@@ -115,7 +107,6 @@ pub fn close_session(app: tauri::AppHandle, session_id: String) -> Result<bool, 
     Ok(removed)
 }
 
-/// 永久删除一个会话：从内存移除（若已载入），并从 DB 级联删除会话及其消息。
 #[tauri::command(rename_all = "snake_case")]
 pub fn delete_session(app: tauri::AppHandle, session_id: String) -> Result<(), String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
@@ -261,8 +252,6 @@ pub async fn send_message(
         if sess.is_loading {
             return Err("Session is currently generating a response (loading), adding new messages is temporarily disabled".into());
         }
-        // 延迟持久化：会话首次发送消息时才写入 DB。
-        // 用当前内存中的最新配置（用户可能已切换过 provider/model）。
         if db::get_session_meta(&db, &session_id)?.is_none() {
             let now = std::time::SystemTime::now();
             db::insert_session(
@@ -278,7 +267,6 @@ pub async fn send_message(
         }
         db::insert_message(&db, &session_id, &prompt)?;
         sess.history.push(prompt.clone());
-        // 首次发送消息时，用第一条用户消息作为会话标题
         ensure_session_title(&db, &session_id, sess);
         sess.is_loading = true;
         sess.cancel_handle = Some(abort_handle);
@@ -368,7 +356,6 @@ pub async fn send_message(
         }
         add_message_to_history(&app, session_id.clone(), item)?;
     }
-    // 通知前端本次消息已生成完毕，前端会重新拉取历史
     if should_emit_done {
         let _ = app.emit_to("index", &format!("on_message_done{session_id}"), ());
     }
@@ -404,7 +391,6 @@ pub fn list_sessions(app: tauri::AppHandle) -> Vec<Session> {
     list
 }
 
-/// 列出 DB 中所有历史会话的元数据（轻量，不载入内存、不重建 agent）。
 #[tauri::command(rename_all = "snake_case")]
 pub fn list_history_sessions(app: tauri::AppHandle) -> Result<Vec<SessionMeta>, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
@@ -418,7 +404,6 @@ pub fn list_history_sessions(app: tauri::AppHandle) -> Result<Vec<SessionMeta>, 
     Ok(history)
 }
 
-/// 用户手动打开一个历史会话：从 DB 恢复并载入内存。已在内存中则直接返回。
 #[tauri::command(rename_all = "snake_case")]
 pub fn open_session(app: tauri::AppHandle, session_id: String) -> Result<Session, String> {
     let app_config_state = app.state::<AppConfigState>();

@@ -6,19 +6,11 @@ use crate::store::app_config::Language;
 use crate::store::app_state::AppConfigState;
 use crate::utils::language_detection;
 
-/// 组装用户 prompt 中的模板（语言逻辑迁移自旧版 `assemble_prompt`）。
-///
-/// 约定 User 消息 content 中第一条 Text 为用户选中的原文（raw），
-/// 第二条 Text 为 prompt 模板；模板里的 `{text}` / `{detected_lang}` /
-/// `{target}` / `{local}` 占位符会按语言检测结果与用户语言配置替换，
-/// 组装结果回填到第二条 Text，其余 content 保持不变。
-/// 非 User 消息或 Text 不足两条时原样返回。
 pub fn assemble_prompt_item(app: &tauri::AppHandle, mut item: HistoryItem) -> HistoryItem {
     let Message::User { content } = &item.message else {
         return item;
     };
 
-    // 第一条 Text 作为原文（raw），第二条 Text 作为模板
     let mut texts = content
         .iter()
         .filter_map(|c| match c {
@@ -63,7 +55,6 @@ pub fn assemble_prompt_item(app: &tauri::AppHandle, mut item: HistoryItem) -> Hi
         .replace("{target}", &target_lang)
         .replace("{local}", &local);
 
-    // 将第二条 Text（模板）替换为组装结果，其余 content 保持不变
     if let Message::User { content } = &mut item.message {
         let mut text_idx = 0usize;
         for c in content.iter_mut() {

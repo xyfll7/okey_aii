@@ -11,12 +11,6 @@ import { cn } from "#/lib/utils";
 
 type SwipeDirection = "up" | "right" | "down" | "left";
 
-/**
- * 抽屉层的 title/description/content 一律使用工厂函数 `() => ReactNode`：
- * 每次渲染时重新求值，语言切换（或其他外部状态变化）触发层重渲染后
- * 组件会重新执行，m.*() 消息文本自动同步更新，且 React 复用 fiber
- * 保留弹窗内部组件 state。
- */
 type DrawerNode = () => React.ReactNode;
 
 interface PushLayerInput {
@@ -32,7 +26,6 @@ interface PushLayerInput {
 
 type DrawerLayerState = PushLayerInput & { id: string };
 
-/** 解析抽屉层节点：调用工厂函数求值。 */
 function resolveNode(node: DrawerNode): React.ReactNode {
 	return node();
 }
@@ -74,8 +67,6 @@ export function DrawerStackProvider({
 
 	onClose?: (ids: string[]) => void;
 }) {
-	// 订阅 locale：语言切换时整个抽屉层重渲染，title/content 的 factory
-	// 函数重新求值，弹窗内的 m.*() 文本即时更新，同时保留弹窗内部 state。
 	useLocale();
 	const [layers, setLayers] = React.useState<DrawerLayerState[]>([]);
 

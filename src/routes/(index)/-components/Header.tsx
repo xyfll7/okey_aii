@@ -21,9 +21,7 @@ function CreateNewSession({
 			onClick={async () => {
 				try {
 					const session_id = await invoke<string | null>("new_session");
-					// 当前会话无历史数据 → 什么也不做
 					if (!session_id) return;
-					// 更新主视图 session_id，SessionView 因 key 变化而重载
 					onNewSession?.(session_id);
 				} catch (err) {
 					console.error(err);

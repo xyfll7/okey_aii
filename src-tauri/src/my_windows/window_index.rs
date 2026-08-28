@@ -106,13 +106,12 @@ where
                         if *local_cancel.lock().unwrap() {
                             return;
                         }
-                        // 实时读取当前置顶状态，而非窗口创建时的快照
                         let pinned_now = app_for_thread
                             .state::<AppConfigState>()
                             .read()
                             .is_pin_index_window;
                         if pinned_now {
-                            return; // 置顶窗口失焦后保持常驻，不销毁
+                            return;
                         }
                         _win.destroy().ok();
                     });

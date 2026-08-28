@@ -176,8 +176,6 @@ pub fn delete_prompt_tag(
     get_prompt_tags(app, preset_id)
 }
 
-/// 可选的翻译语言列表，返回 `(locale, 显示名)` 二元组。
-/// 显示名跟随当前 UI 语言（i18n），由 `Language::to_display_name()` 提供。
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_language_options() -> Vec<(String, String)> {
     use crate::store::app_config::Language;

@@ -146,7 +146,6 @@ fn build_agent(
             Ok(Agents::DeepSeek(agent))
         }
         Provider::Qwen => {
-            // Qwen 通过阿里云 DashScope 的 OpenAI 兼容接口接入
             let client = openai::CompletionsClient::builder()
                 .api_key(api_key)
                 .base_url("https://dashscope.aliyuncs.com/compatible-mode/v1")
@@ -181,7 +180,6 @@ pub fn build_session_agent(
     Ok(Arc::new(build_agent(provider, model, &key, preset)?))
 }
 
-/// 从 DB 恢复一个不在内存中的会话（重建 agent + 加载历史），并缓存到内存。
 pub fn restore_session(
     guard: &mut ChatState,
     api_keys: &HashMap<Provider, String>,
@@ -207,7 +205,6 @@ pub fn restore_session(
     Ok(sess)
 }
 
-/// 从用户消息中提取文本，截断为会话标题。
 fn derive_title(msg: &Message) -> Option<String> {
     const MAX_TITLE_LEN: usize = 30;
     let text = match msg {
@@ -231,7 +228,6 @@ fn derive_title(msg: &Message) -> Option<String> {
     })
 }
 
-/// 始终用历史中第一条用户消息刷新会话标题，并同步内存与 DB。
 pub fn ensure_session_title(db: &Db, session_id: &str, sess: &mut Session) {
     let Some(title) = sess.history.iter().find_map(|h| derive_title(&h.message)) else {
         return;

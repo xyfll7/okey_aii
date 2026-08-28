@@ -32,8 +32,6 @@ export function Settings() {
 			size={"icon-sm"}
 			variant={"ghost"}
 			onClick={() => {
-				// title/content 用工厂函数形式：语言切换触发层重渲染时重新求值，
-				// 弹窗内的 m.*() 文本自动同步更新，且保留弹窗内部组件 state。
 				push({
 					title: () => (
 						<div className="flex justify-between">
