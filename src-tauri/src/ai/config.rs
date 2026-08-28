@@ -60,16 +60,40 @@ pub fn available_models(provider: Provider) -> &'static [ModelInfo] {
         ],
         Provider::Zai => &[
             ModelInfo {
-                id: "glm-4.6",
-                label: "GLM 4.6",
+                id: "glm-5.3",
+                label: "GLM-5.3",
             },
             ModelInfo {
-                id: "glm-4.6-air",
-                label: "GLM 4.6 Air",
+                id: "glm-5.3-flash",
+                label: "GLM-5.3-Flash",
             },
             ModelInfo {
-                id: "glm-4.5-airx",
-                label: "GLM 4.5 AirX",
+                id: "glm-5.2",
+                label: "GLM-5.2",
+            },
+            ModelInfo {
+                id: "glm-image",
+                label: "GLM-Image",
+            },
+            ModelInfo {
+                id: "glm-ocr",
+                label: "GLM-OCR",
+            },
+            ModelInfo {
+                id: "glm-asr-2512",
+                label: "GLM-ASR-2512",
+            },
+            ModelInfo {
+                id: "glm-tts",
+                label: "GLM-TTS",
+            },
+            ModelInfo {
+                id: "cogvideox-3",
+                label: "CogVideoX-3",
+            },
+            ModelInfo {
+                id: "embedding-3",
+                label: "Embedding-3",
             },
         ],
     }
