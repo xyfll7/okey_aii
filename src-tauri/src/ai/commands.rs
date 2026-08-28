@@ -316,6 +316,7 @@ pub async fn send_message(
                 break;
             }
             Err(e) => {
+                eprintln!("[send_message] stream error: {e}");
                 let mut guard = state.write().unwrap();
                 if let Some(sess) = guard.sessions.get_mut(&session_id) {
                     sess.is_loading = false;

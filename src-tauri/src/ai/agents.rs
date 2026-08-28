@@ -39,7 +39,11 @@ fn map_stream(stream: StreamingResult) -> Pin<Box<dyn Stream<Item = Result<ChatE
             }
             Ok(MultiTurnStreamItem::FinalResponse(_)) => Some(Ok(ChatEvent::Done)),
             Ok(_) => None,
-            Err(e) => Some(Err(e.to_string())),
+            Err(e) => {
+                let msg = format!("stream_chat error: {e}");
+                eprintln!("[agents] {msg}");
+                Some(Err(msg))
+            }
         }
     });
     Box::pin(mapped)
