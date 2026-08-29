@@ -122,6 +122,9 @@ where
                 tauri::WindowEvent::Moved(_) => {
                     *cancelled.lock().unwrap() = true;
                 }
+                tauri::WindowEvent::Destroyed => {
+                    log::info!("[window_index] index window destroyed");
+                }
                 _ => {}
             });
         });
