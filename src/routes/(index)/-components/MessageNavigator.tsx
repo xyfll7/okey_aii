@@ -55,7 +55,7 @@ const NavTick = ({
 				side="left"
 				align="center"
 				sideOffset={8}
-				className="max-w-64 max-h-40 overflow-hidden"
+				className="message-navigator-popup max-w-64 max-h-40 overflow-hidden"
 			>
 				<p className="text-xs text-fg-secondary leading-relaxed line-clamp-5">
 					{content}
@@ -103,7 +103,7 @@ const NavEllipsis = ({
 				side="left"
 				align="center"
 				sideOffset={8}
-				className="max-w-64"
+				className="message-navigator-popup max-w-64"
 			>
 				<p className="text-xs text-fg-secondary leading-relaxed">
 					{remaining} more messages
@@ -174,7 +174,7 @@ const MessageNavigator = () => {
 	const canGoNext = clampedActive < tickCount - 1;
 
 	return (
-		<div className={cn("absolute right-3 top-1/2 -translate-y-1/2 z-20")}>
+		<div className={cn("message-navigator absolute right-3 top-1/2 -translate-y-1/2 z-20")}>
 			<div className="group flex flex-col items-end gap-1">
 				<Icons.arrowUp01
 					className={cn(
