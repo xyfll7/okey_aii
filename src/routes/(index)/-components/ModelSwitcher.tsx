@@ -1,16 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useMemo, useState } from "react";
-import { Button } from "#/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { InputGroupButton } from "#/components/ui/input-group";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectSeparator,
+	SelectTrigger,
+	SelectValue,
+} from "#/components/ui/select";
 import { m } from "#/paraglide/messages";
 import type { Session } from "#/types";
 
@@ -25,6 +25,9 @@ const PROVIDERS: ProviderId[] = [
 ];
 
 type ModelInfo = { id: string; label: string };
+type Combo = { provider: ProviderId; model: ModelInfo };
+
+const VALUE_SEP = "\u0000";
 
 function providerLabel(id: ProviderId): string {
 	switch (id) {
@@ -45,10 +48,15 @@ function isProviderId(value: string): value is ProviderId {
 	return (PROVIDERS as string[]).includes(value);
 }
 
+// Encode a provider + model pair into a single select value.
+function comboValue(provider: ProviderId, modelId: string): string {
+	return `${provider}${VALUE_SEP}${modelId}`;
+}
+
 export function ModelSwitcher({ session_id }: { session_id: string }) {
 	const [provider, setProvider] = useState<ProviderId | null>(null);
 	const [model, setModel] = useState<string>("");
-	const [models, setModels] = useState<ModelInfo[]>([]);
+	const [combos, setCombos] = useState<Combo[]>([]);
 
 	// Load the current session's provider/model.
 	useEffect(() => {
@@ -63,105 +71,91 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 			.catch((error) => console.error(error));
 	}, [session_id]);
 
-	// Load the model list whenever the provider changes.
+	// Load every provider's model list once, so the select can show all
+	// provider + model combinations in a single popup.
 	useEffect(() => {
-		if (!provider) return;
-		invoke<ModelInfo[]>("list_models", { provider })
-			.then((list) => {
-				setModels(list);
-				// If the current model doesn't belong to this provider (e.g. right after
-				// switching providers), fall back to that provider's default model.
-				setModel((prev) =>
-					list.some((item) => item.id === prev) ? prev : (list[0]?.id ?? ""),
-				);
-			})
+		Promise.all(
+			PROVIDERS.map(async (pid) => {
+				const list = await invoke<ModelInfo[]>("list_models", {
+					provider: pid,
+				});
+				return list.map((item) => ({ provider: pid, model: item }));
+			}),
+		)
+			.then((groups) => setCombos(groups.flat()))
 			.catch((error) => console.error(error));
-	}, [provider]);
+	}, []);
 
-	const currentModelLabel = useMemo(
-		() => models.find((item) => item.id === model)?.label || model || "--",
-		[models, model],
-	);
+	const selectedLabel = useMemo(() => {
+		if (!provider || !model) return "--";
+		return (
+			combos.find((c) => c.provider === provider && c.model.id === model)?.model
+				.label || model
+		);
+	}, [combos, provider, model]);
 
-	const onSelectProvider = async (next: ProviderId) => {
-		if (next === provider) return;
+	const onValueChange = async (value: string | null) => {
+		if (!value) return;
+		const [pid, modelId] = value.split(VALUE_SEP);
+		if (!isProviderId(pid)) return;
 		try {
-			const apiKeys = await invoke<Record<string, string>>("get_api_keys");
-			await invoke("switch_provider", {
-				session_id,
-				provider: next,
-				api_key: apiKeys[next] ?? null,
-			});
-			setProvider(next);
+			if (pid !== provider) {
+				const apiKeys = await invoke<Record<string, string>>("get_api_keys");
+				await invoke("switch_provider", {
+					session_id,
+					provider: pid,
+					api_key: apiKeys[pid] ?? null,
+				});
+				setProvider(pid);
+			}
 			// Provider switch resets the session model to that provider's default,
-			// which is the first item in the freshly loaded model list.
-		} catch (error) {
-			console.error(error);
-		}
-	};
-
-	const onSelectModel = async (next: string) => {
-		if (next === model || !provider) return;
-		try {
-			await invoke("switch_model", { session_id, model: next });
-			setModel(next);
+			// so the selected model always needs to be applied explicitly.
+			if (modelId !== model) {
+				await invoke("switch_model", { session_id, model: modelId });
+				setModel(modelId);
+			}
 		} catch (error) {
 			console.error(error);
 		}
 	};
 
 	return (
-		<div className="flex items-center gap-1">
-			<DropdownMenu>
-				<DropdownMenuTrigger
-					render={
-						<InputGroupButton variant="ghost" size="xs" >
-							{provider ? providerLabel(provider) : "--"}
-						</InputGroupButton>
-					}
-				/>
-				<DropdownMenuContent side="top" align="start">
-					<DropdownMenuGroup>
-						<DropdownMenuLabel>{m.common_api_provider()}</DropdownMenuLabel>
-					</DropdownMenuGroup>
-					{PROVIDERS.map((id) => (
-						<DropdownMenuItem
-							key={id}
-							onClick={() => onSelectProvider(id)}
-						>
-							{providerLabel(id)}
-						</DropdownMenuItem>
-					))}
-				</DropdownMenuContent>
-			</DropdownMenu>
-
-			{models.length > 0 && (
-				<DropdownMenu>
-					<DropdownMenuTrigger
-						render={
-							<Button size="xs" variant="ghost">
-								{currentModelLabel}
-							</Button>
-						}
+		<Select
+			value={provider && model ? comboValue(provider, model) : null}
+			onValueChange={onValueChange}
+		>
+			<SelectTrigger
+				render={
+					<InputGroupButton
+						size="xs"
+						className="h-6! border-transparent! bg-transparent! dark:bg-transparent! hover:bg-muted! dark:hover:bg-muted/50! focus-visible:border-transparent! focus-visible:ring-0!"
 					/>
-					<DropdownMenuContent side="top" align="start">
-						<DropdownMenuGroup>
-							<DropdownMenuLabel>
-								{provider ? providerLabel(provider) : "--"}
-							</DropdownMenuLabel>
-						</DropdownMenuGroup>
-						<DropdownMenuSeparator />
-						{models.map((item) => (
-							<DropdownMenuItem
-								key={item.id}
-								onClick={() => onSelectModel(item.id)}
-							>
-								{item.label}
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuContent>
-				</DropdownMenu>
-			)}
-		</div>
+				}
+			>
+				<SelectValue>{() => selectedLabel}</SelectValue>
+			</SelectTrigger>
+			<SelectContent side="top" align="start" className="w-fit">
+				{PROVIDERS.map((pid, index) => {
+					const items = combos.filter((c) => c.provider === pid);
+					if (items.length === 0) return null;
+					return (
+						<Fragment key={pid}>
+							{index > 0 && <SelectSeparator />}
+							<SelectGroup>
+								<SelectLabel>{providerLabel(pid)}</SelectLabel>
+								{items.map((c) => (
+									<SelectItem
+										key={c.model.id}
+										value={comboValue(pid, c.model.id)}
+									>
+										{c.model.label}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</Fragment>
+					);
+				})}
+			</SelectContent>
+		</Select>
 	);
 }
