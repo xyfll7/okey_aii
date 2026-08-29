@@ -15,6 +15,7 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<TrayIcon<tauri::Wry>
 
     let tray = TrayIconBuilder::new()
         .icon(app_handle.default_window_icon().cloned().unwrap())
+        .icon_as_template(true)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(move |tray, event| {
