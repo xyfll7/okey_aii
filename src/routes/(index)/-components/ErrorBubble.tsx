@@ -4,11 +4,11 @@ import {
 	Bubble,
 	BubbleContent,
 	BubbleGroup,
-	BubbleReactions,
+	// BubbleReactions,
 } from "#/components/ui/bubble";
 import { Button } from "#/components/ui/button";
 import { Message, MessageContent } from "#/components/ui/message";
-import { cn } from "#/lib/utils";
+// import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
 
 /**
@@ -49,14 +49,14 @@ export function ErrorBubble() {
 								</Button>
 							</div>
 						</BubbleContent>
-						<BubbleReactions
+						{/* <BubbleReactions
 							className={cn("sr-only", "translate-y-4/4")}
 							align="start"
 							role="img"
 							aria-label="Reaction: thumbs up"
 						>
 							<span>👍</span>
-						</BubbleReactions>
+						</BubbleReactions> */}
 					</Bubble>
 				</BubbleGroup>
 			</MessageContent>
