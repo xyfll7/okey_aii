@@ -46,7 +46,6 @@ export function ChatList({ session_id }: { session_id: string }) {
 	const msgs = messages.filter((e) => e.role !== "system");
 	const isBusy = status === "submitted" || status === "streaming";
 	const lastMsg = msgs.at(-1);
-	if (!lastMsg) return null;
 	return (
 		<MessageScrollerProvider defaultScrollPosition="last-anchor">
 			<SelectionFloatingButton containerRef={chatListRef} />
@@ -68,7 +67,7 @@ export function ChatList({ session_id }: { session_id: string }) {
 						className="p-4"
 					>
 						{msgs.map((item) => {
-							const isLast = item.id === lastMsg.id;
+							const isLast = item.id === lastMsg?.id;
 							return (
 								<MessageScrollerItem
 									className="[content-visibility:visible!]"
