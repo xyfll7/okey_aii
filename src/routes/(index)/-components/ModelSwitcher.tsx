@@ -10,6 +10,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import { InputGroupButton } from "#/components/ui/input-group";
 import { m } from "#/paraglide/messages";
 import type { Session } from "#/types";
 
@@ -114,9 +115,9 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 			<DropdownMenu>
 				<DropdownMenuTrigger
 					render={
-						<Button size="xs" variant="ghost">
+						<InputGroupButton variant="ghost" size="xs" >
 							{provider ? providerLabel(provider) : "--"}
-						</Button>
+						</InputGroupButton>
 					}
 				/>
 				<DropdownMenuContent side="top" align="start">

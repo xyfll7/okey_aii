@@ -2,12 +2,6 @@ import { useState } from "react";
 import { useChatContext } from "#/components/chat/chatContext";
 import { Icons } from "#/components/icon";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu";
-import {
 	InputGroup,
 	InputGroupAddon,
 	InputGroupButton,
@@ -17,9 +11,10 @@ import type { PromptTag } from "#/lib/types";
 import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
 import { useSelected } from "@/store";
+import { ModelSwitcher } from "./ModelSwitcher";
 import { SelectedText } from "./SelectedText";
 
-export function Inputer({ className }: { className?: string }) {
+export function Inputer({ className, session_id }: { className?: string; session_id: string }) {
 	const [value, setValue] = useState("");
 	const selected = useSelected();
 	const { append, status, stop } = useChatContext();
@@ -78,15 +73,7 @@ export function Inputer({ className }: { className?: string }) {
 				}}
 			/>
 			<InputGroupAddon align="block-end">
-				<DropdownMenu>
-					<DropdownMenuTrigger
-						render={<InputGroupButton variant="ghost" size="icon-xs" />}
-					/>
-					<DropdownMenuContent side="top" align="start">
-						<DropdownMenuItem>123123</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-
+				<ModelSwitcher session_id={session_id} />
 				<InputGroupButton
 					variant="default"
 					className="rounded-full ml-auto cursor-pointer"

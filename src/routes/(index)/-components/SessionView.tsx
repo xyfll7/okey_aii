@@ -3,7 +3,6 @@ import { SelectedProvider } from "#/store";
 import { ChatList } from "./ChatList";
 import { Inputer } from "./Inputer";
 import LanguageSelector from "./LanguageSelector";
-import { ModelSwitcher } from "./ModelSwitcher";
 
 export function SessionView({ session_id }: { session_id: string }) {
 	return (
@@ -12,10 +11,9 @@ export function SessionView({ session_id }: { session_id: string }) {
 				<div className="h-full flex flex-col overflow-hidden">
 					<ChatList session_id={session_id} />
 					<div className="px-2 pb-2">
-						<Inputer />
+						<Inputer session_id={session_id} />
 					</div>
 					<LanguageSelector />
-					<ModelSwitcher session_id={session_id} />
 				</div>
 			</ChatProvider>
 		</SelectedProvider>
