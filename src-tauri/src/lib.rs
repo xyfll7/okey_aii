@@ -30,14 +30,14 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            ai::commands::list_providers,
             ai::commands::list_models,
             ai::commands::create_session,
             ai::commands::new_session,
             ai::commands::close_session,
             ai::commands::delete_session,
             ai::commands::list_sessions,
-            ai::commands::switch_provider,
-            ai::commands::switch_model,
+            ai::commands::switch_combo,
             ai::commands::send_message,
             ai::commands::assemble_prompt,
             ai::commands::stop_generation,

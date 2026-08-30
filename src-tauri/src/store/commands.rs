@@ -1,18 +1,18 @@
-use crate::ai::config::Provider;
+use crate::ai::config::ProviderId;
 use crate::store::app_config::{AutoSpeakState, Language, PromptTag};
 use crate::store::app_state::AppConfigState;
 use std::collections::HashMap;
 use tauri::{AppHandle, Manager};
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn get_api_keys(app: AppHandle) -> HashMap<Provider, String> {
+pub fn get_api_keys(app: AppHandle) -> HashMap<ProviderId, String> {
     let state = app.state::<AppConfigState>();
     let keys = state.read().api_keys.clone();
     keys
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn set_api_key(app: AppHandle, provider: Provider, api_key: String) -> Result<(), String> {
+pub fn set_api_key(app: AppHandle, provider: ProviderId, api_key: String) -> Result<(), String> {
     let state = app.state::<AppConfigState>();
     state
         .update_and_save(|config| {

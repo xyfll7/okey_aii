@@ -44,7 +44,9 @@ pub fn create_tray(app_handle: &AppHandle) -> tauri::Result<TrayIcon<tauri::Wry>
         }
         "test" => {
             if let Some(window) = app.get_webview_window("index") {
-                if let Ok((session_id, _)) = create_session(app.clone()) {
+                if let Ok((session_id, _)) =
+                    tauri::async_runtime::block_on(create_session(app.clone()))
+                {
                     let _ = window.emit("on_open_session_with_session_id", session_id);
                 }
             }

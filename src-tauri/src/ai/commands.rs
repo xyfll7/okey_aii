@@ -10,50 +10,87 @@ use crate::ai::state::{
 };
 
 use super::agents::ChatEvent;
-use super::config::{available_models, default_model, ModelInfo, Provider};
+use super::config::{ModelInfo, Provider, ProviderId};
 use super::db::{self, SessionMeta};
+use super::model_catalog::ModelCatalogState;
 use super::state::ChatState;
 use crate::my_windows::window_index::should_use_existing_index_window;
 use crate::store::app_state::AppConfigState;
 use tauri::{Emitter, Manager};
 
+/// Returns the providers currently supported by the backend. Each item carries
+/// its localized label (resolved via the backend's rust_i18n locale), so the
+/// frontend renders provider options from this list instead of hard-coding its
+/// own mapping.
 #[tauri::command(rename_all = "snake_case")]
-pub fn list_models(provider: Provider) -> Vec<ModelInfo> {
-    available_models(provider).to_vec()
+pub fn list_providers() -> Vec<Provider> {
+    Provider::ALL.to_vec()
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String> {
+pub async fn list_models(app: tauri::AppHandle, provider: ProviderId) -> Vec<ModelInfo> {
+    let catalog = app.state::<ModelCatalogState>();
+    catalog.list_models(&app, Provider::from_id(provider)).await
+}
+
+/// Resolves the default model for a provider from its live listing API.
+///
+/// There is deliberately no compile-time fallback: model data comes entirely
+/// from the provider. If the listing is unreachable or empty (e.g. no API key
+/// configured), this returns an error so callers never construct a session
+/// with a hard-coded model.
+async fn default_model_from_api(
+    app: &tauri::AppHandle,
+    provider: Provider,
+) -> Result<String, String> {
+    let catalog = app.state::<ModelCatalogState>();
+    let models = catalog.list_models(app, provider).await;
+    models.first().map(|m| m.id.clone()).ok_or_else(|| {
+        format!(
+            "{} returned no models from its listing API; \
+             add an API key in settings and try again",
+            provider.label()
+        )
+    })
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String> {
     let app_config_state = app.state::<AppConfigState>();
     let (api_keys, agent_presets) = {
         let config = app_config_state.read();
         (config.api_keys.clone(), config.agent_presets.clone())
     };
 
-    let state = app.state::<Arc<RwLock<ChatState>>>();
-    let mut guard = state.write().unwrap();
+    // Inherit provider/model/preset from the most recently touched session.
+    // No locks are held across the await below.
+    let inherited = {
+        let state = app.state::<Arc<RwLock<ChatState>>>();
+        let guard = state.read().unwrap();
+        guard
+            .sessions
+            .values()
+            .max_by(|a, b| a.update_at.cmp(&b.update_at))
+            .map(|s| (s.provider, s.model.clone(), s.preset_id.clone()))
+    };
 
-    let session_id = uuid::Uuid::new_v4().to_string();
-
-    let (provider, model, preset_id) = guard
-        .sessions
-        .values()
-        .max_by(|a, b| a.update_at.cmp(&b.update_at))
-        .map(|s| (s.provider, s.model.clone(), s.preset_id.clone()))
-        .unwrap_or_else(|| {
-            let p = Provider::DeepSeek;
-            (
-                p,
-                crate::ai::config::default_model(p).to_string(),
-                "assistant".to_string(),
-            )
-        });
+    let (provider, model, preset_id) = match inherited {
+        Some(inherited) => inherited,
+        None => {
+            let p = Provider::deepseek();
+            // No session exists yet, so the model must come from the live
+            // listing; there is no hard-coded model to fall back on.
+            let model = default_model_from_api(&app, p).await?;
+            (p, model, "assistant".to_string())
+        }
+    };
 
     let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
 
+    let session_id = uuid::Uuid::new_v4().to_string();
     let session = Session {
         session_id: session_id.clone(),
-        provider,
+        provider: agent.provider,
         model: model.clone(),
         preset_id: preset_id.clone(),
         agent,
@@ -65,12 +102,14 @@ pub fn create_session(app: tauri::AppHandle) -> Result<(String, Session), String
         cancel_handle: None,
     };
 
+    let state = app.state::<Arc<RwLock<ChatState>>>();
+    let mut guard = state.write().unwrap();
     guard.sessions.insert(session_id.clone(), session.clone());
     Ok((session_id, session))
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn new_session(app: tauri::AppHandle) -> Result<Option<String>, String> {
+pub async fn new_session(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let to_clear: Vec<String> = {
         let guard = state.read().unwrap();
@@ -87,7 +126,7 @@ pub fn new_session(app: tauri::AppHandle) -> Result<Option<String>, String> {
     for session_id in to_clear {
         close_session(app.clone(), session_id)?;
     }
-    let (session_id, _) = create_session(app)?;
+    let (session_id, _) = create_session(app).await?;
     Ok(Some(session_id))
 }
 
@@ -120,18 +159,32 @@ pub fn delete_session(app: tauri::AppHandle, session_id: String) -> Result<(), S
     db::delete_session(&guard.db, &session_id)
 }
 
+/// Moves a session onto a provider + model pair in a single step.
+///
+/// The two halves are applied atomically because neither is meaningful alone:
+/// a model only exists within a provider, so changing one without the other
+/// would leave the session briefly holding a model from the previous provider.
+///
+/// `model` is deliberately not validated against a local model list. The
+/// provider is the only authority on which models it serves, while any cached
+/// listing is a snapshot that may be stale or incomplete; rejecting a model it
+/// does not know about only produces false negatives. An unusable model
+/// surfaces as the provider's own error on the next `send_message`, which is
+/// both accurate and actionable.
 #[tauri::command(rename_all = "snake_case")]
-pub fn switch_provider(
+pub fn switch_combo(
     app: tauri::AppHandle,
     session_id: String,
-    provider: Provider,
+    provider: ProviderId,
+    model: String,
     api_key: Option<String>,
 ) -> Result<(), String> {
+    let provider = Provider::from_id(provider);
     if let Some(key) = api_key {
         let app_config_state = app.state::<AppConfigState>();
         app_config_state
             .update_and_save(|config| {
-                config.api_keys.insert(provider, key);
+                config.api_keys.insert(provider.id, key);
             })
             .map_err(|e| e.to_string())?;
     }
@@ -144,8 +197,6 @@ pub fn switch_provider(
 
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
-
-    let model = default_model(provider).to_string();
 
     let preset_id = guard
         .sessions
@@ -161,56 +212,12 @@ pub fn switch_provider(
             .sessions
             .get_mut(&session_id)
             .ok_or("Session not found, please call create_session first")?;
-        sess.provider = provider;
+        sess.provider = agent.provider;
         sess.model = model.clone();
         sess.agent = agent;
         sess.update_at = update_at;
     }
-    db::update_session(&guard.db, &session_id, provider, &model, update_at)?;
-
-    Ok(())
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn switch_model(
-    app: tauri::AppHandle,
-    session_id: String,
-    model: String,
-) -> Result<(), String> {
-    let app_config_state = app.state::<AppConfigState>();
-    let (api_keys, agent_presets) = {
-        let config = app_config_state.read();
-        (config.api_keys.clone(), config.agent_presets.clone())
-    };
-
-    let state = app.state::<Arc<RwLock<ChatState>>>();
-    let mut guard = state.write().unwrap();
-
-    let (provider, preset_id) = {
-        let sess = guard
-            .sessions
-            .get(&session_id)
-            .ok_or("Session not found, please call create_session first")?;
-        (sess.provider, sess.preset_id.clone())
-    };
-
-    let valid = available_models(provider).iter().any(|m| m.id == model);
-    if !valid {
-        return Err(format!(
-            "{model} does not belong to the current session's provider"
-        ));
-    }
-
-    let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
-
-    let update_at = std::time::SystemTime::now();
-    {
-        let sess = guard.sessions.get_mut(&session_id).unwrap();
-        sess.model = model.clone();
-        sess.agent = agent;
-        sess.update_at = update_at;
-    }
-    db::update_session(&guard.db, &session_id, provider, &model, update_at)?;
+    db::update_session(&guard.db, &session_id, provider.id, &model, update_at)?;
 
     Ok(())
 }
@@ -258,7 +265,7 @@ pub async fn send_message(
             db::insert_session(
                 &db,
                 &session_id,
-                sess.provider,
+                sess.provider.id,
                 &sess.model,
                 &sess.preset_id,
                 sess.created_at,

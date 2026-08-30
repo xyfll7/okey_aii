@@ -1,4 +1,4 @@
-use crate::ai::config::Provider;
+use crate::ai::config::{Provider, ProviderId};
 use crate::ai::state::HistoryItem;
 use rusqlite::{params, Connection};
 use std::path::PathBuf;
@@ -31,25 +31,12 @@ fn from_millis(ms: u64) -> SystemTime {
     SystemTime::UNIX_EPOCH + Duration::from_millis(ms)
 }
 
-fn provider_to_str(p: Provider) -> &'static str {
-    match p {
-        Provider::OpenAI => "OpenAI",
-        Provider::Anthropic => "Anthropic",
-        Provider::DeepSeek => "DeepSeek",
-        Provider::Qwen => "Qwen",
-        Provider::Zai => "Zai",
-    }
+fn provider_to_str(p: ProviderId) -> &'static str {
+    p.as_str()
 }
 
-fn provider_from_str(s: &str) -> Result<Provider, String> {
-    match s {
-        "OpenAI" => Ok(Provider::OpenAI),
-        "Anthropic" => Ok(Provider::Anthropic),
-        "DeepSeek" => Ok(Provider::DeepSeek),
-        "Qwen" => Ok(Provider::Qwen),
-        "Zai" => Ok(Provider::Zai),
-        _ => Err(format!("unknown provider in db: {s}")),
-    }
+fn provider_from_str(s: &str) -> Result<ProviderId, String> {
+    ProviderId::from_str(s).ok_or_else(|| format!("unknown provider in db: {s}"))
 }
 
 pub fn open(path: PathBuf) -> Result<Db, String> {
@@ -83,7 +70,7 @@ pub fn open(path: PathBuf) -> Result<Db, String> {
 pub fn insert_session(
     db: &Db,
     session_id: &str,
-    provider: Provider,
+    provider: ProviderId,
     model: &str,
     preset_id: &str,
     created_at: SystemTime,
@@ -111,7 +98,7 @@ pub fn insert_session(
 pub fn update_session(
     db: &Db,
     session_id: &str,
-    provider: Provider,
+    provider: ProviderId,
     model: &str,
     update_at: SystemTime,
 ) -> Result<(), String> {
@@ -170,7 +157,7 @@ pub fn get_session_meta(db: &Db, session_id: &str) -> Result<Option<SessionMeta>
     match rows.next().transpose().map_err(|e| e.to_string())? {
         Some((id, provider, model, preset_id, created_at, update_at, title)) => Ok(Some(SessionMeta {
             session_id: id,
-            provider: provider_from_str(&provider)?,
+            provider: Provider::from_id(provider_from_str(&provider)?),
             model,
             preset_id,
             created_at: from_millis(created_at as u64),
@@ -205,7 +192,7 @@ pub fn list_session_meta(db: &Db) -> Result<Vec<SessionMeta>, String> {
             row.map_err(|e| e.to_string())?;
         out.push(SessionMeta {
             session_id: id,
-            provider: provider_from_str(&provider)?,
+            provider: Provider::from_id(provider_from_str(&provider)?),
             model,
             preset_id,
             created_at: from_millis(created_at as u64),

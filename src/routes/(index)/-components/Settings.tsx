@@ -24,6 +24,7 @@ import { setLocale, useLocale } from "#/lib/locale";
 import { cn } from "#/lib/utils";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
 import { m } from "@/paraglide/messages.js";
+import type { ProviderInfo } from "#/types";
 
 export function Settings() {
 	const { push } = useDrawerStack();
@@ -48,18 +49,43 @@ export function Settings() {
 	);
 }
 
+// The authoritative provider list comes from the backend via `list_providers`;
+// each provider carries its localized label and API-key page URL, so no
+// provider → label/link mapping is kept on the frontend.
 function SettingsContent({ className }: { className?: string }) {
+	const locale = useLocale();
 	const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-	const [currentProvider, setCurrentProvider] = useState<ProviderId>("OpenAI");
-	const labels = providerLabels();
+	const [providers, setProviders] = useState<ProviderInfo[]>([]);
+	const [currentProvider, setCurrentProvider] = useState<string | null>(null);
 
 	useEffect(() => {
-		void invoke<Record<string, string>>("get_api_keys").then((keys) => {
-			setApiKeys(keys);
-		});
-	}, []);
+		let cancelled = false;
+		(async () => {
+			try {
+				const [pids, keys] = await Promise.all([
+					invoke<ProviderInfo[]>("list_providers"),
+					invoke<Record<string, string>>("get_api_keys"),
+				]);
+				if (cancelled) return;
+				setProviders(pids);
+				setApiKeys(keys);
+				// Keep the previously selected provider if it still exists, so a
+				// locale-triggered re-fetch does not reset the user's selection.
+				setCurrentProvider((prev) => {
+					if (prev && pids.some((p) => p.id === prev)) return prev;
+					return pids[0]?.id ?? null;
+				});
+			} catch (error) {
+				console.error(error);
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [locale]);
 
-	const resetKey = `${currentProvider}-${apiKeys[currentProvider] ?? ""}`;
+	const current = providers.find((p) => p.id === currentProvider);
+	const resetKey = `${currentProvider ?? ""}-${apiKeys[currentProvider ?? ""] ?? ""}`;
 
 	return (
 		<ScrollArea className={cn("h-full", "overflow-hidden", className)}>
@@ -71,14 +97,15 @@ function SettingsContent({ className }: { className?: string }) {
 								<FieldGroup>
 									<Field>
 										<FieldLabel>
-											{m.common_api_provider()} ({labels[currentProvider]})
+											{m.common_api_provider()} (
+											{current?.label ?? ""})
 										</FieldLabel>
 										<ToggleGroup
 											size="sm"
-											value={[currentProvider]}
+											value={currentProvider ? [currentProvider] : []}
 											onValueChange={(values) => {
-												const value = values[0] as ProviderId | undefined;
-												if (value && PROVIDERS.includes(value)) {
+												const value = values[0];
+												if (value && providers.some((p) => p.id === value)) {
 													setCurrentProvider(value);
 												}
 											}}
@@ -86,28 +113,29 @@ function SettingsContent({ className }: { className?: string }) {
 											spacing={2}
 											className="flex-wrap w-full"
 										>
-											{PROVIDERS.map((id) => (
+											{providers.map((p) => (
 												<ToggleGroupItem
-													key={id}
-													value={id}
-													aria-label={labels[id]}
+													key={p.id}
+													value={p.id}
+													aria-label={p.label}
 												>
-													{labels[id]}
+													{p.label}
 												</ToggleGroupItem>
 											))}
 										</ToggleGroup>
 									</Field>
 									<Field>
 										<FieldLabel htmlFor="model-provider-api-key">
-											{labels[currentProvider]} {m.common_api_key()}
+											{current?.label ?? ""} {m.common_api_key()}
 										</FieldLabel>
 										<Input
 											key={resetKey}
-											defaultValue={apiKeys[currentProvider] ?? ""}
+											defaultValue={apiKeys[currentProvider ?? ""] ?? ""}
 											id="model-provider-api-key"
 											placeholder="Enter API Key"
 											required
 											onBlur={async (e) => {
+												if (!currentProvider) return;
 												const value = e.target.value.trim();
 												if (value !== (apiKeys[currentProvider] ?? "")) {
 													try {
@@ -128,21 +156,12 @@ function SettingsContent({ className }: { className?: string }) {
 										<FieldDescription>
 											{m.common_stored_locally()}{" "}
 											<a
-												href={
-													{
-														OpenAI: "https://platform.openai.com/api-keys",
-														Anthropic:
-															"https://console.anthropic.com/settings/keys",
-														DeepSeek: "https://www.deepseek.com/",
-														Qwen: "https://bailian.console.aliyun.com/cn-beijing/#/home",
-														Zai: "https://open.bigmodel.cn/login",
-													}[currentProvider]
-												}
+												href={current?.api_key_url}
 												target="_blank"
 												rel="noreferrer"
 											>
 												{m.common_get_api_key({
-													provider: labels[currentProvider],
+													provider: current?.label ?? "",
 												})}
 											</a>
 										</FieldDescription>
@@ -155,20 +174,6 @@ function SettingsContent({ className }: { className?: string }) {
 			</div>
 		</ScrollArea>
 	);
-}
-
-const PROVIDERS = ["OpenAI", "Anthropic", "DeepSeek", "Qwen", "Zai"] as const;
-
-type ProviderId = (typeof PROVIDERS)[number];
-
-function providerLabels(): Record<ProviderId, string> {
-	return {
-		OpenAI: m.model_providers_OpenAI(),
-		Anthropic: m.model_providers_Anthropic(),
-		DeepSeek: m.model_providers_DeepSeek(),
-		Qwen: m.model_providers_Qwen(),
-		Zai: m.model_providers_ZAI(),
-	};
 }
 
 function LanguageSelector() {

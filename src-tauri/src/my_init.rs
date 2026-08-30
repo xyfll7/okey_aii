@@ -1,4 +1,5 @@
 use crate::ai::commands::create_session;
+use crate::ai::model_catalog::ModelCatalogState;
 use crate::ai::state::ChatState;
 use crate::my_windows::window_index::should_use_existing_index_window;
 use crate::store::app_state::AppStateManager;
@@ -56,6 +57,7 @@ fn init_state(app: &mut tauri::App) {
     drop(config);
 
     app.manage(app_config_state);
+    app.manage(ModelCatalogState::default());
 }
 
 fn setup_tray_and_activation_policy(app: &mut tauri::App) {
@@ -83,7 +85,11 @@ pub fn setup_ai_state(app: &mut tauri::App) {
     };
     app.manage(Arc::new(RwLock::new(initial)));
 
-    if let Err(e) = create_session(app.handle().clone()) {
+    // Block on the initial session so the UI always finds one via
+    // `list_sessions` once the window loads. The session's model comes from
+    // the provider's live listing; it fails gracefully (and logs) when no
+    // model can be fetched, e.g. before an API key is configured.
+    if let Err(e) = tauri::async_runtime::block_on(create_session(app.handle().clone())) {
         log::error!("failed to create initial session: {e}");
     }
 }

@@ -11,6 +11,13 @@ language_auto: "自动"
 language_chinese: "中文"
 language_english: "英语"
 
+# Provider display names (resolved by Provider::label via rust_i18n)
+provider.OpenAI: "OpenAI"
+provider.Anthropic: "Anthropic"
+provider.DeepSeek: "DeepSeek"
+provider.Qwen: "通义千问"
+provider.Zai: "Z.ai"
+
 # Default prompt tags
 prompt_tag_system_label: "系统提示词"
 prompt_tag_system_content: "你是一名专业的翻译助手。请准确翻译语言，保持原文的含义和语调。"

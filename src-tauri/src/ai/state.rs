@@ -1,6 +1,6 @@
-use crate::ai::agents::Agents;
-use crate::ai::config::Provider;
-use crate::store::app_config::{AgentPreset};
+use crate::ai::agents::ChatAgent;
+use crate::ai::config::{Provider, ProviderId};
+use crate::store::app_config::AgentPreset;
 use crate::ai::db::{self, Db, SessionMeta};
 use rig::client::AgentClientExt;
 use rig::message::{Message, UserContent};
@@ -42,7 +42,7 @@ pub struct Session {
     
     pub is_loading: bool,
     #[serde(skip)]
-    pub agent: Arc<Agents>,
+    pub agent: Arc<ChatAgent>,
     #[serde(skip)]
     pub history: Vec<HistoryItem>,
     
@@ -117,62 +117,56 @@ pub fn remove_history_item(
 
 fn build_agent(
     provider: Provider,
-    model: &str, 
+    model: &str,
     api_key: &str,
     preset: &AgentPreset,
-) -> Result<Agents, String> {
+) -> Result<ChatAgent, String> {
     let preamble = &preset.prompt_tags.iter()
         .find(|t| t.id == Some(0))
         .and_then(|t| t.content.as_ref())
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .unwrap_or_default();
-    match provider {
-        Provider::OpenAI => {
-            
-            
+    let agent = match provider.id {
+        ProviderId::OpenAI => {
             let client = openai::CompletionsClient::new(api_key).map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preamble).build();
-            Ok(Agents::OpenAI(agent))
+            client.agent(model).preamble(&preamble).build()
         }
-        Provider::Anthropic => {
+        ProviderId::Anthropic => {
             let client = anthropic::Client::new(api_key).map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preamble).build();
-            Ok(Agents::Anthropic(agent))
+            client.agent(model).preamble(&preamble).build()
         }
-        Provider::DeepSeek => {
+        ProviderId::DeepSeek => {
             let client = deepseek::Client::new(api_key).map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preamble).build();
-            Ok(Agents::DeepSeek(agent))
+            client.agent(model).preamble(&preamble).build()
         }
-        Provider::Qwen => {
+        ProviderId::Qwen => {
             let client = openai::CompletionsClient::builder()
                 .api_key(api_key)
-                .base_url("https://dashscope.aliyuncs.com/compatible-mode/v1")
+                .base_url(provider.base_url.expect("Qwen provides an OpenAI-compatible base URL"))
                 .build()
                 .map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preamble).build();
-            Ok(Agents::Qwen(agent))
+            client.agent(model).preamble(&preamble).build()
         }
-        Provider::Zai => {
+        ProviderId::Zai => {
             let client = zai::Client::new(api_key).map_err(|e| e.to_string())?;
-            let agent = client.agent(model).preamble(&preamble).build();
-            Ok(Agents::Zai(agent))
+            client.agent(model).preamble(&preamble).build()
         }
-    }
+    };
+    Ok(ChatAgent { provider, agent })
 }
 
 pub fn build_session_agent(
-    api_keys: &HashMap<Provider, String>,
+    api_keys: &HashMap<ProviderId, String>,
     provider: Provider,
     model: &str,
     preset_id: &str,
     presets: &[AgentPreset],
-) -> Result<Arc<Agents>, String> {
+) -> Result<Arc<ChatAgent>, String> {
     let key = api_keys
-        .get(&provider)
+        .get(&provider.id)
         .cloned()
-        .ok_or_else(|| format!("{provider:?} missing api key"))?;
+        .ok_or_else(|| format!("{} missing api key", provider.id.as_str()))?;
     let preset = presets
         .iter()
         .find(|p| p.id == preset_id)
@@ -182,7 +176,7 @@ pub fn build_session_agent(
 
 pub fn restore_session(
     guard: &mut ChatState,
-    api_keys: &HashMap<Provider, String>,
+    api_keys: &HashMap<ProviderId, String>,
     presets: &[AgentPreset],
     meta: &SessionMeta,
 ) -> Result<Session, String> {
@@ -190,7 +184,7 @@ pub fn restore_session(
     let history = db::get_history(&guard.db, &meta.session_id)?;
     let sess = Session {
         session_id: meta.session_id.clone(),
-        provider: meta.provider,
+        provider: agent.provider,
         model: meta.model.clone(),
         preset_id: meta.preset_id.clone(),
         created_at: meta.created_at,

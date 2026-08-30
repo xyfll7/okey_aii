@@ -1,4 +1,4 @@
-use crate::ai::config::Provider;
+use crate::ai::config::ProviderId;
 use dotenvy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -81,7 +81,7 @@ pub struct PromptTag {
 #[serde(default)]
 pub struct AppConfig {
     #[serde(default = "default_api_keys")]
-    pub api_keys: HashMap<Provider, String>,
+    pub api_keys: HashMap<ProviderId, String>,
     pub shortcuts: Vec<Shortcut>,
     pub is_pin_index_window: bool,
     pub auto_speak: AutoSpeakState,
@@ -94,14 +94,14 @@ pub struct AppConfig {
 }
 
 
-fn default_api_keys() -> HashMap<Provider, String> {
+fn default_api_keys() -> HashMap<ProviderId, String> {
     dotenvy::dotenv().ok();
     let mut keys = HashMap::new();
     let entries = [
-        ("OPENAI_API_KEY", Provider::OpenAI),
-        ("QWEN_API_KEY", Provider::Qwen),
-        ("DEEPSEEK_API_KEY", Provider::DeepSeek),
-        ("ZAI_API_KEY", Provider::Zai),
+        ("OPENAI_API_KEY", ProviderId::OpenAI),
+        ("QWEN_API_KEY", ProviderId::Qwen),
+        ("DEEPSEEK_API_KEY", ProviderId::DeepSeek),
+        ("ZAI_API_KEY", ProviderId::Zai),
     ];
     for (env_name, provider) in entries {
         if let Ok(key) = std::env::var(env_name) {

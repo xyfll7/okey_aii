@@ -3,16 +3,13 @@ use std::pin::Pin;
 use rig::agent::{Agent, MultiTurnStreamItem, StreamingResult};
 use rig::message::Message;
 use rig::streaming::{StreamedAssistantContent, StreamingChat};
+use crate::ai::config::Provider;
 
 #[derive(Clone)]
-pub enum Agents {
-    OpenAI(Agent),
-    Anthropic(Agent),
-    DeepSeek(Agent),
-    Qwen(Agent),
-    Zai(Agent),
+pub struct ChatAgent {
+    pub provider: Provider,
+    pub agent: Agent,
 }
-
 
 #[derive(Clone, serde::Serialize)]
 #[serde(tag = "type", content = "data")]
@@ -84,20 +81,12 @@ fn map_content(content: StreamedAssistantContent) -> Option<ChatEvent> {
     }
 }
 
-impl Agents {
-    
-    
+impl ChatAgent {
     pub async fn stream_chat(
         &self,
         prompt: Message,
         history: Vec<Message>,
     ) -> Pin<Box<dyn Stream<Item = Result<ChatEvent, String>> + Send>> {
-        match self {
-            Self::OpenAI(agent) => map_stream(agent.stream_chat(prompt, history).await),
-            Self::Anthropic(agent) => map_stream(agent.stream_chat(prompt, history).await),
-            Self::DeepSeek(agent) => map_stream(agent.stream_chat(prompt, history).await),
-            Self::Qwen(agent) => map_stream(agent.stream_chat(prompt, history).await),
-            Self::Zai(agent) => map_stream(agent.stream_chat(prompt, history).await),
-        }
+        map_stream(self.agent.stream_chat(prompt, history).await)
     }
 }

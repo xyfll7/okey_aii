@@ -11,6 +11,13 @@ language_auto: "Auto"
 language_chinese: "Chinese"
 language_english: "English"
 
+# Provider display names (resolved by Provider::label via rust_i18n)
+provider.OpenAI: "OpenAI"
+provider.Anthropic: "Anthropic"
+provider.DeepSeek: "DeepSeek"
+provider.Qwen: "Qwen"
+provider.Zai: "Z.ai"
+
 # Default prompt tags
 prompt_tag_system_label: "System Prompt"
 prompt_tag_system_content: "You are a professional translation assistant. Please accurately translate the language, preserving the original meaning and tone."

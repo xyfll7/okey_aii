@@ -11,80 +11,76 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { m } from "#/paraglide/messages";
-import type { Session } from "#/types";
+import { useLocale } from "#/lib/locale";
+import type { ModelInfo, ProviderInfo, Session } from "#/types";
 
-type ProviderId = "OpenAI" | "Anthropic" | "DeepSeek" | "Qwen" | "Zai";
-
-const PROVIDERS: ProviderId[] = [
-	"OpenAI",
-	"Anthropic",
-	"DeepSeek",
-	"Qwen",
-	"Zai",
-];
-
-type ModelInfo = { id: string; label: string };
-type Combo = { provider: ProviderId; model: ModelInfo };
+// The authoritative provider list is fetched at runtime via `list_providers`;
+// each provider carries its localized label resolved by the backend's own i18n,
+// so the frontend keeps no provider → label mapping of its own.
+type Combo = { provider: string; model: ModelInfo };
 
 const VALUE_SEP = "\u0000";
 
-function providerLabel(id: ProviderId): string {
-	switch (id) {
-		case "OpenAI":
-			return m.model_providers_OpenAI();
-		case "Anthropic":
-			return m.model_providers_Anthropic();
-		case "DeepSeek":
-			return m.model_providers_DeepSeek();
-		case "Qwen":
-			return m.model_providers_Qwen();
-		case "Zai":
-			return m.model_providers_ZAI();
-	}
-}
-
-function isProviderId(value: string): value is ProviderId {
-	return (PROVIDERS as string[]).includes(value);
-}
-
 // Encode a provider + model pair into a single select value.
-function comboValue(provider: ProviderId, modelId: string): string {
+function comboValue(provider: string, modelId: string): string {
 	return `${provider}${VALUE_SEP}${modelId}`;
 }
 
 export function ModelSwitcher({ session_id }: { session_id: string }) {
-	const [provider, setProvider] = useState<ProviderId | null>(null);
+	const locale = useLocale();
+	const [provider, setProvider] = useState<string | null>(null);
 	const [model, setModel] = useState<string>("");
+	const [providers, setProviders] = useState<ProviderInfo[]>([]);
 	const [combos, setCombos] = useState<Combo[]>([]);
 
-	// Load the current session's provider/model.
+	// Load the provider list from the backend, then the current session's
+	// provider/model once the list is known. Re-fetches when the locale changes
+	// so the provider labels stay in the active language.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: useLocale() re-renders on language change; the fetch must re-run to refresh backend-resolved labels.
 	useEffect(() => {
-		invoke<Session[]>("list_sessions")
-			.then((sessions) => {
+		let cancelled = false;
+		(async () => {
+			try {
+				const pids = await invoke<ProviderInfo[]>("list_providers");
+				if (cancelled) return;
+				setProviders(pids);
+				const sessions = await invoke<Session[]>("list_sessions");
 				const session = sessions.find((s) => s.session_id === session_id);
-				if (session && isProviderId(session.provider)) {
-					setProvider(session.provider);
+				if (cancelled) return;
+				if (session && pids.some((p) => p.id === session.provider.id)) {
+					setProvider(session.provider.id);
 					setModel(session.model);
 				}
-			})
-			.catch((error) => console.error(error));
-	}, [session_id]);
+			} catch (error) {
+				console.error(error);
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [session_id, locale]);
 
-	// Load every provider's model list once, so the select can show all
-	// provider + model combinations in a single popup.
+	// Load every provider's model list once the providers are known, so the
+	// select can show all provider + model combinations in a single popup.
 	useEffect(() => {
+		if (providers.length === 0) return;
+		let cancelled = false;
 		Promise.all(
-			PROVIDERS.map(async (pid) => {
+			providers.map(async (p) => {
 				const list = await invoke<ModelInfo[]>("list_models", {
-					provider: pid,
+					provider: p.id,
 				});
-				return list.map((item) => ({ provider: pid, model: item }));
+				return list.map((item) => ({ provider: p.id, model: item }));
 			}),
 		)
-			.then((groups) => setCombos(groups.flat()))
+			.then((groups) => {
+				if (!cancelled) setCombos(groups.flat());
+			})
 			.catch((error) => console.error(error));
-	}, []);
+		return () => {
+			cancelled = true;
+		};
+	}, [providers]);
 
 	const selectedLabel = useMemo(() => {
 		if (!provider || !model) return "--";
@@ -97,23 +93,22 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 	const onValueChange = async (value: string | null) => {
 		if (!value) return;
 		const [pid, modelId] = value.split(VALUE_SEP);
-		if (!isProviderId(pid)) return;
+		if (!providers.some((p) => p.id === pid)) return;
 		try {
-			if (pid !== provider) {
-				const apiKeys = await invoke<Record<string, string>>("get_api_keys");
-				await invoke("switch_provider", {
-					session_id,
-					provider: pid,
-					api_key: apiKeys[pid] ?? null,
-				});
-				setProvider(pid);
-			}
-			// Provider switch resets the session model to that provider's default,
-			// so the selected model always needs to be applied explicitly.
-			if (modelId !== model) {
-				await invoke("switch_model", { session_id, model: modelId });
-				setModel(modelId);
-			}
+			// A model only exists within a provider, so both halves go over in
+			// one command; applying them separately would leave the session
+			// holding a model from the previous provider in between.
+			const apiKeys = pid !== provider
+				? await invoke<Record<string, string>>("get_api_keys")
+				: null;
+			await invoke("switch_combo", {
+				session_id,
+				provider: pid,
+				model: modelId,
+				api_key: apiKeys?.[pid] ?? null,
+			});
+			setProvider(pid);
+			setModel(modelId);
 		} catch (error) {
 			console.error(error);
 		}
@@ -135,18 +130,18 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 				<SelectValue>{() => selectedLabel}</SelectValue>
 			</SelectTrigger>
 			<SelectContent side="top" align="start" className="w-fit">
-				{PROVIDERS.map((pid, index) => {
-					const items = combos.filter((c) => c.provider === pid);
+				{providers.map((p, index) => {
+					const items = combos.filter((c) => c.provider === p.id);
 					if (items.length === 0) return null;
 					return (
-						<Fragment key={pid}>
+						<Fragment key={p.id}>
 							{index > 0 && <SelectSeparator />}
 							<SelectGroup>
-								<SelectLabel>{providerLabel(pid)}</SelectLabel>
+								<SelectLabel>{p.label}</SelectLabel>
 								{items.map((c) => (
 									<SelectItem
 										key={c.model.id}
-										value={comboValue(pid, c.model.id)}
+										value={comboValue(p.id, c.model.id)}
 									>
 										{c.model.label}
 									</SelectItem>
