@@ -3,8 +3,24 @@ import { useChat } from "@tanstack/ai-react";
 import { invoke } from "@tauri-apps/api/core";
 import type { ReactNode } from "react";
 import { type RigHistoryItem, rigMessageToUIMessage } from "#/lib/rigMessage";
+import { speak } from "#/lib/utils";
+import { AutoSpeakState } from "@/lib/types";
 import { buildPromptHistoryItem, chatAdapter } from "./chatAdapter";
 import { ChatContext } from "./chatContext";
+import { getMessageText } from "./chatUtils";
+
+function autoSpeak(message: UIMessage) {
+	invoke<AutoSpeakState>("get_auto_speak").then((res) => {
+		const selectedText = getMessageText(message)[0];
+		const isSingleWord = selectedText.trim().split(/\s+/).length === 1;
+		if (
+			(res === AutoSpeakState.Single && isSingleWord) ||
+			(res === AutoSpeakState.All && selectedText.trim().length > 0)
+		) {
+			speak(selectedText);
+		}
+	});
+}
 
 export function ChatProvider({
 	session_id,
@@ -28,6 +44,9 @@ export function ChatProvider({
 				item,
 			});
 			const message = rigMessageToUIMessage(assembled);
+
+			autoSpeak(message);
+
 			originalAppend(message);
 		} catch (err) {
 			console.error("assemble_prompt_item failed:", err);
