@@ -17,7 +17,7 @@ import type { ModelInfo, ProviderInfo, Session } from "#/types";
 // The authoritative provider list is fetched at runtime via `list_providers`;
 // each provider carries its localized label resolved by the backend's own i18n,
 // so the frontend keeps no provider → label mapping of its own.
-type Combo = { provider: string; model: ModelInfo };
+type ProviderWithModels = ProviderInfo & { models: ModelInfo[] };
 
 const VALUE_SEP = "\u0000";
 
@@ -30,12 +30,12 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 	const locale = useLocale();
 	const [provider, setProvider] = useState<string | null>(null);
 	const [model, setModel] = useState<string>("");
-	const [providers, setProviders] = useState<ProviderInfo[]>([]);
-	const [combos, setCombos] = useState<Combo[]>([]);
+	const [providers, setProviders] = useState<ProviderWithModels[]>([]);
 
-	// Load the provider list from the backend, then the current session's
-	// provider/model once the list is known. Re-fetches when the locale changes
-	// so the provider labels stay in the active language.
+	// Load the provider list from the backend together with each provider's
+	// models, then the current session's provider/model once the list is known.
+	// Re-fetches when the locale changes so the provider labels stay in the
+	// active language.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: useLocale() re-renders on language change; the fetch must re-run to refresh backend-resolved labels.
 	useEffect(() => {
 		let cancelled = false;
@@ -43,11 +43,28 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 			try {
 				const pids = await invoke<ProviderInfo[]>("list_providers");
 				if (cancelled) return;
-				setProviders(pids);
+				const groups = await Promise.all(
+					pids.map(async (p) => {
+						try {
+							const models = await invoke<ModelInfo[]>("list_models", {
+								provider: p.id,
+							});
+							return { ...p, models };
+						} catch {
+							// A provider whose models can't be listed (missing key,
+							// unreachable endpoint) simply exposes nothing.
+							return { ...p, models: [] as ModelInfo[] };
+						}
+					}),
+				);
+				if (cancelled) return;
+				// Drop providers with no usable model instead of rendering an
+				// empty group in the popup.
+				setProviders(groups.filter((g) => g.models.length > 0));
 				const sessions = await invoke<Session[]>("list_sessions");
 				const session = sessions.find((s) => s.session_id === session_id);
 				if (cancelled) return;
-				if (session && pids.some((p) => p.id === session.provider.id)) {
+				if (session && groups.some((p) => p.id === session.provider.id)) {
 					setProvider(session.provider.id);
 					setModel(session.model);
 				}
@@ -60,35 +77,14 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 		};
 	}, [session_id, locale]);
 
-	// Load every provider's model list once the providers are known, so the
-	// select can show all provider + model combinations in a single popup.
-	useEffect(() => {
-		if (providers.length === 0) return;
-		let cancelled = false;
-		Promise.all(
-			providers.map(async (p) => {
-				const list = await invoke<ModelInfo[]>("list_models", {
-					provider: p.id,
-				});
-				return list.map((item) => ({ provider: p.id, model: item }));
-			}),
-		)
-			.then((groups) => {
-				if (!cancelled) setCombos(groups.flat());
-			})
-			.catch((error) => console.error(error));
-		return () => {
-			cancelled = true;
-		};
-	}, [providers]);
-
 	const selectedLabel = useMemo(() => {
 		if (!provider || !model) return "--";
 		return (
-			combos.find((c) => c.provider === provider && c.model.id === model)?.model
-				.label || model
+			providers
+				.find((p) => p.id === provider)
+				?.models.find((m) => m.id === model)?.label || model
 		);
-	}, [combos, provider, model]);
+	}, [providers, provider, model]);
 
 	const onValueChange = async (value: string | null) => {
 		if (!value) return;
@@ -130,26 +126,19 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 				<SelectValue>{() => selectedLabel}</SelectValue>
 			</SelectTrigger>
 			<SelectContent side="top" align="start" className="w-fit">
-				{providers.map((p, index) => {
-					const items = combos.filter((c) => c.provider === p.id);
-					if (items.length === 0) return null;
-					return (
-						<Fragment key={p.id}>
-							{index > 0 && <SelectSeparator />}
-							<SelectGroup>
-								<SelectLabel>{p.label}</SelectLabel>
-								{items.map((c) => (
-									<SelectItem
-										key={c.model.id}
-										value={comboValue(p.id, c.model.id)}
-									>
-										{c.model.label}
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</Fragment>
-					);
-				})}
+				{providers.map((p, index) => (
+					<Fragment key={p.id}>
+						{index > 0 && <SelectSeparator />}
+						<SelectGroup>
+							<SelectLabel>{p.label}</SelectLabel>
+							{p.models.map((m) => (
+								<SelectItem key={m.id} value={comboValue(p.id, m.id)}>
+									{m.label}
+								</SelectItem>
+							))}
+						</SelectGroup>
+					</Fragment>
+				))}
 			</SelectContent>
 		</Select>
 	);
