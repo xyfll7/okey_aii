@@ -23,8 +23,8 @@ import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group";
 import { setLocale, useLocale } from "#/lib/locale";
 import { cn } from "#/lib/utils";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
-import { m } from "@/paraglide/messages.js";
 import type { ProviderInfo } from "#/types";
+import { m } from "@/paraglide/messages.js";
 
 export function Settings() {
 	const { push } = useDrawerStack();
@@ -59,6 +59,7 @@ function SettingsContent({ className }: { className?: string }) {
 	const [currentProvider, setCurrentProvider] = useState<string | null>(null);
 
 	useEffect(() => {
+		void locale
 		let cancelled = false;
 		(async () => {
 			try {

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { InputGroupButton } from "#/components/ui/input-group";
 import {
 	Select,
@@ -31,7 +31,7 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 	const [provider, setProvider] = useState<string | null>(null);
 	const [model, setModel] = useState<string>("");
 	const [providers, setProviders] = useState<ProviderWithModels[]>([]);
-
+	console.log("ppppp:",providers);
 	// Load the provider list from the backend together with each provider's
 	// models, then the current session's provider/model once the list is known.
 	// Re-fetches when the locale changes so the provider labels stay in the
@@ -77,15 +77,6 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 		};
 	}, [session_id, locale]);
 
-	const selectedLabel = useMemo(() => {
-		if (!provider || !model) return "--";
-		return (
-			providers
-				.find((p) => p.id === provider)
-				?.models.find((m) => m.id === model)?.label || model
-		);
-	}, [providers, provider, model]);
-
 	const onValueChange = async (value: string | null) => {
 		if (!value) return;
 		const [pid, modelId] = value.split(VALUE_SEP);
@@ -94,9 +85,10 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 			// A model only exists within a provider, so both halves go over in
 			// one command; applying them separately would leave the session
 			// holding a model from the previous provider in between.
-			const apiKeys = pid !== provider
-				? await invoke<Record<string, string>>("get_api_keys")
-				: null;
+			const apiKeys =
+				pid !== provider
+					? await invoke<Record<string, string>>("get_api_keys")
+					: null;
 			await invoke("switch_combo", {
 				session_id,
 				provider: pid,
@@ -123,7 +115,11 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 					/>
 				}
 			>
-				<SelectValue>{() => selectedLabel}</SelectValue>
+				<SelectValue>
+					{providers
+						.find((p) => p.id === provider)
+						?.models.find((m) => m.id === model)?.label || model}
+				</SelectValue>
 			</SelectTrigger>
 			<SelectContent side="top" align="start" className="w-fit">
 				{providers.map((p, index) => (
