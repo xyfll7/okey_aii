@@ -19,25 +19,14 @@ import type { ModelInfo, ProviderInfo, Session } from "#/types";
 // so the frontend keeps no provider → label mapping of its own.
 type ProviderWithModels = ProviderInfo & { models: ModelInfo[] };
 
-const VALUE_SEP = "\u0000";
-
-// Encode a provider + model pair into a single select value.
-function comboValue(provider: string, modelId: string): string {
-	return `${provider}${VALUE_SEP}${modelId}`;
-}
 
 export function ModelSwitcher({ session_id }: { session_id: string }) {
 	const locale = useLocale();
 	const [provider, setProvider] = useState<string | null>(null);
 	const [model, setModel] = useState<string>("");
 	const [providers, setProviders] = useState<ProviderWithModels[]>([]);
-	console.log("ppppp:",providers);
-	// Load the provider list from the backend together with each provider's
-	// models, then the current session's provider/model once the list is known.
-	// Re-fetches when the locale changes so the provider labels stay in the
-	// active language.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: useLocale() re-renders on language change; the fetch must re-run to refresh backend-resolved labels.
 	useEffect(() => {
+		void locale
 		let cancelled = false;
 		(async () => {
 			try {
@@ -79,7 +68,7 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 
 	const onValueChange = async (value: string | null) => {
 		if (!value) return;
-		const [pid, modelId] = value.split(VALUE_SEP);
+		const [pid, modelId] = value.split("\u0000");
 		if (!providers.some((p) => p.id === pid)) return;
 		try {
 			// A model only exists within a provider, so both halves go over in
@@ -104,7 +93,7 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 
 	return (
 		<Select
-			value={provider && model ? comboValue(provider, model) : null}
+			value={provider && model ? `${provider}${"\u0000"}${model}`  : null}
 			onValueChange={onValueChange}
 		>
 			<SelectTrigger
@@ -128,7 +117,7 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 						<SelectGroup>
 							<SelectLabel>{p.label}</SelectLabel>
 							{p.models.map((m) => (
-								<SelectItem key={m.id} value={comboValue(p.id, m.id)}>
+								<SelectItem key={m.id} value={`${p.id}${"\u0000"}${m.id}`}>
 									{m.label}
 								</SelectItem>
 							))}
