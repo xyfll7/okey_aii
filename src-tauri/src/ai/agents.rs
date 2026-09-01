@@ -25,6 +25,8 @@ pub enum ChatEvent {
     Reasoning(String),
     
     Done,
+
+    Error(String),
 }
 
 

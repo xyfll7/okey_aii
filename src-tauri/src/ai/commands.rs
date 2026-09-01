@@ -338,15 +338,27 @@ pub async fn send_message(
                 let _ = on_event.send(ChatEvent::Done);
                 break;
             }
-            Err(e) => {
+            Ok(ChatEvent::Error(e)) => {
                 eprintln!("[send_message] stream error: {e}");
+                let _ = on_event.send(ChatEvent::Error(e));
                 let mut guard = state.write().unwrap();
                 if let Some(sess) = guard.sessions.get_mut(&session_id) {
                     sess.is_loading = false;
                     sess.cancel_handle = None;
                     sess.update_at = std::time::SystemTime::now();
                 }
-                return Err(e);
+                return Ok(());
+            }
+            Err(e) => {
+                eprintln!("[send_message] stream error: {e}");
+                let _ = on_event.send(ChatEvent::Error(e));
+                let mut guard = state.write().unwrap();
+                if let Some(sess) = guard.sessions.get_mut(&session_id) {
+                    sess.is_loading = false;
+                    sess.cancel_handle = None;
+                    sess.update_at = std::time::SystemTime::now();
+                }
+                return Ok(());
             }
         }
     }

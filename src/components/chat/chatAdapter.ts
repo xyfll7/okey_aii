@@ -22,7 +22,8 @@ type ChatEventWire =
 	| { type: "ToolCall"; data: { name: string; arguments: unknown } }
 	| { type: "ToolCallDelta"; data: string }
 	| { type: "Reasoning"; data: string }
-	| { type: "Done"; data: null };
+	| { type: "Done"; data: null }
+	| { type: "Error"; data: string };
 
 interface ChatStreamState {
 	finished: boolean;
@@ -69,6 +70,11 @@ function startChatStream(
 			case "Done":
 				queue.push({ event: "done" });
 				state.finished = true;
+				break;
+			case "Error":
+				state.finished = true;
+				state.errored = true;
+				queue.push({ event: "error", data: { message: message.data } });
 				break;
 			default:
 				

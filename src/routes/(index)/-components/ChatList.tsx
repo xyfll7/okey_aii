@@ -21,7 +21,6 @@ import {
 import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
 import { useSelected } from "#/store";
-import { ErrorBubble } from "./ErrorBubble";
 import { MessageBubble } from "./MessageBubble";
 import MessageNavigator from "./MessageNavigator";
 import { SelectionFloatingButton } from "./SelectionFloatingButton";
@@ -77,24 +76,21 @@ export function ChatList({ session_id }: { session_id: string }) {
 								>
 									<MessageBubble message={item} />
 									{isLast && (
-										<>
-											<ErrorBubble />
-											<Marker
-												role="banner"
-												className={cn(
-													isBusy && !getMessageText(item).join("").length
-														? ""
-														: "sr-only",
-												)}
-											>
-												<MarkerContent className="shimmer">
-													<span className="font-medium">
-														{m.translate_loading()}
-													</span>
-													...
-												</MarkerContent>
-											</Marker>
-										</>
+										<Marker
+											role="banner"
+											className={cn(
+												isBusy && !getMessageText(item).join("").length
+													? ""
+													: "sr-only",
+											)}
+										>
+											<MarkerContent className="shimmer">
+												<span className="font-medium">
+													{m.translate_loading()}
+												</span>
+												...
+											</MarkerContent>
+										</Marker>
 									)}
 								</MessageScrollerItem>
 							);

@@ -37,5 +37,6 @@
   "prompts_add": "添加",
   "prompts_edit": "修改",
   "chat_error_title": "生成失败",
+  "chat_send_failed": "发送失败",
   "chat_retry": "重试"
 }
