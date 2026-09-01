@@ -4,8 +4,9 @@ use std::{
     time::Duration,
 };
 use tauri::Listener;
-use tauri::{window::Color, AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+use tauri::{window::Color, AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
+use crate::ai::commands::{close_session, list_sessions};
 use crate::my_windows::window_helper::{calculate_center_position, calculate_window_position};
 use crate::store::app_state::AppConfigState;
 
@@ -19,7 +20,7 @@ pub fn should_use_existing_index_window(app: AppHandle) -> bool {
     (translate_window.is_some()) || is_focused
 }
 
-pub fn window_index_show<R: Runtime, F>(app: &AppHandle<R>, callback: Option<F>)
+pub fn window_index_show<F>(app: &AppHandle, callback: Option<F>)
 where
     F: FnOnce() + Send + 'static,
 {
@@ -123,7 +124,18 @@ where
                     *cancelled.lock().unwrap() = true;
                 }
                 tauri::WindowEvent::Destroyed => {
-                    log::info!("[window_index] index window destroyed");
+                    let sessions = list_sessions(app_handle.clone());
+                    let keep_id = sessions
+                        .iter()
+                        .min_by_key(|s| s.created_at)
+                        .map(|s| s.session_id.clone());
+                    if let Some(keep_id) = keep_id {
+                        for sess in sessions {
+                            if sess.session_id != keep_id {
+                                let _ = close_session(app_handle.clone(), sess.session_id);
+                            }
+                        }
+                    }
                 }
                 _ => {}
             });
