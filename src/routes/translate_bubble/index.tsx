@@ -1,7 +1,9 @@
+import type { UIMessage } from "@tanstack/ai-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type as ostype } from "@tauri-apps/plugin-os";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Copyed from "#/components/Copyed";
 import { useChatContext } from "#/components/chat/chatContext";
 import { useChatInit } from "#/components/chat/chatInit";
@@ -15,34 +17,75 @@ export const Route = createFileRoute("/translate_bubble/")({
 	component: RouteComponent,
 });
 function RouteComponent() {
-	const session_id = useSessionId();
+	const { session_id, user_contents } = useSessionId();
 	if (!session_id) {
 		return null;
 	}
+	console.log("sssssss",session_id)
 	return (
 		<ChatProvider session_id={session_id}>
-			<BubbleView session_id={session_id}></BubbleView>
+			<BubbleView user_contents={user_contents} />
 		</ChatProvider>
 	);
 }
 
 function useSessionId() {
-	const [session_id, setSession_id] = useState("");
+	const [session, setSession] = useState<{
+		session_id: string;
+		user_contents?: string[];
+	} | null>(null);
 
 	useEffect(() => {
 		invoke<Session[]>("list_sessions")
 			.then((sessions) => {
 				const last_session = sessions.at(-1);
-				last_session?.session_id && setSession_id(last_session?.session_id);
+				if (last_session?.session_id) {
+					setSession((prev) => prev ?? { session_id: last_session.session_id });
+				}
 			})
 			.catch(console.error);
+		const unlisten = getCurrentWindow().listen<{
+			session_id: string;
+			user_contents: string[];
+		}>("on_open_session_with_session_id", (e) => {
+			const { session_id, user_contents } = e.payload;
+			setSession({ session_id, user_contents });
+		});
+		return () => {
+			unlisten.then((fn) => fn());
+		};
 	}, []);
-	return session_id;
+	return session ?? { session_id: "", user_contents: undefined };
 }
 
-function BubbleView({ session_id }: { session_id: string }) {
-	useChatInit({ session_id });
-	const { messages, status } = useChatContext();
+function BubbleView({ user_contents }: { user_contents?: string[] }) {
+	const { messages, status, session_id, append } = useChatContext();
+	useChatInit();
+
+	// Send the freshly selected text as the user message once the session is
+	// ready; the backend passes it along with the session id via the event.
+	// The ref tracks the last handled session, so each new session triggers
+	// exactly one append; it also guards against re-runs triggered by
+	// `append`'s unstable reference.
+	const lastHandledSession = useRef<string | null>(null);
+	useEffect(() => {
+		if (!session_id || !user_contents?.length) return;
+		if (lastHandledSession.current === session_id) return;
+		lastHandledSession.current = session_id;
+		console.log("1111111_____")
+		const [selected_text, translate_instruction] = user_contents;
+		const userMessage: UIMessage = {
+			id: `selected-${Date.now()}`,
+			role: "user",
+			parts: [
+				{ type: "text", content: selected_text },
+				...(translate_instruction
+					? [{ type: "text" as const, content: translate_instruction }]
+					: []),
+			],
+		};
+		append(userMessage);
+	}, [session_id, user_contents, append]);
 	const chat = (() => {
 		const item = messages?.at(-1);
 		return item?.role === "assistant" ? item : undefined;

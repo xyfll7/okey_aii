@@ -235,7 +235,7 @@ pub async fn send_message(
     session_id: String,
 ) -> Result<(), String> {
     let should_emit_done = !should_use_existing_index_window(app.clone());
-
+    println!("abc8888********{}",session_id);
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let (agent, history) = {
         let guard = state.read().unwrap();

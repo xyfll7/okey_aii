@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { useChatContext } from "#/components/chat/chatContext";
 import { type RigHistoryItem, rigMessageToUIMessage } from "#/lib/rigMessage";
 
-export function useChatInit({ session_id }: { session_id: string }) {
-	const { setMessages, append, messages, status } = useChatContext();
+export function useChatInit() {
+	const { session_id, setMessages, append, messages, status } =
+		useChatContext();
 	useEffect(() => {
 		function get_history() {
 			invoke<RigHistoryItem[]>("get_history", { session_id }).then((history) =>
@@ -29,7 +30,10 @@ export function useChatInit({ session_id }: { session_id: string }) {
 	useEffect(() => {
 		const unlisten = getCurrentWindow().listen<RigHistoryItem>(
 			`on_message_${session_id}`,
-			(e) => append(rigMessageToUIMessage(e.payload)),
+			(e) => {
+				console.log("abc===========", session_id, e);
+				append(rigMessageToUIMessage(e.payload));
+			},
 		);
 		return () => {
 			unlisten.then((fn) => fn());

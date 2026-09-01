@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::ai::{commands::list_sessions, state::HistoryItem};
 use crate::store::app_state::AppConfigState;
 
-fn translate_prompt(app: &AppHandle) -> String {
+pub fn translate_prompt(app: &AppHandle) -> String {
     let state = app.state::<AppConfigState>();
     let config = state.read();
     let tag_id = if config.self_explaining_model { Some(3) } else { Some(2) };
@@ -30,6 +30,7 @@ pub fn send_message_to_ui(app: &AppHandle, selected_text: String, target: String
         let list = list_sessions(app.clone());
         list.last().map(|s| s.session_id.clone())
     };
+    println!("ssssssididid_{:#?}",session_id);
     if let Some(session_id) = session_id {
         let item = HistoryItem {
             id: uuid::Uuid::new_v4().to_string(),

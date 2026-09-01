@@ -30,6 +30,7 @@ export function ChatProvider({
 	children: ReactNode;
 }) {
 	const chat = useChat({
+		threadId: session_id,
 		initialMessages: [],
 		connection: chatAdapter(session_id),
 	});
@@ -55,7 +56,11 @@ export function ChatProvider({
 
 	return (
 		<ChatContext.Provider
-			value={{ ...chat, append: append as typeof originalAppend }}
+			value={{
+				...chat,
+				session_id,
+				append: append as typeof originalAppend,
+			}}
 		>
 			{children}
 		</ChatContext.Provider>

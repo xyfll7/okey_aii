@@ -38,10 +38,10 @@ function handleChatSelection(
 	}
 }
 
-export function ChatList({ session_id }: { session_id: string }) {
+export function ChatList() {
 	const chatListRef = useRef<HTMLDivElement>(null);
 	const { setText } = useSelected();
-	const { messages, status } = useChatInit({ session_id });
+	const { messages, status } = useChatInit();
 	const msgs = messages.filter((e) => e.role !== "system");
 	const isBusy = status === "submitted" || status === "streaming";
 	const lastMsg = msgs.at(-1);

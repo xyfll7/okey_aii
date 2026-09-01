@@ -59,7 +59,7 @@ function startChatStream(
 ): void {
 	const prompt = buildPromptHistoryItem(userMessage);
 	const channel = new Channel<ChatEventWire>();
-
+	console.log("ssssss&&&&&&&&&",session_id)
 	channel.onmessage = (message) => {
 		switch (message.type) {
 			case "TextDelta":

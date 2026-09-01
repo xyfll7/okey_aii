@@ -1,12 +1,12 @@
-use crate::ai::commands::create_session;
+use crate::ai::commands::{close_session, create_session, list_sessions};
 use crate::ai::model_catalog::ModelCatalogState;
 use crate::ai::state::ChatState;
 use crate::my_windows::window_index::should_use_existing_index_window;
 use crate::store::app_state::AppStateManager;
-use crate::utils::send_message_to_ui::send_message_to_ui;
+use crate::utils::send_message_to_ui::{send_message_to_ui, translate_prompt};
 use crate::{my_rdev, my_tray, my_windows};
 use std::sync::{Arc, RwLock};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 pub fn init(app: &mut tauri::App) {
     init_state(app);
@@ -27,17 +27,34 @@ pub fn init(app: &mut tauri::App) {
                     }),
                 );
             } else {
-                let app_clone = app.clone();
-                my_windows::window_translate_bubble::window_translate_bubble_show(
-                    &app,
-                    Some(move || {
-                        send_message_to_ui(
-                            &app_clone,
-                            selected_text,
-                            "translate_bubble".to_string(),
+                // Close all existing sessions, then create a fresh one before
+                // showing the translate bubble, so the UI always opens a clean session.
+                let sessions = list_sessions(app.clone());
+                for session in sessions {
+                    if let Err(e) = close_session(app.clone(), session.session_id) {
+                        log::error!("failed to close session: {e}");
+                    }
+                }
+                match tauri::async_runtime::block_on(create_session(app.clone())) {
+                    Ok((session_id, _)) => {
+                        log::info!("created new session: {session_id}");
+                        // Pass the selected text and the translation instruction
+                        // along with the session id so the translate bubble can
+                        // render the user message directly.
+                        let translate_instruction = translate_prompt(&app);
+                        let _ = app.emit_to(
+                            "translate_bubble",
+                            "on_open_session_with_session_id",
+                            serde_json::json!({
+                                "session_id": session_id,
+                                "user_contents": [selected_text, translate_instruction],
+                            }),
                         );
-                    }),
-                );
+                    }
+                    Err(e) => log::error!("failed to create new session: {e}"),
+                }
+
+                my_windows::window_translate_bubble::window_translate_bubble_show(&app);
             };
         },
         |app, x, y| {

@@ -4,10 +4,7 @@ use crate::my_windows::window_helper::*;
 
 
 pub const WINDOW_HEIGHT_TRANSLATE_BUBBLE: f64 = [32.0, 34.0][cfg!(target_os = "macos") as usize];
-pub fn window_translate_bubble_show<R: Runtime, F>(app: &AppHandle<R>, callback: Option<F>)
-where
-    F: FnOnce() + Send + 'static,
-{
+pub fn window_translate_bubble_show<R: Runtime>(app: &AppHandle<R>) {
     const WINDOW_WIDTH: f64 = 270.0;
     const CURSOR_OFFSET: f64 = 17.0;
 
@@ -52,12 +49,6 @@ where
 
         let _ = window.show();
         let _ = window.set_always_on_top(true);
-        
-        if let Some(cb) = callback {
-            tauri::async_runtime::spawn(async move {
-                cb();
-            });
-        }
     }
 }
 

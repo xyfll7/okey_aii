@@ -9,7 +9,7 @@ export function SessionView({ session_id }: { session_id: string }) {
 		<SelectedProvider>
 			<ChatProvider session_id={session_id}>
 				<div className="h-full flex flex-col overflow-hidden">
-					<ChatList session_id={session_id} />
+					<ChatList />
 					<div className="px-2 pb-2">
 						<Inputer session_id={session_id} />
 					</div>
