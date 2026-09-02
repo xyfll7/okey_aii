@@ -21,7 +21,6 @@ function RouteComponent() {
 	if (!session_id) {
 		return null;
 	}
-	console.log("sssssss",session_id)
 	return (
 		<ChatProvider session_id={session_id}>
 			<BubbleView user_contents={user_contents} />
@@ -69,7 +68,6 @@ function BubbleView({ user_contents }: { user_contents?: string[] }) {
 	// arrives, so this effect fires exactly once per opened session.
 	useEffect(() => {
 		if (!session_id || !user_contents?.length) return;
-		console.log("1111111_____")
 		const [selected_text, translate_instruction] = user_contents;
 		const userMessage: UIMessage = {
 			id: `selected-${Date.now()}`,
@@ -157,7 +155,7 @@ function BubbleView({ user_contents }: { user_contents?: string[] }) {
 					variant={"ghost"}
 					onClick={() => {
 						const chat_user = messages?.at(-2);
-						if (chat_user) speak(getMessageText(chat_user).join(""));
+						if (chat_user) speak(getMessageText(chat_user)[0]);
 					}}
 				>
 					<Icons.volumeHigh />
