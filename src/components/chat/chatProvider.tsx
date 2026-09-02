@@ -1,7 +1,7 @@
 import type { UIMessage } from "@tanstack/ai/client";
 import { useChat } from "@tanstack/ai-react";
 import { invoke } from "@tauri-apps/api/core";
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback, useRef } from "react";
 import { type RigHistoryItem, rigMessageToUIMessage } from "#/lib/rigMessage";
 import { speak } from "#/lib/utils";
 import { AutoSpeakState } from "@/lib/types";
@@ -35,8 +35,11 @@ export function ChatProvider({
 		connection: chatAdapter(session_id),
 	});
 
-	const originalAppend = chat.append;
-	const append = async (arg: UIMessage) => {
+	// Keep a stable append reference so consumers (e.g. effects depending on
+	// it) don't re-run on every provider re-render.
+	const originalAppendRef = useRef(chat.append);
+	originalAppendRef.current = chat.append;
+	const append = useCallback(async (arg: UIMessage) => {
 		// Assemble the prompt template in the frontend as early as possible (language detection + user language config),
 		// instead of assembling it in the backend send_message step where the earlier timing would be missed.
 		try {
@@ -48,18 +51,18 @@ export function ChatProvider({
 
 			autoSpeak(message);
 
-			originalAppend(message);
+			originalAppendRef.current(message);
 		} catch (err) {
 			console.error("assemble_prompt_item failed:", err);
 		}
-	};
+	}, []);
 
 	return (
 		<ChatContext.Provider
 			value={{
 				...chat,
 				session_id,
-				append: append as typeof originalAppend,
+				append: append as typeof chat.append,
 			}}
 		>
 			{children}

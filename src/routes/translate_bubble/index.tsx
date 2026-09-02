@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type as ostype } from "@tauri-apps/plugin-os";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Copyed from "#/components/Copyed";
 import { useChatContext } from "#/components/chat/chatContext";
 import { useChatInit } from "#/components/chat/chatInit";
@@ -64,14 +64,11 @@ function BubbleView({ user_contents }: { user_contents?: string[] }) {
 
 	// Send the freshly selected text as the user message once the session is
 	// ready; the backend passes it along with the session id via the event.
-	// The ref tracks the last handled session, so each new session triggers
-	// exactly one append; it also guards against re-runs triggered by
-	// `append`'s unstable reference.
-	const lastHandledSession = useRef<string | null>(null);
+	// `append` is referentially stable (useCallback in ChatProvider) and both
+	// `session_id`/`user_contents` only change together when a new event
+	// arrives, so this effect fires exactly once per opened session.
 	useEffect(() => {
 		if (!session_id || !user_contents?.length) return;
-		if (lastHandledSession.current === session_id) return;
-		lastHandledSession.current = session_id;
 		console.log("1111111_____")
 		const [selected_text, translate_instruction] = user_contents;
 		const userMessage: UIMessage = {
