@@ -20,6 +20,7 @@ import { m } from "#/paraglide/messages";
 
 export function MessageBubble({ message }: { message: UIMessage }) {
 	const { messages, error, reload, status } = useChatContext();
+	const parts = getMessageText(message);
 	// `useChat` keeps a single `error` that always describes the latest failed
 	// turn, so only the trailing user message is allowed to surface it.
 	const isFailedTurn =
@@ -34,7 +35,7 @@ export function MessageBubble({ message }: { message: UIMessage }) {
 					{message.role === "user" && (
 						<>
 							<Bubble variant={"outline"} align="end">
-								<BubbleContent>{getMessageText(message)[0]}</BubbleContent>
+								<BubbleContent>{parts[0]}</BubbleContent>
 								<BubbleReactions
 									className={cn("sr-only")}
 									align="start"
@@ -44,9 +45,14 @@ export function MessageBubble({ message }: { message: UIMessage }) {
 									<span>👍</span>
 								</BubbleReactions>
 							</Bubble>
-							{getMessageText(message)[1] && (
-								<MessageFooter>{getMessageText(message)[1]}</MessageFooter>
-							)}
+							{parts
+								.slice(1)
+								.filter(Boolean)
+								.map((text, index) => (
+									<MessageFooter key={`${message.id}-extra-${String(index)}`}>
+										{text}
+									</MessageFooter>
+								))}
 							{isFailedTurn && (
 								<>
 									<MessageFooter className="gap-2">
@@ -79,7 +85,7 @@ export function MessageBubble({ message }: { message: UIMessage }) {
 							{/* <MessageHeader>{"123213"}</MessageHeader> */}
 							<Bubble variant="ghost">
 								<BubbleContent>
-									<Markdown>{getMessageText(message).join("")}</Markdown>
+									<Markdown>{parts.join("")}</Markdown>
 								</BubbleContent>
 								<BubbleReactions
 									className={cn("sr-only", "translate-y-4/4")}

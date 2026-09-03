@@ -19,18 +19,27 @@ pub fn translate_prompt(app: &AppHandle) -> String {
         .unwrap_or_default()
 }
 
-pub fn send_message_to_ui(app: &AppHandle, selected_text: String, target: String) {
+pub fn send_message_to_ui(
+    app: &AppHandle,
+    selected_text: String,
+    selected_files: Vec<String>,
+    target: String,
+) {
     let translate_instruction = translate_prompt(app);
-    let message: rig::message::Message = vec![
+    let mut content = vec![
         UserContent::text(selected_text),
         UserContent::text(translate_instruction),
-    ]
-    .into();
+    ];
+    // TODO: 目前先把 Finder 选中的文件路径拼成一条文本发给 UI，
+    // 后续可换成 document 附件或读取文件内容。
+    if !selected_files.is_empty() {
+        content.push(UserContent::text(selected_files.join(",")));
+    }
+    let message: rig::message::Message = content.into();
     let session_id = {
         let list = list_sessions(app.clone());
         list.last().map(|s| s.session_id.clone())
     };
-    println!("ssssssididid_{:#?}",session_id);
     if let Some(session_id) = session_id {
         let item = HistoryItem {
             id: uuid::Uuid::new_v4().to_string(),

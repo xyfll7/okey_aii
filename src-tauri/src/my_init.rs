@@ -16,14 +16,22 @@ pub fn init(app: &mut tauri::App) {
         app.handle(),
         |app| {
             let app = app.clone();
-            let selected_text = crate::utils::selecte_text::get_selected_text();
+            let crate::utils::selecte_text::SelectedContent {
+                selected_text,
+                selected_files,
+            } = crate::utils::selecte_text::get_selected_content();
 
             if should_use_existing_index_window(app.clone()) {
                 let app_clone = app.clone();
                 my_windows::window_index::window_index_show(
                     &app,
                     Some(move || {
-                        send_message_to_ui(&app_clone, selected_text, "index".to_string());
+                        send_message_to_ui(
+                            &app_clone,
+                            selected_text,
+                            selected_files,
+                            "index".to_string(),
+                        );
                     }),
                 );
             } else {
