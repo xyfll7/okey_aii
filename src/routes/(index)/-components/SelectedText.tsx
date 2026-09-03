@@ -3,12 +3,19 @@ import { useCallback, useEffect, useState } from "react";
 import Copyed from "#/components/Copyed";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
+import { ButtonGroup } from "#/components/ui/button-group";
 import type { PromptTag } from "#/lib/types";
 import { cn, speak } from "#/lib/utils";
 import { useSelected } from "@/store";
 import { PromptTags } from "./PromptTags";
 
-export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
+export function SelectedText({
+	onChat,
+	onChatNew,
+}: {
+	onChat: (e: PromptTag) => void;
+	onChatNew: (e: PromptTag) => void;
+}) {
 	const { text, setText } = useSelected();
 	const { tags, add, update, remove } = usePromptTags();
 	if (!text) return "";
@@ -50,15 +57,18 @@ export function SelectedText({ onChat }: { onChat: (e: PromptTag) => void }) {
 			{text?.trim() && (
 				<div className="flex flex-wrap">
 					{tags.slice(3).map((tag) => (
-						<Button
-							className="mr-1 mb-1"
-							size={"xs"}
-							variant={"outline"}
-							key={tag.id}
-							onClick={() => onChat(tag)}
-						>
-							{tag.label}
-						</Button>
+						<ButtonGroup key={tag.id} className="mr-1 mb-1">
+							<Button
+								size={"xs"}
+								variant={"outline"}
+								onClick={() => onChat(tag)}
+							>
+								{tag.label}
+							</Button>
+							<Button size={"icon-xs"} variant={"outline"} onClick={() => {onChatNew(tag)}}>
+								<Icons.arrowUpRight01 />
+							</Button>
+						</ButtonGroup>
 					))}
 					<PromptTags
 						prompts={tags}
@@ -83,24 +93,41 @@ export function usePromptTags(preset_id: string = "assistant") {
 		refresh().catch((err) => console.error("Failed to load prompt tags:", err));
 	}, [refresh]);
 
-	const add = useCallback(async (label: string, content: string) => {
-		setTags(await invoke<PromptTag[]>("add_prompt_tag", { preset_id, label, content }));
-	}, [preset_id]);
+	const add = useCallback(
+		async (label: string, content: string) => {
+			setTags(
+				await invoke<PromptTag[]>("add_prompt_tag", {
+					preset_id,
+					label,
+					content,
+				}),
+			);
+		},
+		[preset_id],
+	);
 
-	const update = useCallback(async (tag: PromptTag) => {
-		setTags(
-			await invoke<PromptTag[]>("update_prompt_tag", {
-				preset_id,
-				id: tag.id,
-				label: tag.label ?? "",
-				content: tag.content ?? "",
-			}),
-		);
-	}, [preset_id]);
+	const update = useCallback(
+		async (tag: PromptTag) => {
+			setTags(
+				await invoke<PromptTag[]>("update_prompt_tag", {
+					preset_id,
+					id: tag.id,
+					label: tag.label ?? "",
+					content: tag.content ?? "",
+				}),
+			);
+		},
+		[preset_id],
+	);
 
-	const remove = useCallback(async (id: number) => {
-		setTags(await invoke<PromptTag[]>("delete_prompt_tag", { preset_id, id }));
-	}, [preset_id]);
+	const remove = useCallback(
+		async (id: number) => {
+			setTags(
+				await invoke<PromptTag[]>("delete_prompt_tag", { preset_id, id }),
+			);
+		},
+		[preset_id],
+	);
 
 	return { tags, refresh, add, update, remove };
 }

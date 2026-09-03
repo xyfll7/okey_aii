@@ -37,7 +37,6 @@ pub fn init(app: &mut tauri::App) {
                 }
                 match tauri::async_runtime::block_on(create_session(app.clone())) {
                     Ok((session_id, _)) => {
-                        log::info!("created new session: {session_id}");
                         // Pass the selected text and the translation instruction
                         // along with the session id so the translate bubble can
                         // render the user message directly.

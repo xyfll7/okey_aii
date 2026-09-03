@@ -22,8 +22,30 @@ function RouteComponent() {
 		return null;
 	}
 	return (
-		<ChatProvider session_id={session_id}>
-			<BubbleView user_contents={user_contents} />
+		<ChatProvider
+			session_id={session_id}
+			onChatReady={(append) => {
+				// Send the freshly selected text as this session's opening user
+				// message once its chat is ready. The backend creates a new
+				// session per gesture and passes session_id + user_contents via
+				// the event; since session_id changes per session, onChatReady
+				// fires once per opened session.
+				if (!user_contents?.length) return;
+				const [selected_text, translate_instruction] = user_contents;
+				const userMessage: UIMessage = {
+					id: `selected-${Date.now()}`,
+					role: "user",
+					parts: [
+						{ type: "text", content: selected_text },
+						...(translate_instruction
+							? [{ type: "text" as const, content: translate_instruction }]
+							: []),
+					],
+				};
+				append(userMessage);
+			}}
+		>
+			<BubbleView />
 		</ChatProvider>
 	);
 }
@@ -57,30 +79,9 @@ function useSessionId() {
 	return session ?? { session_id: "", user_contents: undefined };
 }
 
-function BubbleView({ user_contents }: { user_contents?: string[] }) {
-	const { messages, status, session_id, append } = useChatContext();
+function BubbleView() {
+	const { messages, status } = useChatContext();
 	useChatInit();
-
-	// Send the freshly selected text as the user message once the session is
-	// ready; the backend passes it along with the session id via the event.
-	// `append` is referentially stable (useCallback in ChatProvider) and both
-	// `session_id`/`user_contents` only change together when a new event
-	// arrives, so this effect fires exactly once per opened session.
-	useEffect(() => {
-		if (!session_id || !user_contents?.length) return;
-		const [selected_text, translate_instruction] = user_contents;
-		const userMessage: UIMessage = {
-			id: `selected-${Date.now()}`,
-			role: "user",
-			parts: [
-				{ type: "text", content: selected_text },
-				...(translate_instruction
-					? [{ type: "text" as const, content: translate_instruction }]
-					: []),
-			],
-		};
-		append(userMessage);
-	}, [session_id, user_contents, append]);
 	const chat = (() => {
 		const item = messages?.at(-1);
 		return item?.role === "assistant" ? item : undefined;

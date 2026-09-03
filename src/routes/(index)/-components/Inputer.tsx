@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 import { useChatContext } from "#/components/chat/chatContext";
 import { Icons } from "#/components/icon";
@@ -7,17 +8,25 @@ import {
 	InputGroupButton,
 	InputGroupTextarea,
 } from "#/components/ui/input-group";
-import type { PromptTag } from "#/lib/types";
 import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
 import { useSelected } from "@/store";
+import { useDrawerStack } from "./DrawerStack";
 import { ModelSwitcher } from "./ModelSwitcher";
 import { SelectedText } from "./SelectedText";
+import { SessionView } from "./SessionView";
 
-export function Inputer({ className, session_id }: { className?: string; session_id: string }) {
+export function Inputer({
+	className,
+	session_id,
+}: {
+	className?: string;
+	session_id: string;
+}) {
 	const [value, setValue] = useState("");
 	const selected = useSelected();
 	const { append, status, stop } = useChatContext();
+	const { push } = useDrawerStack();
 	const isBusy = status === "submitted" || status === "streaming";
 	const handleSend = async () => {
 		if (isBusy) {
@@ -45,7 +54,33 @@ export function Inputer({ className, session_id }: { className?: string; session
 			{selected.text && (
 				<InputGroupAddon align="block-start">
 					<SelectedText
-						onChat={(tag: PromptTag) => {
+						onChatNew={async (tag) => {
+							const [new_session_id] = await invoke<[string]>("create_session");
+							push({
+								id: new_session_id,
+								content: () => (
+									<SessionView
+										session_id={new_session_id}
+										onChatReady={(append) => {
+											// Auto-send the selected text + tag as the new
+											// session's opening message once its chat is ready.
+											const text = selected.text.trim();
+											if (!text) return;
+											append({
+												id: crypto.randomUUID(),
+												role: "user",
+												createdAt: new Date(),
+												parts: [
+													{ type: "text", content: text },
+													{ type: "text", content: tag.content ?? "" },
+												],
+											});
+										}}
+									/>
+								),
+							});
+						}}
+						onChat={(tag) => {
 							const text = selected.text.trim();
 							if (!text) return;
 							append({
