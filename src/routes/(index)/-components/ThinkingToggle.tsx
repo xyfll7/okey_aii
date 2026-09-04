@@ -45,6 +45,7 @@ export function ThinkingToggle({ session_id }: { session_id: string }) {
 			aria-label={thinking ? m.translate_thinking_on() : m.translate_thinking_off()}
 			className={cn(
 				"cursor-pointer",
+				// "bg-amber-200",
 				thinking
 					? "bg-primary/10 text-primary hover:bg-primary/15"
 					: "text-muted-foreground hover:bg-muted",

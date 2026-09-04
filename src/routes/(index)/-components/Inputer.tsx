@@ -14,9 +14,9 @@ import { m } from "#/paraglide/messages";
 import { useSelected } from "@/store";
 import { useDrawerStack } from "./DrawerStack";
 import { ModelSwitcher } from "./ModelSwitcher";
-import { ThinkingToggle } from "./ThinkingToggle";
 import { SelectedText } from "./SelectedText";
 import { SessionView } from "./SessionView";
+import { ThinkingToggle } from "./ThinkingToggle";
 
 /**
  * Some browsers (notably Safari/WKWebView) fire the Enter `keydown` that
@@ -162,8 +162,8 @@ export function Inputer({
 				}}
 			/>
 			<InputGroupAddon align="block-end">
-				<ModelSwitcher session_id={session_id} />
 				<ThinkingToggle session_id={session_id} />
+				<ModelSwitcher session_id={session_id} />
 				<InputGroupButton
 					variant="default"
 					className="rounded-full ml-auto cursor-pointer"

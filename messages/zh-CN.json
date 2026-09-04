@@ -24,6 +24,7 @@
   "translate_input_placeholder": "提问、搜索或聊天...",
   "translate_thinking_on": "思考模式：已开启",
   "translate_thinking_off": "思考模式：已关闭",
+  "translate_thinking_section": "思考过程",
   "translate_empty_title": "一键翻译",
   "translate_empty_description": "鼠标选中什么就翻译什么，AI驱动",
   "translate_loading": "加载中",

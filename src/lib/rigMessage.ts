@@ -139,7 +139,7 @@ export function rigMessageToText(message: RigMessage): string {
 						case "tool_call":
 							return `[tool_call] $$${c.function.name}`;
 						case "reasoning":
-							return `[reasoning] $$${JSON.stringify(c.content)}`;
+							return `[reasoning] $$${reasoningToText(c)}`;
 						case "image":
 							return "[image]";
 						default:
@@ -151,6 +151,25 @@ export function rigMessageToText(message: RigMessage): string {
 }
 
 import type { UIMessage } from "@tanstack/ai-react";
+
+/** Flattens a rig reasoning payload into readable plain text. */
+function reasoningToText(reasoning: RigReasoning): string {
+	const lines = (reasoning.content ?? []).map((block) => {
+		switch (block.type) {
+			case "text":
+				return block.content.text;
+			case "summary":
+				return block.content;
+			case "redacted":
+				return block.content.data;
+			case "encrypted":
+				return "";
+			default:
+				return "";
+		}
+	});
+	return lines.filter((s) => s?.trim()).join("\n");
+}
 
 
 export function rigMessageToUIMessage(item: RigHistoryItem): UIMessage {
@@ -201,7 +220,7 @@ export function rigMessageToUIMessage(item: RigHistoryItem): UIMessage {
 					case "reasoning":
 						return {
 							type: "thinking",
-							content: JSON.stringify(c.content),
+							content: reasoningToText(c),
 						} as const;
 					case "text":
 						return { type: "text", content: c.text } as const;

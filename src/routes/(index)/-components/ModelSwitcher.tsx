@@ -12,11 +12,10 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { useLocale } from "#/lib/locale";
+import { cn } from "#/lib/utils";
 import type { ModelInfo, ProviderInfo, Session } from "#/types";
 
-
 type ProviderWithModels = ProviderInfo & { models: ModelInfo[] };
-
 
 export function ModelSwitcher({ session_id }: { session_id: string }) {
 	const locale = useLocale();
@@ -24,7 +23,7 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 	const [model, setModel] = useState<string>("");
 	const [providers, setProviders] = useState<ProviderWithModels[]>([]);
 	useEffect(() => {
-		void locale
+		void locale;
 		let cancelled = false;
 		(async () => {
 			try {
@@ -91,14 +90,18 @@ export function ModelSwitcher({ session_id }: { session_id: string }) {
 
 	return (
 		<Select
-			value={provider && model ? `${provider}${"\u0000"}${model}`  : null}
+			value={provider && model ? `${provider}${"\u0000"}${model}` : null}
 			onValueChange={onValueChange}
 		>
 			<SelectTrigger
 				render={
 					<InputGroupButton
 						size="xs"
-						className="h-6! border-transparent! bg-transparent! dark:bg-transparent! hover:bg-muted! dark:hover:bg-muted/50! focus-visible:border-transparent! focus-visible:ring-0!"
+						className={cn(
+							"h-6! rounded-[calc(var(--radius)-3px)]! border-transparent! hover:bg-muted! dark:hover:bg-muted/50! focus-visible:border-transparent! focus-visible:ring-0!",
+							"bg-transparent! dark:bg-transparent!",
+							// "bg-amber-200!",
+						)}
 					/>
 				}
 			>

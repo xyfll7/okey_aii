@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use futures::StreamExt;
-use rig::message::Message;
+use rig::message::{AssistantContent, Message, Reasoning};
 use tauri::ipc::Channel;
 
 use crate::ai::state::{
@@ -358,6 +358,9 @@ pub async fn send_message(
     let mut stream = futures::stream::Abortable::new(stream, abort_registration);
 
     let mut full_text = String::new();
+    // Reasoning deltas arrive as separate stream events; accumulate them so
+    // they can be persisted alongside the final assistant message.
+    let mut full_reasoning = String::new();
     while let Some(item) = stream.next().await {
         match item {
             Ok(ChatEvent::TextDelta(text)) => {
@@ -384,6 +387,7 @@ pub async fn send_message(
                 }
             }
             Ok(ChatEvent::Reasoning(text)) => {
+                full_reasoning.push_str(&text);
                 if on_event.send(ChatEvent::Reasoning(text)).is_err() {
                     break;
                 }
@@ -434,10 +438,24 @@ pub async fn send_message(
     }
 
     if !full_text.is_empty() {
+        // Persist reasoning content as part of the assistant message so the UI
+        // can render the thinking process alongside the final answer.
+        let reasoning_text = full_reasoning.trim();
+        let content = if reasoning_text.is_empty() {
+            vec![AssistantContent::text(full_text.as_str())]
+        } else {
+            vec![
+                AssistantContent::Reasoning(Reasoning::new(reasoning_text)),
+                AssistantContent::text(full_text.as_str()),
+            ]
+        };
         let item = HistoryItem {
             id: uuid::Uuid::new_v4().to_string(),
             created_at: std::time::SystemTime::now(),
-            message: Message::assistant(full_text.as_str()),
+            message: Message::Assistant {
+                id: None,
+                content,
+            },
         };
         {
             let state = app.state::<Arc<RwLock<ChatState>>>();

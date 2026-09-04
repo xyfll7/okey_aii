@@ -17,6 +17,7 @@ import {
 } from "#/components/ui/message";
 import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
+import { ThinkingBlock } from "./ThinkingBlock";
 
 export function MessageBubble({ message }: { message: UIMessage }) {
 	const { messages, error, reload, status } = useChatContext();
@@ -35,7 +36,12 @@ export function MessageBubble({ message }: { message: UIMessage }) {
 					{message.role === "user" && (
 						<>
 							<Bubble variant={"outline"} align="end">
-								<BubbleContent>{parts[0]}</BubbleContent>
+								{/* The user's own message is shown verbatim (no markdown
+								    parsing): line breaks, leading indentation and
+								    special characters are preserved exactly as typed. */}
+								<BubbleContent className="whitespace-pre-wrap">
+									{parts[0]}
+								</BubbleContent>
 								<BubbleReactions
 									className={cn("sr-only")}
 									align="start"
@@ -82,6 +88,24 @@ export function MessageBubble({ message }: { message: UIMessage }) {
 					)}
 					{message.role === "assistant" && (
 						<>
+							{/* The model's reasoning process (streamed via thinking
+							    parts or restored from history) goes above the
+							    answer bubble. */}
+							{message.parts
+								?.filter(
+									(
+										p,
+									): p is Extract<
+										UIMessage["parts"][number],
+										{ type: "thinking" }
+									> => p.type === "thinking",
+								)
+								.map((part, index) => (
+									<ThinkingBlock
+										key={`${message.id}-thinking-${String(index)}`}
+										content={String(part.content ?? "")}
+									/>
+								))}
 							{/* <MessageHeader>{"123213"}</MessageHeader> */}
 							<Bubble variant="ghost">
 								<BubbleContent>

@@ -13,6 +13,7 @@ import type {
 
 type StreamEvent =
 	| { event: "chunk"; data: { content: string } }
+	| { event: "reasoning"; data: string }
 	| { event: "done"; data?: unknown }
 	| { event: "error"; data: { message: string } };
 
@@ -59,13 +60,15 @@ function startChatStream(
 ): void {
 	const prompt = buildPromptHistoryItem(userMessage);
 	const channel = new Channel<ChatEventWire>();
-	console.log("ssssss&&&&&&&&&",session_id)
 	channel.onmessage = (message) => {
 		switch (message.type) {
 			case "TextDelta":
 				if (message.data) {
 					queue.push({ event: "chunk", data: { content: message.data } });
 				}
+				break;
+			case "Reasoning":
+				queue.push({ event: "reasoning", data: message.data ?? "" });
 				break;
 			case "Done":
 				queue.push({ event: "done" });
@@ -177,6 +180,22 @@ export function chatAdapter(session_id: string): ConnectionAdapter {
 							model,
 							timestamp: now(),
 						} satisfies StreamChunk;
+						break;
+					}
+					case "reasoning": {
+						// Reasoning deltas are consumed by the TanStack stream
+						// processor and accumulated into a `thinking` part on
+						// the assistant message (surfaced above the answer).
+						const delta = event.data ?? "";
+						if (delta) {
+							yield {
+								type: EventType.REASONING_MESSAGE_CONTENT,
+								messageId,
+								delta,
+								model,
+								timestamp: now(),
+							} satisfies StreamChunk;
+						}
 						break;
 					}
 					case "error": {

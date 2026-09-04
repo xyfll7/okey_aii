@@ -5,6 +5,7 @@ import {
 	ArrowDataTransferHorizontalIcon,
 	ArrowDown01Icon,
 	ArrowExpand01Icon,
+	ArrowRight01Icon,
 	ArrowUp01Icon,
 	ArrowUpIcon,
 	ArrowUpRight01Icon,
@@ -74,6 +75,7 @@ const _Icons = {
 	refresh: createHugeicon(RefreshIcon),
 	arrowUp01: createHugeicon(ArrowUp01Icon),
 	arrowUpRight01: createHugeicon(ArrowUpRight01Icon),
+	arrowRight01: createHugeicon(ArrowRight01Icon),
 	arrowDown01: createHugeicon(ArrowDown01Icon),
 	moreHorizontal: createHugeicon(MoreHorizontalIcon),
 } satisfies Record<string, Icon>;
