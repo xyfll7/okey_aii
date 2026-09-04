@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useRef, useState } from "react";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { useEffect, useRef, useState } from "react";
 import { useChatContext } from "#/components/chat/chatContext";
 import { Icons } from "#/components/icon";
 import {
@@ -30,6 +31,26 @@ function isImeConfirmEnter(e: React.KeyboardEvent): boolean {
 	return keyCode === 229;
 }
 
+/** Listen for OS-level file drag events (enter / drop / leave) on the current webview. */
+function useDragDropEvents() {
+	useEffect(() => {
+		let unlisten: (() => void) | undefined;
+		getCurrentWebview()
+			.onDragDropEvent((event) => {
+				if (event.payload.type === "over") {
+					// 显示"可放置"高亮
+				} else if (event.payload.type === "drop") {
+					// event.payload.paths: string[] —— 文件绝对路径
+					console.log(":::::vvvv___", event);
+				} else if (event.payload.type === "leave") {
+					// 取消高亮
+				}
+			})
+			.then((fn) => (unlisten = fn));
+		return () => unlisten?.();
+	}, []);
+}
+
 export function Inputer({
 	className,
 	session_id,
@@ -41,6 +62,7 @@ export function Inputer({
 	// Tracks whether a Chinese IME composition is in progress. Prevents Enter
 	// used to confirm/cancel candidate selection from sending the message.
 	const isComposingRef = useRef(false);
+	useDragDropEvents();
 	const selected = useSelected();
 	const { append, status, stop } = useChatContext();
 	const { push } = useDrawerStack();
