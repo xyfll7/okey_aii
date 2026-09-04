@@ -49,9 +49,7 @@ export function Settings() {
 	);
 }
 
-// The authoritative provider list comes from the backend via `list_providers`;
-// each provider carries its localized label and API-key page URL, so no
-// provider → label/link mapping is kept on the frontend.
+
 function SettingsContent({ className }: { className?: string }) {
 	const locale = useLocale();
 	const [apiKeys, setApiKeys] = useState<Record<string, string>>({});

@@ -14,9 +14,7 @@ import {
 import { useLocale } from "#/lib/locale";
 import type { ModelInfo, ProviderInfo, Session } from "#/types";
 
-// The authoritative provider list is fetched at runtime via `list_providers`;
-// each provider carries its localized label resolved by the backend's own i18n,
-// so the frontend keeps no provider → label mapping of its own.
+
 type ProviderWithModels = ProviderInfo & { models: ModelInfo[] };
 
 
