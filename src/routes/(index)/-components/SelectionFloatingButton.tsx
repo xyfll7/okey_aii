@@ -1,10 +1,12 @@
 import { computePosition, flip, offset, shift } from "@floating-ui/dom";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
-import { ButtonGroup, ButtonGroupSeparator } from "#/components/ui/button-group";
+import {
+	ButtonGroup,
+	ButtonGroupSeparator,
+} from "#/components/ui/button-group";
 import { speak } from "#/lib/utils";
-
 
 function getSelectionRect(range: Range): DOMRect {
 	const rects = Array.from(range.getClientRects()).filter(
@@ -20,39 +22,37 @@ function getSelectionRect(range: Range): DOMRect {
 	return new DOMRect(left, top, right - left, bottom - top);
 }
 
-
-export function SelectionFloatingButton({
-	containerRef,
-}: {
-	containerRef?: React.RefObject<HTMLElement | null>;
-}) {
+function useSelectionFloatingButton(
+	containerRef?: React.RefObject<HTMLElement | null>,
+) {
 	const buttonRef = useRef<HTMLDivElement>(null);
 	const [visible, setVisible] = useState(false);
 	const [coords, setCoords] = useState({ x: 0, y: 0 });
 	const pendingTextRef = useRef<string>("");
 
-	useEffect(() => {
-		function hide() {
-			setVisible(false);
-			pendingTextRef.current = "";
-		}
+	const clear = useCallback(() => {
+		setVisible(false);
+		pendingTextRef.current = "";
+	}, []);
 
+	useEffect(() => {
 		function handleMouseUp(e: MouseEvent) {
-			
 			if (buttonRef.current?.contains(e.target as Node)) return;
 
 			const selection = window.getSelection();
 			const text = selection?.toString().trim();
 			if (!selection || !text || selection.rangeCount === 0) {
-				hide();
+				clear();
 				return;
 			}
 
 			const range = selection.getRangeAt(0);
 
-			
-			if (containerRef?.current && !containerRef.current.contains(range.commonAncestorContainer)) {
-				hide();
+			if (
+				containerRef?.current &&
+				!containerRef.current.contains(range.commonAncestorContainer)
+			) {
+				clear();
 				return;
 			}
 
@@ -66,11 +66,7 @@ export function SelectionFloatingButton({
 			computePosition(virtualEl, buttonRef.current, {
 				placement: "top",
 				strategy: "fixed",
-				middleware: [
-					offset(8),
-					flip({ padding: 48 }),
-					shift({ padding: 8 }),
-				],
+				middleware: [offset(8), flip({ padding: 48 }), shift({ padding: 8 })],
 			}).then(({ x, y }) => {
 				setCoords({ x, y });
 				setVisible(true);
@@ -80,12 +76,12 @@ export function SelectionFloatingButton({
 		function handleSelectionChange() {
 			const selection = window.getSelection();
 			if (!selection || !selection.toString().trim()) {
-				hide();
+				clear();
 			}
 		}
 
 		function handleScroll() {
-			hide();
+			clear();
 		}
 
 		document.addEventListener("mouseup", handleMouseUp);
@@ -96,7 +92,18 @@ export function SelectionFloatingButton({
 			document.removeEventListener("selectionchange", handleSelectionChange);
 			document.removeEventListener("scroll", handleScroll, true);
 		};
-	}, [containerRef]);
+	}, [clear, containerRef]);
+
+	return { buttonRef, visible, coords, pendingTextRef, clear };
+}
+
+export function SelectionFloatingButton({
+	containerRef,
+}: {
+	containerRef?: React.RefObject<HTMLElement | null>;
+}) {
+	const { buttonRef, visible, coords, pendingTextRef, clear } =
+		useSelectionFloatingButton(containerRef);
 
 	return (
 		<ButtonGroup
@@ -116,13 +123,12 @@ export function SelectionFloatingButton({
 					if (pendingTextRef.current) {
 						speak(pendingTextRef.current);
 					}
-					setVisible(false);
-					pendingTextRef.current = "";
+					clear();
 				}}
 			>
 				<Icons.volumeHigh />
 			</Button>
-			 <ButtonGroupSeparator />
+			<ButtonGroupSeparator />
 			<Button
 				size="icon-sm"
 				variant={"secondary"}
@@ -130,8 +136,7 @@ export function SelectionFloatingButton({
 					if (pendingTextRef.current) {
 						navigator.clipboard?.writeText(pendingTextRef.current);
 					}
-					setVisible(false);
-					pendingTextRef.current = "";
+					clear();
 				}}
 			>
 				<Icons.copy />
