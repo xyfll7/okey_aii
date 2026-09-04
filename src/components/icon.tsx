@@ -1,5 +1,6 @@
 import {
 	Add01Icon,
+	AiBrain01Icon,
 	AlertCircleIcon,
 	ArrowDataTransferHorizontalIcon,
 	ArrowDown01Icon,
@@ -48,6 +49,7 @@ function createHugeicon(icon: IconSvgElement, defaultStrokeWidth = 2): Icon {
 }
 
 const _Icons = {
+	brain: createHugeicon(AiBrain01Icon),
 	gripVertical: createHugeicon(DragDropVerticalIcon),
 	arrowExpand: createHugeicon(ArrowExpand01Icon),
 	arrowUp: createHugeicon(ArrowUpIcon),

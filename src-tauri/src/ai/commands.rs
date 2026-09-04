@@ -62,8 +62,8 @@ pub async fn create_session(app: tauri::AppHandle) -> Result<(String, Session), 
         (config.api_keys.clone(), config.agent_presets.clone())
     };
 
-    // Inherit provider/model/preset from the most recently touched session.
-    // No locks are held across the await below.
+    // Inherit provider/model/preset/thinking from the most recently touched
+    // session. No locks are held across the await below.
     let inherited = {
         let state = app.state::<Arc<RwLock<ChatState>>>();
         let guard = state.read().unwrap();
@@ -71,21 +71,22 @@ pub async fn create_session(app: tauri::AppHandle) -> Result<(String, Session), 
             .sessions
             .values()
             .max_by(|a, b| a.update_at.cmp(&b.update_at))
-            .map(|s| (s.provider, s.model.clone(), s.preset_id.clone()))
+            .map(|s| (s.provider, s.model.clone(), s.preset_id.clone(), s.thinking))
     };
 
-    let (provider, model, preset_id) = match inherited {
+    let (provider, model, preset_id, thinking) = match inherited {
         Some(inherited) => inherited,
         None => {
             let p = Provider::deepseek();
             // No session exists yet, so the model must come from the live
             // listing; there is no hard-coded model to fall back on.
             let model = default_model_from_api(&app, p).await?;
-            (p, model, "assistant".to_string())
+            (p, model, "assistant".to_string(), false)
         }
     };
 
-    let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
+    let agent =
+        build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets, thinking)?;
 
     let session_id = uuid::Uuid::new_v4().to_string();
     let session = Session {
@@ -93,6 +94,7 @@ pub async fn create_session(app: tauri::AppHandle) -> Result<(String, Session), 
         provider: agent.provider,
         model: model.clone(),
         preset_id: preset_id.clone(),
+        thinking,
         agent,
         history: Vec::new(),
         created_at: std::time::SystemTime::now(),
@@ -198,13 +200,14 @@ pub fn switch_combo(
     let state = app.state::<Arc<RwLock<ChatState>>>();
     let mut guard = state.write().unwrap();
 
-    let preset_id = guard
+    let (preset_id, thinking) = guard
         .sessions
         .get(&session_id)
-        .map(|s| s.preset_id.clone())
-        .unwrap_or_else(|| "assistant".to_string());
+        .map(|s| (s.preset_id.clone(), s.thinking))
+        .unwrap_or_else(|| ("assistant".to_string(), false));
 
-    let agent = build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets)?;
+    let agent =
+        build_session_agent(&api_keys, provider, &model, &preset_id, &agent_presets, thinking)?;
 
     let update_at = std::time::SystemTime::now();
     {
@@ -218,6 +221,56 @@ pub fn switch_combo(
         sess.update_at = update_at;
     }
     db::update_session(&guard.db, &session_id, provider.id, &model, update_at)?;
+
+    Ok(())
+}
+
+/// Toggles reasoning/thinking mode for a session. The session's agent is
+/// rebuilt so subsequent requests carry (or stop carrying) the provider's
+/// thinking parameters.
+#[tauri::command(rename_all = "snake_case")]
+pub fn toggle_thinking(
+    app: tauri::AppHandle,
+    session_id: String,
+    thinking: bool,
+) -> Result<(), String> {
+    let app_config_state = app.state::<AppConfigState>();
+    let (api_keys, agent_presets) = {
+        let config = app_config_state.read();
+        (config.api_keys.clone(), config.agent_presets.clone())
+    };
+
+    let state = app.state::<Arc<RwLock<ChatState>>>();
+    let mut guard = state.write().unwrap();
+
+    let (provider, model, preset_id) = {
+        let sess = guard
+            .sessions
+            .get(&session_id)
+            .ok_or("Session not found, please call create_session first")?;
+        (sess.provider, sess.model.clone(), sess.preset_id.clone())
+    };
+
+    let agent = build_session_agent(
+        &api_keys,
+        provider,
+        &model,
+        &preset_id,
+        &agent_presets,
+        thinking,
+    )?;
+
+    let update_at = std::time::SystemTime::now();
+    {
+        let sess = guard
+            .sessions
+            .get_mut(&session_id)
+            .ok_or("Session not found, please call create_session first")?;
+        sess.thinking = thinking;
+        sess.agent = agent;
+        sess.update_at = update_at;
+    }
+    db::update_session_thinking(&guard.db, &session_id, thinking, update_at)?;
 
     Ok(())
 }
@@ -271,6 +324,7 @@ pub async fn send_message(
                 sess.created_at,
                 now,
                 &sess.title,
+                sess.thinking,
             )?;
         }
         db::insert_message(&db, &session_id, &prompt)?;

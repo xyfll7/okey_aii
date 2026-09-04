@@ -33,6 +33,8 @@ pub struct Session {
     pub provider: Provider,
     pub model: String,
     pub preset_id: String,
+    /// Whether reasoning/thinking mode is enabled for this session's requests.
+    pub thinking: bool,
     #[serde(serialize_with = "serialize_systemtime_millis")]
     pub created_at: SystemTime,
     #[serde(serialize_with = "serialize_systemtime_millis")]
@@ -115,11 +117,36 @@ pub fn remove_history_item(
     Ok(())
 }
 
+/// Provider-specific request-body parameters that enable the model's
+/// reasoning/thinking mode. Only applied when the user toggles thinking on;
+/// turning it off sends no parameter, preserving each model's default.
+fn thinking_params(id: ProviderId) -> serde_json::Value {
+    use serde_json::json;
+    match id {
+        // DeepSeek V4 (`deepseek-v4-*`): thinking is opt-in via the top-level
+        // `thinking` field.
+        ProviderId::DeepSeek => json!({
+            "thinking": { "type": "enabled", "budget_tokens": 4096 }
+        }),
+        // Claude: extended thinking needs a token budget below `max_tokens`.
+        ProviderId::Anthropic => json!({
+            "thinking": { "type": "enabled", "budget_tokens": 1024 }
+        }),
+        // Z.ai GLM: OpenAI-compatible `thinking` switch.
+        ProviderId::Zai => json!({ "thinking": { "type": "enabled" } }),
+        // OpenAI reasoning models (o-series / gpt-5) accept `reasoning_effort`.
+        ProviderId::OpenAI => json!({ "reasoning_effort": "high" }),
+        // DashScope (Qwen3 thinking models).
+        ProviderId::Qwen => json!({ "enable_thinking": true }),
+    }
+}
+
 fn build_agent(
     provider: Provider,
     model: &str,
     api_key: &str,
     preset: &AgentPreset,
+    thinking: bool,
 ) -> Result<ChatAgent, String> {
     let preamble = &preset.prompt_tags.iter()
         .find(|t| t.id == Some(0))
@@ -127,18 +154,18 @@ fn build_agent(
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .unwrap_or_default();
-    let agent = match provider.id {
+    let mut builder = match provider.id {
         ProviderId::OpenAI => {
             let client = openai::CompletionsClient::new(api_key).map_err(|e| e.to_string())?;
-            client.agent(model).preamble(&preamble).build()
+            client.agent(model).preamble(&preamble)
         }
         ProviderId::Anthropic => {
             let client = anthropic::Client::new(api_key).map_err(|e| e.to_string())?;
-            client.agent(model).preamble(&preamble).build()
+            client.agent(model).preamble(&preamble)
         }
         ProviderId::DeepSeek => {
             let client = deepseek::Client::new(api_key).map_err(|e| e.to_string())?;
-            client.agent(model).preamble(&preamble).build()
+            client.agent(model).preamble(&preamble)
         }
         ProviderId::Qwen => {
             let client = openai::CompletionsClient::builder()
@@ -146,14 +173,20 @@ fn build_agent(
                 .base_url(provider.base_url.expect("Qwen provides an OpenAI-compatible base URL"))
                 .build()
                 .map_err(|e| e.to_string())?;
-            client.agent(model).preamble(&preamble).build()
+            client.agent(model).preamble(&preamble)
         }
         ProviderId::Zai => {
             let client = zai::Client::new(api_key).map_err(|e| e.to_string())?;
-            client.agent(model).preamble(&preamble).build()
+            client.agent(model).preamble(&preamble)
         }
     };
-    Ok(ChatAgent { provider, agent })
+    if thinking {
+        builder = builder.additional_params(thinking_params(provider.id));
+    }
+    Ok(ChatAgent {
+        provider,
+        agent: builder.build(),
+    })
 }
 
 pub fn build_session_agent(
@@ -162,6 +195,7 @@ pub fn build_session_agent(
     model: &str,
     preset_id: &str,
     presets: &[AgentPreset],
+    thinking: bool,
 ) -> Result<Arc<ChatAgent>, String> {
     let key = api_keys
         .get(&provider.id)
@@ -171,7 +205,7 @@ pub fn build_session_agent(
         .iter()
         .find(|p| p.id == preset_id)
         .ok_or("preset not found")?;
-    Ok(Arc::new(build_agent(provider, model, &key, preset)?))
+    Ok(Arc::new(build_agent(provider, model, &key, preset, thinking)?))
 }
 
 pub fn restore_session(
@@ -180,13 +214,21 @@ pub fn restore_session(
     presets: &[AgentPreset],
     meta: &SessionMeta,
 ) -> Result<Session, String> {
-    let agent = build_session_agent(api_keys, meta.provider, &meta.model, &meta.preset_id, presets)?;
+    let agent = build_session_agent(
+        api_keys,
+        meta.provider,
+        &meta.model,
+        &meta.preset_id,
+        presets,
+        meta.thinking,
+    )?;
     let history = db::get_history(&guard.db, &meta.session_id)?;
     let sess = Session {
         session_id: meta.session_id.clone(),
         provider: agent.provider,
         model: meta.model.clone(),
         preset_id: meta.preset_id.clone(),
+        thinking: meta.thinking,
         created_at: meta.created_at,
         update_at: SystemTime::now(),
         title: meta.title.clone(),

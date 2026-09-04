@@ -17,6 +17,8 @@ export interface Session {
 	provider: ProviderInfo;
 	model: string;
 	preset_id: string;
+	/** Whether reasoning/thinking mode is enabled for this session. */
+	thinking: boolean;
 	created_at: number;
 	update_at: number;
 }

@@ -22,6 +22,8 @@
   "translate_language_selector_self_explaining_on": "Self-explaining: On",
   "translate_language_selector_self_explaining_off": "Self-explaining: Off",
   "translate_input_placeholder": "Ask, Search or Chat...",
+  "translate_thinking_on": "Thinking mode: on",
+  "translate_thinking_off": "Thinking mode: off",
   "translate_empty_title": "One-Click Translate",
   "translate_empty_description": "Translate whatever you select with your mouse — AI-powered",
   "translate_loading": "loading",

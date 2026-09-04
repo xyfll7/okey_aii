@@ -38,6 +38,7 @@ pub fn run() {
             ai::commands::delete_session,
             ai::commands::list_sessions,
             ai::commands::switch_combo,
+            ai::commands::toggle_thinking,
             ai::commands::send_message,
             ai::commands::assemble_prompt,
             ai::commands::stop_generation,
