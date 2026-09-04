@@ -7,9 +7,17 @@ import {
 	ButtonGroup,
 	ButtonGroupSeparator,
 } from "#/components/ui/button-group";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
 import { speak } from "#/lib/utils";
 import { useSelected } from "#/store";
 import { useDrawerStack } from "./DrawerStack";
+import { usePromptTags } from "./SelectedText";
 import { SessionView } from "./SessionView";
 
 function getSelectionRect(range: Range): DOMRect {
@@ -110,6 +118,44 @@ export function SelectionFloatingButton({
 		useSelectionFloatingButton(containerRef);
 	const { push } = useDrawerStack();
 	const selected = useSelected();
+	const { tags } = usePromptTags();
+
+	// Open a brand-new session whose opening message is the selected text
+	// plus an optional instruction (e.g. the picked prompt tag).
+	const openChatSession = useCallback(
+		async (instruction?: string) => {
+			const [new_session_id] = await invoke<[string]>("create_session");
+			push({
+				id: new_session_id,
+				content: () => (
+					<SessionView
+						session_id={new_session_id}
+						onChatReady={(append) => {
+							const text = selected.text.trim();
+							if (!text) return;
+							append({
+								id: crypto.randomUUID(),
+								role: "user",
+								createdAt: new Date(),
+								parts: [
+									{ type: "text", content: text },
+									...(instruction
+										? [
+												{
+													type: "text" as const,
+													content: instruction,
+												},
+											]
+										: []),
+								],
+							});
+						}}
+					/>
+				),
+			});
+		},
+		[push, selected.text],
+	);
 	return (
 		<ButtonGroup
 			ref={buttonRef}
@@ -150,47 +196,42 @@ export function SelectionFloatingButton({
 				size="icon-sm"
 				variant={"secondary"}
 				onClick={async () => {
-					const [new_session_id] = await invoke<[string]>("create_session");
 					// Fetch the current translator instruction (depends on
 					// "self-explaining" mode) so the new session's opening
 					// message carries it as the tag.
-					const translate_instruction = await invoke<string>(
-						"translate_prompt",
-					);
-					push({
-						id: new_session_id,
-						content: () => (
-							<SessionView
-								session_id={new_session_id}
-								onChatReady={(append) => {
-									// Auto-send the selected text + tag as the new
-									// session's opening message once its chat is ready.
-									const text = selected.text.trim();
-									if (!text) return;
-									append({
-										id: crypto.randomUUID(),
-										role: "user",
-										createdAt: new Date(),
-										parts: [
-											{ type: "text", content: text },
-											...(translate_instruction
-												? [
-														{
-															type: "text" as const,
-															content: translate_instruction,
-														},
-													]
-												: []),
-										],
-									});
-								}}
-							/>
-						),
-					});
+					const translate_instruction =
+						await invoke<string>("translate_prompt");
+					openChatSession(translate_instruction);
 				}}
 			>
 				<Icons.arrowUpRight01 />
 			</Button>
+
+			{tags.slice(3).length > 0 && (
+				<DropdownMenu>
+					<DropdownMenuTrigger
+						openOnHover={false}
+						render={
+							<Button size="icon-sm" variant={"secondary"} onClick={() => {}}>
+								<Icons.moreHorizontal />
+							</Button>
+						}
+					/>
+					<DropdownMenuContent>
+						<DropdownMenuGroup>
+							{tags.slice(3).map((tag) => (
+								<DropdownMenuItem
+									key={tag.id}
+									onClick={() => openChatSession(tag.content ?? tag.label)}
+								>
+									<span className="truncate">{tag.label}</span>
+								<Icons.arrowUpRight01 className="ml-auto shrink-0" />
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			)}
 		</ButtonGroup>
 	);
 }

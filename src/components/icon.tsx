@@ -15,6 +15,7 @@ import {
 	LanguageCircleIcon,
 	Menu02Icon,
 	MessageQuestionIcon,
+	MoreHorizontalIcon,
 	Pen01Icon,
 	Pin02Icon,
 	RefreshIcon,
@@ -72,6 +73,7 @@ const _Icons = {
 	arrowUp01: createHugeicon(ArrowUp01Icon),
 	arrowUpRight01: createHugeicon(ArrowUpRight01Icon),
 	arrowDown01: createHugeicon(ArrowDown01Icon),
+	moreHorizontal: createHugeicon(MoreHorizontalIcon),
 } satisfies Record<string, Icon>;
 
 export const Icons = Object.fromEntries(
