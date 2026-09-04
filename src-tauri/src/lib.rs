@@ -47,6 +47,7 @@ pub fn run() {
             ai::commands::open_session,
             my_commands::detect_language,
             my_commands::open_window_index,
+            my_commands::translate_prompt,
             store::commands::get_api_keys,
             store::commands::set_api_key,
             store::commands::get_pin_index_window,

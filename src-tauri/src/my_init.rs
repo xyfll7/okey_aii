@@ -1,9 +1,10 @@
 use crate::ai::commands::{close_session, create_session, list_sessions};
 use crate::ai::model_catalog::ModelCatalogState;
 use crate::ai::state::ChatState;
+use crate::my_commands::translate_prompt;
 use crate::my_windows::window_index::should_use_existing_index_window;
 use crate::store::app_state::AppStateManager;
-use crate::utils::send_message_to_ui::{send_message_to_ui, translate_prompt};
+use crate::utils::send_message_to_ui::send_message_to_ui;
 use crate::{my_rdev, my_tray, my_windows};
 use std::sync::{Arc, RwLock};
 use tauri::{Emitter, Manager};
@@ -48,7 +49,7 @@ pub fn init(app: &mut tauri::App) {
                         // Pass the selected text and the translation instruction
                         // along with the session id so the translate bubble can
                         // render the user message directly.
-                        let translate_instruction = translate_prompt(&app);
+                        let translate_instruction = translate_prompt(app.clone());
                         let _ = app.emit_to(
                             "translate_bubble",
                             "on_open_session_with_session_id",

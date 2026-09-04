@@ -1,4 +1,5 @@
 import { computePosition, flip, offset, shift } from "@floating-ui/dom";
+import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
@@ -7,6 +8,9 @@ import {
 	ButtonGroupSeparator,
 } from "#/components/ui/button-group";
 import { speak } from "#/lib/utils";
+import { useSelected } from "#/store";
+import { useDrawerStack } from "./DrawerStack";
+import { SessionView } from "./SessionView";
 
 function getSelectionRect(range: Range): DOMRect {
 	const rects = Array.from(range.getClientRects()).filter(
@@ -104,7 +108,8 @@ export function SelectionFloatingButton({
 }) {
 	const { buttonRef, visible, coords, pendingTextRef, clear } =
 		useSelectionFloatingButton(containerRef);
-
+	const { push } = useDrawerStack();
+	const selected = useSelected();
 	return (
 		<ButtonGroup
 			ref={buttonRef}
@@ -140,6 +145,51 @@ export function SelectionFloatingButton({
 				}}
 			>
 				<Icons.copy />
+			</Button>
+			<Button
+				size="icon-sm"
+				variant={"secondary"}
+				onClick={async () => {
+					const [new_session_id] = await invoke<[string]>("create_session");
+					// Fetch the current translator instruction (depends on
+					// "self-explaining" mode) so the new session's opening
+					// message carries it as the tag.
+					const translate_instruction = await invoke<string>(
+						"translate_prompt",
+					);
+					push({
+						id: new_session_id,
+						content: () => (
+							<SessionView
+								session_id={new_session_id}
+								onChatReady={(append) => {
+									// Auto-send the selected text + tag as the new
+									// session's opening message once its chat is ready.
+									const text = selected.text.trim();
+									if (!text) return;
+									append({
+										id: crypto.randomUUID(),
+										role: "user",
+										createdAt: new Date(),
+										parts: [
+											{ type: "text", content: text },
+											...(translate_instruction
+												? [
+														{
+															type: "text" as const,
+															content: translate_instruction,
+														},
+													]
+												: []),
+										],
+									});
+								}}
+							/>
+						),
+					});
+				}}
+			>
+				<Icons.arrowUpRight01 />
 			</Button>
 		</ButtonGroup>
 	);

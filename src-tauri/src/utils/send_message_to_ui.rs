@@ -1,23 +1,10 @@
 use std::time::SystemTime;
 
 use rig::message::UserContent;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 
 use crate::ai::{commands::list_sessions, state::HistoryItem};
-use crate::store::app_state::AppConfigState;
-
-pub fn translate_prompt(app: &AppHandle) -> String {
-    let state = app.state::<AppConfigState>();
-    let config = state.read();
-    let tag_id = if config.self_explaining_model { Some(3) } else { Some(2) };
-    config
-        .agent_presets
-        .iter()
-        .find(|p| p.id == "translator")
-        .and_then(|preset| preset.prompt_tags.iter().find(|tag| tag.id == tag_id))
-        .and_then(|tag| tag.content.clone())
-        .unwrap_or_default()
-}
+use crate::my_commands::translate_prompt;
 
 pub fn send_message_to_ui(
     app: &AppHandle,
@@ -25,7 +12,7 @@ pub fn send_message_to_ui(
     selected_files: Vec<String>,
     target: String,
 ) {
-    let translate_instruction = translate_prompt(app);
+    let translate_instruction = translate_prompt(app.clone());
     let mut content = vec![
         UserContent::text(selected_text),
         UserContent::text(translate_instruction),
