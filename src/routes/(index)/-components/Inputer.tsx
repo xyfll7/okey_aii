@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useChatContext } from "#/components/chat/chatContext";
 import { Icons } from "#/components/icon";
 import {
@@ -16,6 +16,20 @@ import { ModelSwitcher } from "./ModelSwitcher";
 import { SelectedText } from "./SelectedText";
 import { SessionView } from "./SessionView";
 
+/**
+ * Some browsers (notably Safari/WKWebView) fire the Enter `keydown` that
+ * confirms an IME candidate *before* `compositionend`, and in that same
+ * event `isComposing` can already report `false`. `keyCode === 229` is the
+ * long-standing (if deprecated) signal browsers use to mark such
+ * IME-related keystrokes, and remains the most reliable cross-browser way
+ * to catch this edge case. Intentionally reading the deprecated property
+ * here as a fallback only.
+ */
+function isImeConfirmEnter(e: React.KeyboardEvent): boolean {
+	const keyCode = (e.nativeEvent as unknown as { keyCode?: number }).keyCode;
+	return keyCode === 229;
+}
+
 export function Inputer({
 	className,
 	session_id,
@@ -24,6 +38,9 @@ export function Inputer({
 	session_id: string;
 }) {
 	const [value, setValue] = useState("");
+	// Tracks whether a Chinese IME composition is in progress. Prevents Enter
+	// used to confirm/cancel candidate selection from sending the message.
+	const isComposingRef = useRef(false);
 	const selected = useSelected();
 	const { append, status, stop } = useChatContext();
 	const { push } = useDrawerStack();
@@ -100,8 +117,22 @@ export function Inputer({
 				placeholder={m.translate_input_placeholder()}
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
+				onCompositionStart={() => {
+					isComposingRef.current = true;
+				}}
+				onCompositionEnd={() => {
+					isComposingRef.current = false;
+				}}
 				onKeyDown={(e) => {
-					if (e.key === "Enter" && !e.shiftKey) {
+					// Ignore Enter while an IME composition is in progress, or if
+					// this keydown is itself the IME's composition-confirming
+					// keystroke, so confirming a Chinese candidate doesn't send
+					// the message.
+					const isComposing =
+						isComposingRef.current ||
+						e.nativeEvent.isComposing ||
+						isImeConfirmEnter(e);
+					if (e.key === "Enter" && !e.shiftKey && !isComposing) {
 						e.preventDefault();
 						handleSend();
 					}
