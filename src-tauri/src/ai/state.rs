@@ -118,9 +118,8 @@ pub fn remove_history_item(
 }
 
 /// Provider-specific request-body parameters that enable the model's
-/// reasoning/thinking mode. Only applied when the user toggles thinking on;
-/// turning it off sends no parameter, preserving each model's default.
-fn thinking_params(id: ProviderId) -> serde_json::Value {
+/// reasoning/thinking mode.
+fn thinking_enabled_params(id: ProviderId) -> serde_json::Value {
     use serde_json::json;
     match id {
         // DeepSeek V4 (`deepseek-v4-*`): thinking is opt-in via the top-level
@@ -138,6 +137,30 @@ fn thinking_params(id: ProviderId) -> serde_json::Value {
         ProviderId::OpenAI => json!({ "reasoning_effort": "high" }),
         // DashScope (Qwen3 thinking models).
         ProviderId::Qwen => json!({ "enable_thinking": true }),
+    }
+}
+
+/// Provider-specific request-body parameters that explicitly disable
+/// reasoning/thinking mode.
+///
+/// Toggling thinking off must not just omit the enable parameters above:
+/// `deepseek-v4-*` keeps returning `reasoning_content` when the request
+/// carries no `thinking` field at all, so an explicit "disabled" value is sent
+/// instead. Providers that never reason unless asked (Anthropic without a
+/// `thinking` block, OpenAI models that don't support disabling) return `None`.
+fn thinking_disabled_params(id: ProviderId) -> Option<serde_json::Value> {
+    use serde_json::json;
+    match id {
+        // DeepSeek V4: `thinking: {type: "disabled"}` is the documented way to
+        // force the non-reasoning path.
+        ProviderId::DeepSeek => Some(json!({ "thinking": { "type": "disabled" } })),
+        // Z.ai GLM mirrors the same OpenAI-compatible `thinking` switch.
+        ProviderId::Zai => Some(json!({ "thinking": { "type": "disabled" } })),
+        // DashScope (Qwen3 thinking models) reads `enable_thinking`.
+        ProviderId::Qwen => Some(json!({ "enable_thinking": false })),
+        // Anthropic defaults to no extended thinking when the field is absent;
+        // OpenAI reasoning models cannot be switched off.
+        ProviderId::Anthropic | ProviderId::OpenAI => None,
     }
 }
 
@@ -180,8 +203,16 @@ fn build_agent(
             client.agent(model).preamble(&preamble)
         }
     };
-    if thinking {
-        builder = builder.additional_params(thinking_params(provider.id));
+    // Both toggle directions get explicit parameters: enabled sends the
+    // provider's opt-in params, disabled sends an explicit off switch so the
+    // model does not fall back to reasoning on its own.
+    let thinking_params = if thinking {
+        Some(thinking_enabled_params(provider.id))
+    } else {
+        thinking_disabled_params(provider.id)
+    };
+    if let Some(params) = thinking_params {
+        builder = builder.additional_params(params);
     }
     Ok(ChatAgent {
         provider,

@@ -18,6 +18,7 @@ export function ThinkingToggle({ session_id }: { session_id: string }) {
 		invoke<Session[]>("list_sessions")
 			.then((sessions) => {
 				const session = sessions.find((s) => s.session_id === session_id);
+				console.log("sesssion>>>>>>", session);
 				if (!cancelled && session) setThinking(session.thinking);
 			})
 			.catch(console.error);
@@ -42,7 +43,9 @@ export function ThinkingToggle({ session_id }: { session_id: string }) {
 			size="icon-xs"
 			aria-pressed={thinking}
 			title={thinking ? m.translate_thinking_on() : m.translate_thinking_off()}
-			aria-label={thinking ? m.translate_thinking_on() : m.translate_thinking_off()}
+			aria-label={
+				thinking ? m.translate_thinking_on() : m.translate_thinking_off()
+			}
 			className={cn(
 				"cursor-pointer",
 				// "bg-amber-200",
