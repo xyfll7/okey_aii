@@ -1,5 +1,5 @@
 import { Markdown } from "@tanstack/markdown/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icons } from "#/components/icon";
 import {  MarkerContent } from "#/components/ui/marker";
 import { MessageHeader } from "#/components/ui/message";
@@ -9,15 +9,35 @@ import { m } from "#/paraglide/messages";
 
 /**
  * Collapsible panel showing the model's reasoning/thinking process for an
- * assistant message. Rendered above the answer bubble; open by default.
+ * assistant message. Rendered above the answer bubble.
+ *
+ * While `isThinkingActive` (thinking is still streaming in) the panel is kept
+ * expanded automatically; once the thinking finishes it collapses so the
+ * answer takes over. The header can always be clicked to toggle manually.
  */
 export function ThinkingBlock({
 	content,
+	isThinkingActive = false,
 }: {
 	content: string;
 	className?: string;
+	isThinkingActive?: boolean;
 }) {
-	const [open, setOpen] = useState(false);
+	const [open, setOpen] = useState(isThinkingActive);
+	const wasActiveRef = useRef(isThinkingActive);
+
+	// Keep the panel open while reasoning is streaming in; collapse it the
+	// moment the streaming finishes.
+	useEffect(() => {
+		const wasActive = wasActiveRef.current;
+		wasActiveRef.current = isThinkingActive;
+		if (isThinkingActive) {
+			setOpen(true);
+		} else if (wasActive) {
+			setOpen(false);
+		}
+	}, [isThinkingActive]);
+
 	if (!content?.trim()) return null;
 	return (
 		<>
@@ -39,7 +59,7 @@ export function ThinkingBlock({
 				</MarkerContent>
 			</MessageHeader>
 			{open && (
-				<ScrollArea className="flex max-h-64 min-h-0 flex-col overflow-hidden whitespace-pre-wrap px-3 pb-2.5 text-xs leading-relaxed text-muted-foreground">
+				<ScrollArea className="flex max-h-32 min-h-0 flex-col overflow-hidden whitespace-pre-wrap px-3 pb-2.5 text-xs leading-relaxed text-muted-foreground">
 					<Markdown>{content}</Markdown>
 				</ScrollArea>
 			)}

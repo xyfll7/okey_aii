@@ -29,6 +29,18 @@ export function MessageBubble({ message }: { message: UIMessage }) {
 		status !== "submitted" &&
 		status !== "streaming" &&
 		messages.filter((e) => e.role === "user").at(-1)?.id === message.id;
+	// While the trailing assistant message is being generated but its answer
+	// text hasn't started yet, the model is still reasoning: keep the thinking
+	// panel expanded, and collapse it as soon as thinking completes.
+	const isGenerating = status === "submitted" || status === "streaming";
+	const lastAssistantId = messages
+		.filter((e) => e.role === "assistant")
+		.at(-1)?.id;
+	const isTrailingAssistant = message.id === lastAssistantId;
+	const answerStarted =
+		message.parts?.some(
+			(p) => p.type === "text" && Boolean(String(p.content ?? "").trim()),
+		) ?? false;
 	return (
 		<Message align={message.role === "user" ? "end" : "start"}>
 			<MessageContent>
@@ -104,6 +116,11 @@ export function MessageBubble({ message }: { message: UIMessage }) {
 									<ThinkingBlock
 										key={`${message.id}-thinking-${String(index)}`}
 										content={String(part.content ?? "")}
+										isThinkingActive={
+											isTrailingAssistant &&
+											isGenerating &&
+											!answerStarted
+										}
 									/>
 								))}
 							{/* <MessageHeader>{"123213"}</MessageHeader> */}
