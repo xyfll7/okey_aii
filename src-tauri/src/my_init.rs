@@ -17,6 +17,13 @@ pub fn init(app: &mut tauri::App) {
         app.handle(),
         |app| {
             let app = app.clone();
+
+            // If a session is currently generating a response, bail out so the
+            // in-progress output is never interrupted by this hotkey.
+            if has_loading_session(&app) {
+                return;
+            }
+
             let crate::utils::selecte_text::SelectedContent {
                 selected_text,
                 selected_files,
@@ -95,6 +102,15 @@ fn setup_tray_and_activation_policy(app: &mut tauri::App) {
     {
         app.set_activation_policy(tauri::ActivationPolicy::Accessory);
     }
+}
+
+/// Returns true when any session is currently generating a response.
+/// A streaming session is effectively the active ("current") one, so the
+/// global hotkey handler can ignore the trigger while output is in progress.
+fn has_loading_session(app: &tauri::AppHandle) -> bool {
+    let state = app.state::<Arc<RwLock<ChatState>>>();
+    let guard = state.read().unwrap();
+    guard.sessions.values().any(|s| s.is_loading)
 }
 
 pub fn setup_ai_state(app: &mut tauri::App) {
