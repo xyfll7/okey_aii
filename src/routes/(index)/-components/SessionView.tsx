@@ -8,13 +8,16 @@ import LanguageSelector from "./LanguageSelector";
 export function SessionView({
 	session_id,
 	onChatReady,
+	initialSelectedText,
 }: {
 	session_id: string;
 	/** Fired once per session when its chat has initialized and `append` can be safely called. */
 	onChatReady?: (append: ChatAppend) => void;
+	/** Initial text for this session's `SelectedProvider` (e.g. text selected before opening the session). */
+	initialSelectedText?: string;
 }) {
 	return (
-		<SelectedProvider>
+		<SelectedProvider initialText={initialSelectedText}>
 			<ChatProvider session_id={session_id} onChatReady={onChatReady}>
 				<div className="h-full flex flex-col overflow-hidden">
 					<ChatList />

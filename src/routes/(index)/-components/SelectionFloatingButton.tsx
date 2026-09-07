@@ -130,6 +130,7 @@ export function SelectionFloatingButton({
 				content: () => (
 					<SessionView
 						session_id={new_session_id}
+						initialSelectedText={selected.text}
 						onChatReady={(append) => {
 							const text = selected.text.trim();
 							if (!text) return;

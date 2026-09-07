@@ -15,8 +15,14 @@ const SelectedContext = createContext<SelectedContextValue>({
 	setText: () => {},
 });
 
-export function SelectedProvider({ children }: { children: ReactNode }) {
-	const [text, setText] = useState("");
+export function SelectedProvider({
+	children,
+	initialText = "",
+}: {
+	children: ReactNode;
+	initialText?: string;
+}) {
+	const [text, setText] = useState(initialText);
 	return (
 		<SelectedContext.Provider value={{ text, setText }}>
 			{children}
