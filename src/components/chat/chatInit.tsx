@@ -41,7 +41,6 @@ export function useChatInit() {
 		const unlisten = getCurrentWindow().listen<RigHistoryItem>(
 			`on_message_${session_id}`,
 			(e) => {
-				console.log("pppp====",e)
 				append(rigMessageToUIMessage(e.payload));
 			},
 		);
