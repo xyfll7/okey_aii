@@ -12,16 +12,24 @@ export function useChatInit() {
 		useChatContext();
 	useEffect(() => {
 		function get_history() {
-			invoke<RigHistoryItem[]>("get_history", { session_id }).then(
-				(history) => {
-					setMessages(history.map((e) => rigMessageToUIMessage(e)));
-
-					const fristMessage = getMessageText(
-						rigMessageToUIMessage(history[0]),
+			invoke<RigHistoryItem[]>("get_history", { session_id })
+				.then((history) => {
+					// A brand-new session has no messages yet (history can be
+					// empty); tolerate malformed items instead of crashing on
+					// `item.message` of an undefined entry.
+					const items = (history ?? []).filter(
+						(item): item is RigHistoryItem =>
+							item != null && item.message != null,
 					);
-					setText(fristMessage[0]);
-				},
-			);
+					setMessages(items.map((e) => rigMessageToUIMessage(e)));
+
+					const first = items[0];
+					if (first) {
+						const text = getMessageText(rigMessageToUIMessage(first));
+						setText(text[0] ?? "");
+					}
+				})
+				.catch((err) => console.error("get_history failed:", err));
 		}
 		get_history();
 		const unlistenPromise = getCurrentWindow().listen<RigHistoryItem>(

@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type as ostype } from "@tauri-apps/plugin-os";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Copyed from "#/components/Copyed";
 import { useChatContext } from "#/components/chat/chatContext";
 import { useChatInit } from "#/components/chat/chatInit";
@@ -79,14 +79,53 @@ function useSessionId() {
 	return session ?? { session_id: "", user_contents: undefined };
 }
 
+/**
+ * 每一轮对话的流式输出正常结束后，执行一次 onRoundEnd(chat)。
+ * 判定条件：不再忙碌（status 非 submitted/streaming）+ 无错误 +
+ * 出现了新的 assistant 消息（按消息 id 去重）。
+ */
+function useChatRoundEnd(options: {
+	chat: UIMessage | undefined;
+	isBusy: boolean;
+	error: unknown;
+	onRoundEnd: (chat: UIMessage) => void;
+}) {
+	const { chat, isBusy, error, onRoundEnd } = options;
+	// 用 ref 持有最新回调，回调身份变化不会触发重复判定
+	const onRoundEndRef = useRef(onRoundEnd);
+	useEffect(() => {
+		onRoundEndRef.current = onRoundEnd;
+	});
+
+	const lastHandledIdRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (isBusy) return; // 仍在流式生成中，等这轮结束
+		if (error) return; // 出错的一轮不算正常结束
+		if (!chat?.id) return; // 还没有 assistant 消息
+		if (lastHandledIdRef.current === chat.id) return; // 这一轮已处理过
+		lastHandledIdRef.current = chat.id;
+		onRoundEndRef.current(chat);
+	}, [chat, isBusy, error]);
+}
+
 function BubbleView() {
-	const { messages, status } = useChatContext();
+	const { messages, status, error } = useChatContext();
 	useChatInit();
 	const chat = (() => {
 		const item = messages?.at(-1);
 		return item?.role === "assistant" ? item : undefined;
 	})();
 	const isBusy = status === "submitted" || status === "streaming";
+
+	useChatRoundEnd({
+		chat,
+		isBusy,
+		error,
+		onRoundEnd: (chat) => {
+			// TODO: 在这里写本轮对话结束后的逻辑（每一轮都会执行且只执行一次）
+			console.log("本轮流式输出已结束:", chat.id, getMessageText(chat).join(""));
+		},
+	});
 
 	const _ostype = ostype();
 	return (
