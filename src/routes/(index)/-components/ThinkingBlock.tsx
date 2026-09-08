@@ -40,7 +40,7 @@ export function ThinkingBlock({
 
 	if (!content?.trim()) return null;
 	return (
-		<>
+		<div className="min-w-0">
 			<MessageHeader
 				role="banner"
 				onClick={() => setOpen((prev) => !prev)}
@@ -58,11 +58,16 @@ export function ThinkingBlock({
 					/>
 				</MarkerContent>
 			</MessageHeader>
-			{open && (
-				<ScrollArea className="flex max-h-32 min-h-0 flex-col overflow-hidden whitespace-pre-wrap px-3 pb-2.5 text-xs leading-relaxed text-muted-foreground">
+			{/* Keep the panel mounted even when collapsed: unmounting would
+			    re-parse the markdown on every toggle, which flashes the page.
+			    `hidden` (display:none) collapses it instantly — no animation,
+			    and since the box is fully removed from layout it can't add a
+			    phantom gap inside the parent's flex spacing either. */}
+			<div className={cn(!open && "hidden")}>
+				<ScrollArea className="mt-2 flex max-h-32 min-h-0 flex-col overflow-hidden whitespace-pre-wrap px-3 pb-2.5 text-xs leading-relaxed text-muted-foreground">
 					<Markdown>{content}</Markdown>
 				</ScrollArea>
-			)}
-		</>
+			</div>
+		</div>
 	);
 }
