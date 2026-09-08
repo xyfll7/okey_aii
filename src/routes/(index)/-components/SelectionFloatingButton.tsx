@@ -213,7 +213,7 @@ export function SelectionFloatingButton({
 					<DropdownMenuTrigger
 						openOnHover={false}
 						render={
-							<Button size="icon-sm" variant={"secondary"} onClick={() => {}}>
+							<Button size="icon-sm" variant={"secondary"} >
 								<Icons.moreHorizontal />
 							</Button>
 						}

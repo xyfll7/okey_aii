@@ -185,7 +185,9 @@ function DrawerStackOutlet({
 				onDismiss={() => closeTo(layer.id)}
 				onOpenChangeComplete={(open) => onOpenChangeComplete(layer.id, open)}
 			>
-				<div className="flex-1 overflow-hidden">{resolveNode(layer.content)}</div>
+				<div className="flex-1 overflow-hidden">
+					{resolveNode(layer.content)}
+				</div>
 				{!isLast ? renderLayer(index + 1) : null}
 			</DrawerLayerNode>
 		);
@@ -240,18 +242,27 @@ function DrawerLayerNode({
 				ref={maskDragRef}
 				className={cn(layer.contentClassName ?? "h-full")}
 			>
-				{(layer.title || layer.description) && (
+				{layer.title || layer.description ? (
 					<DrawerHeader data-tauri-drag-region className="pb-2">
 						{layer.title && (
-							<DrawerTitle data-tauri-drag-region>{resolveNode(layer.title)}</DrawerTitle>
+							<DrawerTitle data-tauri-drag-region>
+								{resolveNode(layer.title)}
+							</DrawerTitle>
 						)}
+
 						{layer.description && (
 							<DrawerDescription data-tauri-drag-region>
 								{resolveNode(layer.description)}
 							</DrawerDescription>
 						)}
 					</DrawerHeader>
+				) : (
+					<DrawerTitle
+						className={"min-h-4"}
+						data-tauri-drag-region
+					/>
 				)}
+
 				{children}
 			</DrawerContent>
 		</Drawer>
