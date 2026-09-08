@@ -29,6 +29,10 @@ pub fn init(app: &mut tauri::App) {
                 selected_files,
             } = crate::utils::selecte_text::get_selected_content();
 
+            if selected_text.is_empty() {
+                return;
+            }
+
             if should_use_existing_index_window(app.clone()) {
                 let app_clone = app.clone();
                 my_windows::window_index::window_index_show(
