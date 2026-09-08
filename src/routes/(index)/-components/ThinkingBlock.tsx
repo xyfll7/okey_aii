@@ -1,7 +1,7 @@
 import { Markdown } from "@tanstack/markdown/react";
 import { useEffect, useRef, useState } from "react";
 import { Icons } from "#/components/icon";
-import {  MarkerContent } from "#/components/ui/marker";
+import { MarkerContent } from "#/components/ui/marker";
 import { MessageHeader } from "#/components/ui/message";
 import { ScrollArea } from "#/components/ui/scroll-area";
 import { cn } from "#/lib/utils";
@@ -48,7 +48,11 @@ export function ThinkingBlock({
 				aria-expanded={open}
 			>
 				<MarkerContent className="flex gap-1">
-					<span className="text-start">{m.translate_thinking_section()}</span>
+					<span
+						className={cn("text-start", isThinkingActive && "shimmer")}
+					>
+						{m.translate_thinking_section()}
+					</span>
 					<Icons.arrowRight01
 						className={cn(
 							"size-3.5",
