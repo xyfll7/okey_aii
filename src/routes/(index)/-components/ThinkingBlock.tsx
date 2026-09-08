@@ -1,5 +1,5 @@
 import { Markdown } from "@tanstack/markdown/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icons } from "#/components/icon";
 import { MarkerContent } from "#/components/ui/marker";
 import { MessageHeader } from "#/components/ui/message";
@@ -25,6 +25,7 @@ export function ThinkingBlock({
 }) {
 	const [open, setOpen] = useState(isThinkingActive);
 	const wasActiveRef = useRef(isThinkingActive);
+	const rootRef = useRef<HTMLDivElement>(null);
 
 	// Keep the panel open while reasoning is streaming in; collapse it the
 	// moment the streaming finishes.
@@ -38,9 +39,28 @@ export function ThinkingBlock({
 		}
 	}, [isThinkingActive]);
 
+	// While reasoning streams in, always stay pinned to the newest content.
+	useLayoutEffect(() => {
+		if (!isThinkingActive || !content) return;
+		// The shared `ScrollArea` doesn't expose its scrollable viewport, so
+		// locate it via its stable data attribute instead of touching the
+		// component in `src/components/ui`.
+		const viewport = rootRef.current?.querySelector<HTMLElement>(
+			'[data-slot="scroll-area-viewport"]',
+		);
+		const pinToLatest = () => {
+			if (viewport) viewport.scrollTop = viewport.scrollHeight;
+		};
+		pinToLatest();
+		// Markdown may grow the box asynchronously after commit, so re-pin on
+		// the next frame to keep the freshly streamed chunk in view.
+		const raf = requestAnimationFrame(pinToLatest);
+		return () => cancelAnimationFrame(raf);
+	}, [content, isThinkingActive]);
+
 	if (!content?.trim()) return null;
 	return (
-		<div className="min-w-0">
+		<div ref={rootRef} className="min-w-0">
 			<MessageHeader
 				role="banner"
 				onClick={() => setOpen((prev) => !prev)}
