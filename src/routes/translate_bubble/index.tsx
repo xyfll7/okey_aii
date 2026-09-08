@@ -80,7 +80,7 @@ function useSessionId() {
 }
 
 /**
- * 每一轮对话的流式输出正常结束后，执行一次 onRoundEnd(chat)。
+ * 每一轮对话的流式输出正常结束后，执行一次 onRoundEnd。
  * 判定条件：不再忙碌（status 非 submitted/streaming）+ 无错误 +
  * 出现了新的 assistant 消息（按消息 id 去重）。
  */
@@ -88,7 +88,7 @@ function useChatRoundEnd(options: {
 	chat: UIMessage | undefined;
 	isBusy: boolean;
 	error: unknown;
-	onRoundEnd: (chat: UIMessage) => void;
+	onRoundEnd: () => void;
 }) {
 	const { chat, isBusy, error, onRoundEnd } = options;
 	// 用 ref 持有最新回调，回调身份变化不会触发重复判定
@@ -104,7 +104,7 @@ function useChatRoundEnd(options: {
 		if (!chat?.id) return; // 还没有 assistant 消息
 		if (lastHandledIdRef.current === chat.id) return; // 这一轮已处理过
 		lastHandledIdRef.current = chat.id;
-		onRoundEndRef.current(chat);
+		onRoundEndRef.current();
 	}, [chat, isBusy, error]);
 }
 
@@ -115,15 +115,28 @@ function BubbleView() {
 		const item = messages?.at(-1);
 		return item?.role === "assistant" ? item : undefined;
 	})();
+	const chatText = chat ? (getMessageText(chat)[0] ?? "") : "";
 	const isBusy = status === "submitted" || status === "streaming";
+	// 指向实际渲染 chatText 的节点，用于测量其真实占用的宽度
+	const chatTextRef = useRef<HTMLDivElement>(null);
+	// 右侧固定按钮区（复制/朗读/展开），用于计算窗口整体所需宽度
+	const actionsRef = useRef<HTMLDivElement>(null);
 
 	useChatRoundEnd({
 		chat,
 		isBusy,
 		error,
-		onRoundEnd: (chat) => {
+		onRoundEnd: () => {
 			// TODO: 在这里写本轮对话结束后的逻辑（每一轮都会执行且只执行一次）
-			console.log("本轮流式输出已结束:", chat.id, getMessageText(chat).join(""));
+			// onRoundEnd 在渲染提交之后触发，此时 chatTextRef 已指向渲染出的节点
+			const el = chatTextRef.current;
+			if (el) {
+				// 文本右边缘已包含左侧把手与间距；再加上右侧按钮区与预留间距，
+				// 即为让整行内容完整显示所需的最小窗口逻辑宽度
+				const actionsWidth = actionsRef.current?.getBoundingClientRect().width ?? 0;
+				const desiredWidth = Math.ceil(el.getBoundingClientRect().right + actionsWidth + 10);
+				invoke("resize_translate_bubble", { width: desiredWidth }).catch(console.error);
+			}
 		},
 	});
 
@@ -170,8 +183,8 @@ function BubbleView() {
 						<div className="shimmer text-muted-foreground">..!@#$%^&*()_+</div>
 					) : (
 						<>
-							<div>{chat && getMessageText(chat).join("")}</div>
-							{chat && getMessageText(chat).join("") ? (
+							<div ref={chatTextRef}>{chatText}</div>
+							{chatText ? (
 								<span
 									className="truncate text-transparent selection:bg-transparent cursor-grab hover:cursor-grabbing"
 									data-tauri-drag-region
@@ -185,9 +198,9 @@ function BubbleView() {
 					)}
 				</div>
 			</div>
-			<div className="flex">
+			<div ref={actionsRef} className="flex">
 				<Button className={cn("")} size={"icon-sm"} variant={"ghost"}>
-					<Copyed text={chat ? getMessageText(chat).join("") : ""} />
+					<Copyed text={chatText} />
 				</Button>
 				<Button
 					className={cn("")}

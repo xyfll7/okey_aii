@@ -4,6 +4,20 @@ use crate::my_windows::window_helper::*;
 
 
 pub const WINDOW_HEIGHT_TRANSLATE_BUBBLE: f64 = [32.0, 34.0][cfg!(target_os = "macos") as usize];
+
+/// 重新设置 translate_bubble 的宽度（高度固定为 WINDOW_HEIGHT_TRANSLATE_BUBBLE），
+/// 供前端在翻译文本渲染完成后，按文本实际宽度调用。
+/// 注意先更新 min_size 再 set_size，否则文本变短（窗口需要缩小）时会被旧的最小尺寸卡住。
+pub fn window_translate_bubble_resize<R: Runtime>(app: &AppHandle<R>, width: f64) {
+    if let Some(window) = app.get_webview_window("translate_bubble") {
+        let width = width.clamp(150.0, 10_000.0);
+        let size = LogicalSize::new(width, WINDOW_HEIGHT_TRANSLATE_BUBBLE);
+        let _ = window.set_min_size(Some(size));
+        let _ = window.set_size(size);
+        let _ = window.set_max_size(Some(LogicalSize::new(10_000.0, size.height)));
+    }
+}
+
 pub fn window_translate_bubble_show<R: Runtime>(app: &AppHandle<R>) {
     const WINDOW_WIDTH: f64 = 270.0;
     const CURSOR_OFFSET: f64 = 17.0;

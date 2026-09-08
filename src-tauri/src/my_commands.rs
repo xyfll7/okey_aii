@@ -13,6 +13,12 @@ pub async fn open_window_index(app: AppHandle) {
     my_windows::window_index::window_index_show(&app, Some(move || {}));
 }
 
+/// 按前端测量出的文本宽度，重新设置 translate_bubble 气泡窗口的宽度
+#[tauri::command(rename_all = "snake_case")]
+pub fn resize_translate_bubble(app: AppHandle, width: f64) {
+    my_windows::window_translate_bubble::window_translate_bubble_resize(&app, width);
+}
+
 #[tauri::command(rename_all = "snake_case")]
 pub fn translate_prompt(app: AppHandle) -> String {
     let state = app.state::<AppConfigState>();
