@@ -41,23 +41,40 @@ export function ChatProvider({
 	// it) don't re-run on every provider re-render.
 	const originalAppendRef = useRef(chat.append);
 	originalAppendRef.current = chat.append;
-	const append = useCallback(async (arg: UIMessage) => {
-		// Assemble the prompt template in the frontend as early as possible (language detection + user language config),
-		// instead of assembling it in the backend send_message step where the earlier timing would be missed.
-		try {
-			const item = buildPromptHistoryItem(arg);
-			const assembled = await invoke<RigHistoryItem>("assemble_prompt", {
-				item,
-			});
-			const message = rigMessageToUIMessage(assembled);
+	const append = useCallback(
+		async (arg: UIMessage) => {
+			// Assemble the prompt template in the frontend as early as possible (language detection + user language config),
+			// instead of assembling it in the backend send_message step where the earlier timing would be missed.
+			try {
+				const item = buildPromptHistoryItem(arg);
+				const assembled = await invoke<RigHistoryItem>("assemble_prompt", {
+					item,
+				});
+				const message = rigMessageToUIMessage(assembled);
 
-			autoSpeak(message);
+				autoSpeak(message);
 
-			originalAppendRef.current(message);
-		} catch (err) {
-			console.error("assemble_prompt_item failed:", err);
-		}
-	}, []);
+				// Skip appending when the last "user" message in the thread is
+				// already identical to the one being assembled (i.e. it was appended
+				// earlier), while still letting the auto-speak action run.
+				const lastUserMessage = chat.messages
+					.filter((m) => m.role === "user")
+					.at(-1);
+				const lastUserPart = lastUserMessage?.parts[0];
+				const newPart = message.parts[0];
+				const isDuplicate =
+					lastUserPart?.type === "text" &&
+					newPart?.type === "text" &&
+					lastUserPart.content === newPart.content;
+				if (isDuplicate) return;
+
+				originalAppendRef.current(message);
+			} catch (err) {
+				console.error("assemble_prompt_item failed:", err);
+			}
+		},
+		[chat],
+	);
 
 	// Optional ready hook: fire once per session, right after that session's
 	// chat has been initialized and `append` is safe to call. session_id is
