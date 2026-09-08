@@ -10,6 +10,7 @@ import {
 	InputGroupTextarea,
 } from "#/components/ui/input-group";
 import { cn } from "#/lib/utils";
+import { getSessionDraft, setSessionDraft } from "#/lib/sessionDraft";
 import { m } from "#/paraglide/messages";
 import { useSelected } from "@/store";
 import { useDrawerStack } from "./DrawerStack";
@@ -59,7 +60,14 @@ export function Inputer({
 	className?: string;
 	session_id: string;
 }) {
-	const [value, setValue] = useState("");
+	// 会话输入草稿按 session 存 localStorage：挂载时读一次（切换会话会因
+	// key 重建而重新挂载），输入时同步写入 —— 未发送的内容在新建会话、
+	// 切回历史会话甚至 App 重启后都能继续编辑。
+	const [value, setValue] = useState(() => getSessionDraft(session_id));
+	const persistValue = (next: string) => {
+		setValue(next);
+		setSessionDraft(session_id, next);
+	};
 	// Tracks whether a Chinese IME composition is in progress. Prevents Enter
 	// used to confirm/cancel candidate selection from sending the message.
 	const isComposingRef = useRef(false);
@@ -81,7 +89,7 @@ export function Inputer({
 			createdAt: new Date(),
 			parts: [{ type: "text", content }],
 		});
-		setValue("");
+		persistValue("");
 	};
 	return (
 		<InputGroup
@@ -139,7 +147,7 @@ export function Inputer({
 			<InputGroupTextarea
 				placeholder={m.translate_input_placeholder()}
 				value={value}
-				onChange={(e) => setValue(e.target.value)}
+				onChange={(e) => persistValue(e.target.value)}
 				onCompositionStart={() => {
 					isComposingRef.current = true;
 				}}

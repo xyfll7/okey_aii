@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type as ostype } from "@tauri-apps/plugin-os";
 import { useEffect, useState } from "react";
 import { useLocale } from "#/lib/locale";
+import { carrySessionDraft } from "#/lib/sessionDraft";
 import { cn } from "#/lib/utils";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
 import { SessionView } from "#/routes/(index)/-components/SessionView";
@@ -32,7 +33,14 @@ function Home() {
 			)}
 			data-tauri-drag-region
 		>
-			<Header className="p-1" onNewSession={setSession_id} />
+			<Header
+				className="p-1"
+				onNewSession={(next) => {
+					// 把当前会话未发送的输入内容带到新会话（草稿持久化在 localStorage）。
+					carrySessionDraft(session_id, next);
+					setSession_id(next);
+				}}
+			/>
 			<div className={cn("relative h-full", "flex flex-col overflow-hidden")}>
 				{session_id && <SessionView key={session_id} session_id={session_id} />}
 			</div>

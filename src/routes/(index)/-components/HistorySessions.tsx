@@ -4,6 +4,7 @@ import { Icons } from "#/components/icon";
 import { Button } from "#/components/ui/button";
 import { Item, ItemGroup } from "#/components/ui/item";
 import { ScrollArea } from "#/components/ui/scroll-area";
+import { clearSessionDraft } from "#/lib/sessionDraft";
 import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
 import { useDrawerStack } from "#/routes/(index)/-components/DrawerStack";
@@ -57,14 +58,15 @@ function HistorySessionsContent({ className }: { className?: string }) {
 											e.stopPropagation();
 											e.preventDefault();
 											invoke("delete_session", { session_id: s.session_id })
-												.then(() =>
+												.then(() => {
+													clearSessionDraft(s.session_id);
 													setItems((prev) =>
 														prev.filter(
 															(session) =>
 																session.session_id !== s.session_id,
 														),
-													),
-												)
+													);
+												})
 												.catch((err) => console.error(err));
 										}}
 									>
