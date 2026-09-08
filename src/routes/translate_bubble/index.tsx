@@ -68,7 +68,7 @@ function useSessionId() {
 		const unlisten = getCurrentWindow().listen<{
 			session_id: string;
 			user_contents: string[];
-		}>("on_open_session_with_session_id", (e) => {
+		}>("on_open_session_with_session_id_to_bubble", (e) => {
 			const { session_id, user_contents } = e.payload;
 			setSession({ session_id, user_contents });
 		});

@@ -59,7 +59,7 @@ pub fn init(app: &mut tauri::App) {
                         let translate_instruction = translate_prompt(app.clone());
                         let _ = app.emit_to(
                             "translate_bubble",
-                            "on_open_session_with_session_id",
+                            "on_open_session_with_session_id_to_bubble",
                             serde_json::json!({
                                 "session_id": session_id,
                                 "user_contents": [selected_text, translate_instruction],
