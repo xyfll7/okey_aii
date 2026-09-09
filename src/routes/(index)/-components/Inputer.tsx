@@ -9,8 +9,8 @@ import {
 	InputGroupButton,
 	InputGroupTextarea,
 } from "#/components/ui/input-group";
-import { cn } from "#/lib/utils";
 import { getSessionDraft, setSessionDraft } from "#/lib/sessionDraft";
+import { cn } from "#/lib/utils";
 import { m } from "#/paraglide/messages";
 import { useSelected } from "@/store";
 import { useDrawerStack } from "./DrawerStack";
@@ -145,6 +145,7 @@ export function Inputer({
 				</InputGroupAddon>
 			)}
 			<InputGroupTextarea
+				className="min-h-8"
 				placeholder={m.translate_input_placeholder()}
 				value={value}
 				onChange={(e) => persistValue(e.target.value)}
