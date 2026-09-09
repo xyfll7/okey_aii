@@ -34,6 +34,6 @@ dotenvy = "0.15"
 uuid = { version = "1.26.0", features = ["v4"] }
 rdev = { git = "https://github.com/rustdesk/rdev" }
 mouse_position = "0.1.4"
-selection = "1.2.0"
-rust-i18n = "4.2.1"
+selection = { git = "https://github.com/pot-app/Selection", rev = "622e8f32c851daabe45c88481a1c59d11bc7256e" }
+rust-i18n = "4.2.2"
 
