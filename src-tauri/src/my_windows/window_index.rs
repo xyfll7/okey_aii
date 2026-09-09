@@ -41,7 +41,7 @@ where
         }
     } else {
         const WINDOW_WIDTH: f64 = 400.0;
-        const WINDOW_HEIGHT: f64 = 650.0;
+        const WINDOW_HEIGHT: f64 = 690.0;
         const CURSOR_OFFSET: f64 = 10.0;
 
         let (adjusted_x, adjusted_y) = if callback.is_none() {
