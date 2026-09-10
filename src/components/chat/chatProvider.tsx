@@ -9,6 +9,30 @@ import { buildPromptHistoryItem, chatAdapter } from "./chatAdapter";
 import { type ChatAppend, ChatContext } from "./chatContext";
 import { getMessageText } from "./chatUtils";
 
+// Compare a single message part, treating two missing parts as equal so
+// single-part messages are still matched correctly.
+function isSamePart(
+	a: UIMessage["parts"][number] | undefined,
+	b: UIMessage["parts"][number] | undefined,
+): boolean {
+	if (!a && !b) return true;
+	return a?.type === "text" && b?.type === "text" && a.content === b.content;
+}
+
+// A newly assembled message is a duplicate when the last "user" message in the
+// thread already matches it on both parts[0] and parts[1].
+function isDuplicateUserMessage(
+	messages: UIMessage[],
+	message: UIMessage,
+): boolean {
+	const lastUserMessage = messages.filter((m) => m.role === "user").at(-1);
+	if (!lastUserMessage) return false;
+	return (
+		isSamePart(lastUserMessage.parts[0], message.parts[0]) &&
+		isSamePart(lastUserMessage.parts[1], message.parts[1])
+	);
+}
+
 function autoSpeak(message: UIMessage) {
 	invoke<AutoSpeakState>("get_auto_speak").then((res) => {
 		const selectedText = getMessageText(message)[0];
@@ -57,16 +81,7 @@ export function ChatProvider({
 				// Skip appending when the last "user" message in the thread is
 				// already identical to the one being assembled (i.e. it was appended
 				// earlier), while still letting the auto-speak action run.
-				const lastUserMessage = chat.messages
-					.filter((m) => m.role === "user")
-					.at(-1);
-				const lastUserPart = lastUserMessage?.parts[0];
-				const newPart = message.parts[0];
-				const isDuplicate =
-					lastUserPart?.type === "text" &&
-					newPart?.type === "text" &&
-					lastUserPart.content === newPart.content;
-				if (isDuplicate) return;
+				if (isDuplicateUserMessage(chat.messages, message)) return;
 
 				originalAppendRef.current(message);
 			} catch (err) {
