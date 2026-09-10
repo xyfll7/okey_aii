@@ -134,7 +134,7 @@ function BubbleView() {
 				// 文本右边缘已包含左侧把手与间距；再加上右侧按钮区与预留间距，
 				// 即为让整行内容完整显示所需的最小窗口逻辑宽度
 				const actionsWidth = actionsRef.current?.getBoundingClientRect().width ?? 0;
-				const desiredWidth = Math.ceil(el.getBoundingClientRect().right + actionsWidth + 10);
+				const desiredWidth = Math.ceil(el.getBoundingClientRect().right + actionsWidth + 30);
 				invoke("resize_translate_bubble", { width: desiredWidth }).catch(console.error);
 			}
 		},
