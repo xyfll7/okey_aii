@@ -8,11 +8,11 @@ pub const WINDOW_HEIGHT_TRANSLATE_BUBBLE: f64 = [32.0, 34.0][cfg!(target_os = "m
 
 pub fn window_translate_bubble_resize<R: Runtime>(app: &AppHandle<R>, width: f64) {
     if let Some(window) = app.get_webview_window("translate_bubble") {
-        let width = width.clamp(200.0, 10_000.0);
+        let width = width.clamp(200.0, 1000.0);
         let size = LogicalSize::new(width, WINDOW_HEIGHT_TRANSLATE_BUBBLE);
         let _ = window.set_min_size(Some(size));
         let _ = window.set_size(size);
-        let _ = window.set_max_size(Some(LogicalSize::new(10_000.0, size.height)));
+        let _ = window.set_max_size(Some(LogicalSize::new(1000.0, size.height)));
     }
 }
 
