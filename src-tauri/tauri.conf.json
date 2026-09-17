@@ -2,9 +2,9 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "okey_aii",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.okey.aii",
   "build": {
-    "frontendDist": "../build",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:5002",
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",

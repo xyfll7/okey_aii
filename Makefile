@@ -1,7 +1,7 @@
 ROOT_DIR := $(shell pwd)
 ADMIN_DIR := $(ROOT_DIR)
 
-.PHONY: tab icon test_stream_ask
+.PHONY: tab icon build test_stream_ask
 
 ## 在现有 Terminal 窗口中新建一个 tab 标签，并 cd 到 youshu-admin 目录
 tab:
@@ -20,3 +20,9 @@ tab:
 
 icon:
 	pnpm tauri icon  # ./app-icon.png
+
+build:
+	pnpm tauri build
+
+
+	
